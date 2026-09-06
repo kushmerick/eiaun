@@ -50,7 +50,7 @@ public class Control {
             .runAsync(this::acquireSlot, this.executor)
             .thenRun(() -> step(this.taskCounter.incrementAndGet()))
             .thenRun(this::releaseSlot)
-            .thenRun(this::scheduleNext);
+            .thenRun(this::scheduleNext); // TODO: *Here* is the suspicious recursion mentioned above
     }
 
     private void acquireSlot() {
@@ -73,7 +73,7 @@ public class Control {
 
     public void stop() {
         log.info("Stopping");
-        this.executor.shutdownNow(); // TODO: Why does "shutdown" not work?
+        this.executor.shutdownNow(); // tasks run forever so they need to be explicitly interrupted
     }
 
 

@@ -7,6 +7,8 @@ import io.eiaun.concepts.ecosystem.Response;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.function.TriConsumer;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -18,10 +20,19 @@ public class Jakku implements Ecosystem {
 
     private static final Random RANDOM = new Random();
 
-    @Getter private Organism[][] organisms;
-    @Setter @Getter private Substance[][] substances;
-    private final Function<Collection<Location>,Iterator<Location>> organismLocationIteratorGenerator;
+    private final int grid;
+
+    @Getter
+    private Organism[][] organisms;
+
+    @Setter
+    @Getter
+    private Substance[][] substances;
+
+    private final Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator;
+
     private Iterator<Location> organismLocationsIterator;
+
     private final Consumer<String> rejectedChangeRecorder;
     private static final Object lock = new Object();
 
@@ -31,12 +42,13 @@ public class Jakku implements Ecosystem {
             Supplier<Organism> organismCreator,
             double substanceInitialDensity,
             Supplier<Substance> substanceCreator,
-            Function<Collection<Location>,Iterator<Location>> organismLocationIteratorGenerator,
+            Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator,
             Consumer<String> rejectedChangeRecorder
     ) {
         log.info("Initializing");
+        this.grid = grid;
         // random initial organisms
-        this.organismLocationIteratorGenerator = organismLocationIteratorGenerator;
+        this.organismLocationsIteratorGenerator = organismLocationsIteratorGenerator;
         Organism[][] organisms = new Organism[grid][grid];
         int want = (int) (organismInitialDensity * grid * grid);
         int created = 0;
@@ -72,14 +84,14 @@ public class Jakku implements Ecosystem {
 
     private void updateOrganismLocationsIterator() {
         List<Location> organismLocations = new ArrayList<>();
-        for (int lat = 0; lat < maxLat(); lat++) {
-            for (int lon = 0; lon < maxLon(); lon++) {
+        for (int lat = 0; lat < this.grid; lat++) {
+            for (int lon = 0; lon < this.grid; lon++) {
                 if (this.organisms[lat][lon] != null) {
                     organismLocations.add(Location.of(lat, lon));
                 }
             }
         }
-        this.organismLocationsIterator = this.organismLocationIteratorGenerator.apply(organismLocations);
+        this.organismLocationsIterator = this.organismLocationsIteratorGenerator.apply(organismLocations);
     }
 
     @Override
@@ -148,7 +160,7 @@ public class Jakku implements Ecosystem {
                     || (current != null && replacement == null)
             ) {
                 things[destination.getLat()][destination.getLon()] = replacement;
-                modified = true;
+                modified |= current != replacement;
             } else {
                 this.rejectedChangeRecorder.accept(String.format(
                         "Ignoring invalid %s modification at (%s,%s) from %s to %s",
@@ -161,20 +173,18 @@ public class Jakku implements Ecosystem {
     }
 
     public Set<Location> lookForEmpties(int lat, int lon, double radius) {
-        // TODO: True circular vision (instead of square)?
-        Set<Location> empty = new HashSet<>();
-        int minDelta = -Math.toIntExact(Math.round(radius));
-        double maxDelta = radius;
-        for (int deltaLat = minDelta; deltaLat <= maxDelta; deltaLat++) {
-            int lat_ = (lat + deltaLat) % maxLat(); // north-south wrap-around
-            for (int deltaLon = minDelta; deltaLon <= maxDelta; deltaLon++) {
-                int lon_ = (lon + deltaLon) % maxLon(); // east-west wrap-around
-                if (this.substances[lat_][lon_] == null && this.organisms[lat_][lon_] == null) {
-                    empty.add(Location.of(deltaLat, deltaLon));
-                }
-            }
-        }
-        return empty;
+        Set<Location> empties = new HashSet<>();
+        visit(
+                (i, j) -> Pair.of(this.substances[i][j], this.organisms[i][j]),
+                lat,
+                lon,
+                radius,
+                (deltaLat, deltaLon, pair) -> {
+                    if (pair.getLeft() == null && pair.getRight() == null) {
+                        empties.add(Location.of(deltaLat, deltaLon));
+                    }
+                });
+        return empties;
     }
 
     public Map<Location, Substance> lookForSubstances(int lat, int lon, double radius) {
@@ -185,38 +195,53 @@ public class Jakku implements Ecosystem {
         return getThings(this.organisms, lat, lon, radius, true);
     }
 
-    private static <Thing> Map<Location, Thing> getThings(
+    private <Thing> Map<Location, Thing> getThings(
             Thing[][] things,
             int lat,
             int lon,
             double radius,
             boolean skipCenter
     ) {
-        // TODO: True circular vision (instead of square)?
         Map<Location, Thing> neighbors = new HashMap<>();
-        int minDelta = -Math.toIntExact(Math.round(radius));
-        double maxDelta = radius;
-        for (int deltaLat = minDelta; deltaLat <= maxDelta; deltaLat++) {
-            int lat_ = (lat + deltaLat) % things.length; // north-south wrap-around
-            for (int deltaLon = minDelta; deltaLon <= maxDelta; deltaLon++) {
-                if (!skipCenter || deltaLat != 0 || deltaLon != 0) {
-                    int lon_ = (lon + deltaLon) % things[0].length; // east-west wrap-around
-                    Thing thing = things[lat_][lon_];
-                    if (thing != null) {
-                        neighbors.put(Location.of(deltaLat, deltaLon), thing);
+        visit(
+                (i, j) -> things[i][j],
+                lat,
+                lon,
+                radius,
+                (deltaLat, deltaLon, thing) -> {
+                    if (!skipCenter || deltaLat != 0 || deltaLon != 0) {
+                        if (thing != null) {
+                            neighbors.put(Location.of(deltaLat, deltaLon), thing);
+                        }
                     }
-                }
-            }
-        }
+                });
         return neighbors;
     }
 
-    private int maxLat() {
-        return this.organisms.length;
+    private interface TwoD<Thing> {
+        Thing get(int i, int j);
     }
 
-    private int maxLon() {
-        return this.organisms[0].length;
+    private <Thing> void visit(
+            TwoD<Thing> things,
+            int lat,
+            int lon,
+            double radius,
+            TriConsumer<Integer, Integer, Thing> visitor
+    ) {
+        // TODO: True circular vision (instead of square)?
+        int minDelta = -Math.toIntExact(Math.round(radius));
+        double maxDelta = radius;
+        for (int deltaLat = minDelta; deltaLat <= maxDelta; deltaLat++) {
+            int lat_ = (lat + deltaLat) % this.grid; // north-south wrap-around
+            for (int deltaLon = minDelta; deltaLon <= maxDelta; deltaLon++) {
+                int lon_ = (lon + deltaLon) % this.grid; // east-west wrap-around
+                visitor.accept(
+                        deltaLat,
+                        deltaLon,
+                        things.get(lat_, lon_));
+            }
+        }
     }
 
 }
