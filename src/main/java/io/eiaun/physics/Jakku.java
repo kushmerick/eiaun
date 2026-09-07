@@ -242,15 +242,19 @@ public class Jakku implements Ecosystem {
         int minDelta = -Math.toIntExact(Math.round(radius));
         double maxDelta = radius;
         for (int deltaLat = minDelta; deltaLat <= maxDelta; deltaLat++) {
-            int lat_ = (lat + deltaLat) % this.grid; // north-south wrap-around
+            int lat_ = wrap(lat + deltaLat); // north-south wrap-around
             for (int deltaLon = minDelta; deltaLon <= maxDelta; deltaLon++) {
-                int lon_ = (lon + deltaLon) % this.grid; // east-west wrap-around
+                int lon_ = wrap(lon + deltaLon); // east-west wrap-around
                 visitor.accept(
                         deltaLat,
                         deltaLon,
                         things.get(lat_, lon_));
             }
         }
+    }
+
+    int wrap(int index) {
+        return ((index % this.grid) + this.grid) % this.grid;
     }
 
 }

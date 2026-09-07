@@ -378,4 +378,30 @@ class JakkuTest {
         assertEquals(2, rejectedChangeCounter.getRejections());
     }
 
+    @Test
+    public void testWrap() {
+        int grid = 1234;
+        Jakku jakku = new Jakku(
+                grid,
+                0, this::newSimpleOrganism,
+                0, FakeSubstance::new,
+                InfiniteFairIterator::of,
+                log::info);
+        assertEquals(grid - 2, jakku.wrap(-2));
+        assertEquals(grid - 1, jakku.wrap(-1));
+        assertEquals(0, jakku.wrap(0));
+        assertEquals(1, jakku.wrap(1));
+        assertEquals(2, jakku.wrap(2));
+        assertEquals(0, jakku.wrap(-grid));
+        assertEquals(0, jakku.wrap(-99*grid));
+        assertEquals(grid - 1, jakku.wrap(-99*grid - 1));
+        assertEquals(grid - 5, jakku.wrap(-99*grid - 5));
+        assertEquals(5, jakku.wrap(-99*grid + 5));
+        assertEquals(grid - 1, jakku.wrap(grid - 1));
+        assertEquals(0, jakku.wrap(grid));
+        assertEquals(1, jakku.wrap(grid + 1));
+        assertEquals(0, jakku.wrap(99 * grid));
+        assertEquals(1, jakku.wrap(99 * grid + 1));
+    }
+
 }
