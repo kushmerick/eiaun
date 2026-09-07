@@ -5,9 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Semaphore;
+import java.time.Duration;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -17,64 +16,71 @@ public class Control {
     private final AtomicLong taskCounter = new AtomicLong();
     private final ExecutorService executor;
     private final Ecosystem ecosystem;
-    private final Semaphore concurrencyLimiter;
-    private final int taskCount;
+    private final int maxConcurrency;
+    private final int durationSeconds;
+    private boolean running = false;
 
     @Autowired
     public Control(
             ExecutorService executor,
-            Semaphore concurrencyLimiter,
             Ecosystem ecosystem,
-            int taskCount
+            int maxConcurrency,
+            int durationSeconds
     ) {
         this.executor = executor;
-        this.concurrencyLimiter = concurrencyLimiter;
         this.ecosystem = ecosystem;
-        this.taskCount = taskCount;
+        this.maxConcurrency = maxConcurrency;
+        this.durationSeconds = durationSeconds;
     }
 
-    public void start() {
-        // TODO: The intent is to schedule `eiaun.control.task_count` tasks in parallel; at any given time at most N actually
-        // TODO: run (where N = `eiaun.control.processor_fraction` X the number of CPUs). This is implemented using a
-        // TODO: CompletableFuture that recursively calls `scheduleNext` to start its replacement.  This apparently
-        // TODO: works fine, but it seems like a bad smell (for example, the CFs are discarded with nothing actually
-        // TODO: awaiting their completion - is this a leak?). Is there a simpler/cleaner implementation?
-        log.info("App started — launching {} virtual-thread tasks forever...", this.taskCount);
-        for (int i = 0; i < this.taskCount; i++) {
-            scheduleNext();
+    public void start() throws InterruptedException {
+        log.info("Starting");
+        this.running = true;
+        for (int i = 0; i < this.maxConcurrency; i++) {
+            this.executor.submit(this::taskLoop);
+        }
+        log.info("Started");
+        // wait a given number of seconds, then exit the simulation (or run the
+        // simulation forever if a negative duration is specified)
+        if (this.durationSeconds < 0) {
+            log.info("Waiting forever");
+            // we're using virtual threads, which are daemons, so block on a condition that will never obtain
+            new CountDownLatch(1).await();
+        } else {
+            log.info("Sleeping for {} seconds", this.durationSeconds);
+            Thread.sleep(Duration.ofSeconds(durationSeconds));
+            log.info("Stopping");
+            this.stop();
+            log.info("Stopped");
         }
     }
 
-    private void scheduleNext() {
-        CompletableFuture
-            .runAsync(this::acquireSlot, this.executor)
-            .thenRun(() -> step(this.taskCounter.incrementAndGet()))
-            .thenRun(this::releaseSlot)
-            .thenRun(this::scheduleNext); // TODO: *Here* is the suspicious recursion mentioned above
-    }
-
-    private void acquireSlot() {
-        try {
-            this.concurrencyLimiter.acquire();
-        } catch (InterruptedException _) {
-            Thread.currentThread().interrupt();
+    private void taskLoop() {
+        while (this.running) {
+            long id = this.taskCounter.incrementAndGet();
+            try {
+                CompletableFuture
+                        .runAsync(() -> log.info("Task {} started", id), this.executor)
+                        .thenCompose(_ -> this.ecosystem.step(this.executor))
+                        .thenRunAsync(() -> log.info("Task {} finished", id), this.executor)
+                        .get();
+            } catch (InterruptedException interrupted) {
+                log.info("Task {} interrupted", id);
+                return;
+            } catch (ExecutionException failure) {
+                if (failure.getCause() instanceof RejectedExecutionException) {
+                    log.info("Task {} stopped", id);
+                } else {
+                    log.warn("Task {} failed", id, failure);
+                }
+            }
         }
     }
 
-    private void releaseSlot() {
-        this.concurrencyLimiter.release();
-    }
-
-    private void step(long id) {
-        log.info("Starting task {}", id);
-        this.ecosystem.step();
-        log.info("Finished task {}", id);
-    }
-
-    public void stop() {
-        log.info("Stopping");
+    private void stop() {
+        log.info("Shutting down");
+        this.running = false;
         this.executor.shutdownNow(); // tasks run forever so they need to be explicitly interrupted
     }
-
 
 }

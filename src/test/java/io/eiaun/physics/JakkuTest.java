@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,6 +33,8 @@ class JakkuTest {
         }
 
     }
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private Organism newSimpleOrganism() {
         return new SimpleOrganism(Map.of(SimpleOrganism.VISION_RADIUS_PROPERTY, 5d));
@@ -224,7 +228,7 @@ class JakkuTest {
                         Location.of(+1, +1), organisms[lat + 1][lon + 1],
                         Location.of(-1, -1), organisms[lat - 1][lon - 1]))))
                 .thenReturn(response);
-        jakku.step();
+        jakku.step(this.executor).join();
         verify(organism).setState(eq(newState));
         assertNull(substances[lat + 1][lon - 1]);
         assertEquals(substances[lat - 1][lon + 1], substanceChanges.get(Location.of(-1, +1)));
@@ -275,7 +279,7 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Collections.emptyMap())))
                 .thenReturn(response);
-        jakku.step();
+        jakku.step(this.executor).join();
         assertNull(organisms[lat][lon]);
         assertEquals(organisms[lat + 1][lon + 1], organism);
         assertEquals(0, rejectedChangeCounter.getRejections());
@@ -323,7 +327,7 @@ class JakkuTest {
                 eq(Map.of(
                         Location.of(+1, +1), organisms[lat + 1][lon + 1]))))
                 .thenReturn(response);
-        jakku.step();
+        jakku.step(this.executor).join();
         assertEquals(1, rejectedChangeCounter.getRejections());
     }
 
@@ -370,7 +374,7 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Collections.emptyMap())))
                 .thenReturn(response);
-        jakku.step();
+        jakku.step(this.executor).join();
         assertEquals(2, rejectedChangeCounter.getRejections());
     }
 

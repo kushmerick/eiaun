@@ -15,7 +15,6 @@ import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 @Configuration
@@ -28,19 +27,17 @@ public class Config {
     }
 
     @Bean
-    public Semaphore concurrencyLimiter(
+    public int maxConcurrency(
             @Value("${eiaun.control.processor_fraction:0.9}") double processorFraction
     ) {
-        int cpus = Math.max(1, (int) (Runtime.getRuntime().availableProcessors() * processorFraction));
-        log.info("Using {} CPUs ({}%)", cpus, processorFraction * 100);
-        return new Semaphore(cpus, true);
+        return Math.max(1, (int) (Runtime.getRuntime().availableProcessors() * processorFraction));
     }
 
     @Bean
-    public int taskCount(
-            @Value("${eiaun.control.task_count:20}") int taskCount
+    public int durationSeconds(
+            @Value("${eiaun.control.duration_secs:10}") int durationSeconds
     ) {
-        return taskCount;
+        return durationSeconds;
     }
 
     @Bean
@@ -73,7 +70,7 @@ public class Config {
     }
 
     @Bean
-    public SubstanceFactory atomFactory(
+    public SubstanceFactory substanceFactory(
             SubstanceSpecs substanceSpecs
     ) {
         return new SubstanceFactory(substanceSpecs.getSubstances());

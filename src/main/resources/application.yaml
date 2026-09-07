@@ -5,7 +5,6 @@ spring:
 eiaun:
   control:
     duration_secs: 2
-    task_count: 20
     processor_fraction: 0.9
   jakku:
     grid: 1000
