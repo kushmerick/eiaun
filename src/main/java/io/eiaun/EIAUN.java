@@ -1,6 +1,7 @@
 package io.eiaun;
 
 import io.eiaun.control.Control;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,12 @@ public class EIAUN implements CommandLineRunner {
     public void run(String @NonNull [] ignored) throws InterruptedException {
         log.info("Starting");
         this.control.start();
+    }
+
+    @PreDestroy
+    public void stop() {
+        log.info("Stopping");
+        // nothing to do: Control manages its own lifecycle
     }
 
 }
