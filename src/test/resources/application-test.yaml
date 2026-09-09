@@ -1,3 +1,6 @@
 eiaun:
   control:
     duration_secs: 1
+  jakku:
+    organisms:
+      type: io.eiaun.organisms.simple.SimpleOrganism

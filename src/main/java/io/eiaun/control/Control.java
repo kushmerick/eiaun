@@ -1,6 +1,6 @@
 package io.eiaun.control;
 
-import io.eiaun.concepts.ecosystem.Ecosystem;
+import io.eiaun.physics.Jakku;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ public class Control {
 
     private final AtomicLong taskCounter = new AtomicLong();
     private final ExecutorService executor;
-    private final Ecosystem ecosystem;
+    private final Jakku jakku;
     private final int maxConcurrency;
     private final int durationSeconds;
     private boolean running = false;
@@ -23,18 +23,19 @@ public class Control {
     @Autowired
     public Control(
             ExecutorService executor,
-            Ecosystem ecosystem,
+            Jakku jakku,
             int maxConcurrency,
             int durationSeconds
     ) {
         this.executor = executor;
-        this.ecosystem = ecosystem;
+        this.jakku = jakku;
         this.maxConcurrency = maxConcurrency;
         this.durationSeconds = durationSeconds;
     }
 
     public void start() throws InterruptedException {
         log.info("Starting");
+        jakku.initialize();
         this.running = true;
         for (int i = 0; i < this.maxConcurrency; i++) {
             this.executor.submit(this::taskLoop);
@@ -60,9 +61,9 @@ public class Control {
             long id = this.taskCounter.incrementAndGet();
             try {
                 CompletableFuture
-                        .runAsync(() -> log.info("Task {} started", id), this.executor)
-                        .thenCompose(_ -> this.ecosystem.step(this.executor))
-                        .thenRunAsync(() -> log.info("Task {} finished", id), this.executor)
+                        .runAsync(() -> log.trace("Task {} started", id), this.executor)
+                        .thenCompose(_ -> this.jakku.step(this.executor))
+                        .thenRunAsync(() -> log.trace("Task {} finished", id), this.executor)
                         .get();
             } catch (InterruptedException interrupted) {
                 log.info("Task {} interrupted", id);
@@ -80,7 +81,7 @@ public class Control {
     private void stop() {
         log.info("Shutting down");
         this.running = false;
-        this.executor.shutdownNow(); // tasks run forever so they need to be explicitly interrupted
+        this.executor.shutdownNow();
     }
 
 }

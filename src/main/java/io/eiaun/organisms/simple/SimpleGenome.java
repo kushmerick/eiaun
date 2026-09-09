@@ -1,6 +1,10 @@
-package io.eiaun.implementations.simple;
+package io.eiaun.organisms.simple;
 
-import io.eiaun.concepts.ecosystem.*;
+import io.eiaun.organisms.Genome;
+import io.eiaun.organisms.Organism;
+import io.eiaun.organisms.Response;
+import io.eiaun.organisms.State;
+import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.Getter;
 

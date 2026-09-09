@@ -1,5 +1,6 @@
-package io.eiaun.concepts.ecosystem;
+package io.eiaun.organisms;
 
+import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 
 import java.util.Map;
@@ -8,7 +9,7 @@ import java.util.Set;
 public interface Organism {
 
     Response respond(
-            Set<Location> empty,
+            Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
     );

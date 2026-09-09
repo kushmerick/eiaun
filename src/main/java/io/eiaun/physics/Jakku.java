@@ -1,14 +1,11 @@
 package io.eiaun.physics;
 
-import io.eiaun.concepts.ecosystem.Ecosystem;
-import io.eiaun.concepts.ecosystem.Location;
-import io.eiaun.concepts.ecosystem.Organism;
-import io.eiaun.concepts.ecosystem.Response;
+import io.eiaun.organisms.Organism;
+import io.eiaun.organisms.Response;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.TriConsumer;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -18,18 +15,26 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Slf4j
-public class Jakku implements Ecosystem {
+public class Jakku {
 
     private static final Random RANDOM = new Random();
 
     private final int grid;
 
+    private final double organismInitialDensity;
+
     @Getter
     private Organism[][] organisms;
+
+    private final Supplier<Organism> organismCreator;
+
+    private final double substanceInitialDensity;
 
     @Setter
     @Getter
     private Substance[][] substances;
+
+    private final SubstanceFactory substanceFactory;
 
     private final Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator;
 
@@ -42,42 +47,58 @@ public class Jakku implements Ecosystem {
     public Jakku(
             int grid,
             double organismInitialDensity,
-            Supplier<Organism> organismCreator,
+            Function<Jakku, Organism> organismCreator,
             double substanceInitialDensity,
-            Supplier<Substance> substanceCreator,
+            SubstanceFactory substanceFactory,
             Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator,
             Consumer<String> rejectedChangeRecorder
     ) {
-        log.info("Initializing");
         this.grid = grid;
-        // random initial organisms
+        this.organismInitialDensity = organismInitialDensity;
+        this.organismCreator = () -> organismCreator.apply(this);
+        this.substanceInitialDensity = substanceInitialDensity;
+        this.substanceFactory = substanceFactory;
         this.organismLocationsIteratorGenerator = organismLocationsIteratorGenerator;
-        Organism[][] organisms = new Organism[grid][grid];
-        int want = (int) (organismInitialDensity * grid * grid);
+        this.rejectedChangeRecorder = rejectedChangeRecorder;
+    }
+
+    public void initialize() {
+        log.info("Initializing");
+        // random initial organisms
+        Organism[][] organisms = new Organism[this.grid][this.grid];
+        int want = (int) (this.organismInitialDensity * this.grid * this.grid);
         int created = 0;
         while (created < want) {
-            int lat = RANDOM.nextInt(grid);
-            int lon = RANDOM.nextInt(grid);
+            int lat = RANDOM.nextInt(this.grid);
+            int lon = RANDOM.nextInt(this.grid);
             if (organisms[lat][lon] == null) {
-                organisms[lat][lon] = organismCreator.get();
+                organisms[lat][lon] = this.organismCreator.get();
                 created++;
             }
         }
         setOrganisms(organisms);
         // random initial substances
-        Substance[][] substances = new Substance[grid][grid];
-        want = (int) (substanceInitialDensity * grid * grid);
+        Substance[][] substances = new Substance[this.grid][this.grid];
+        want = (int) (this.substanceInitialDensity * this.grid * this.grid);
         created = 0;
         while (created < want) {
-            int lat = RANDOM.nextInt(grid);
-            int lon = RANDOM.nextInt(grid);
+            int lat = RANDOM.nextInt(this.grid);
+            int lon = RANDOM.nextInt(this.grid);
             if (substances[lat][lon] == null) {
-                substances[lat][lon] = substanceCreator.get();
+                substances[lat][lon] = this.substanceFactory.make();
                 created++;
             }
         }
         setSubstances(substances);
-        this.rejectedChangeRecorder = rejectedChangeRecorder;
+    }
+
+    public Map<String,Set<String>> getAllSubstanceProperties() {
+        Map<String,Set<String>> substanceProperties = new HashMap<>();
+        for (SubstanceSpec spec: this.substanceFactory.getSubstanceSpecs()) {
+            spec.getProperties().forEach((p, v) ->
+                    substanceProperties.computeIfAbsent(p, (_) -> new HashSet<>()).add(v));
+        }
+        return substanceProperties;
     }
 
     public void setOrganisms(Organism[][] organisms) {
@@ -97,29 +118,28 @@ public class Jakku implements Ecosystem {
         this.organismLocationsIterator = this.organismLocationsIteratorGenerator.apply(organismLocations);
     }
 
-    @Override
     public CompletableFuture<Void> step(ExecutorService executor) {
-        log.info("Stepping");
+        log.trace("Stepping");
         return CompletableFuture.runAsync(() -> {
             Location location;
             Organism organism;
             Map<Location, Substance> substances;
             Map<Location, Organism> neighbors;
-            Set<Location> empty;
+            Set<Location> empties;
             synchronized (this.lock) {
                 location = this.organismLocationsIterator.next();
                 int lat = location.getLat();
                 int lon = location.getLon();
                 organism = this.organisms[lat][lon];
                 double radius = organism.getGenome().getVisionRadius();
-                empty = lookForEmpties(lat, lon, radius);
+                empties = lookForEmpties(lat, lon, radius);
                 substances = lookForSubstances(lat, lon, radius);
                 neighbors = lookForNeighbors(lat, lon, radius);
             }
-            log.info("Stepping organism {} with {} neighbors, {} substances, {} empties",
-                    organism.getId(), neighbors.size(), substances.size(), empty.size());
-            Response response = organism.respond(empty, substances, neighbors);
-            log.info("Updating for organism {}'s response with {} substance changes and {} organism changes",
+            log.debug("Stepping organism {} at {} with {} neighbors, {} substances, {} empties",
+                    organism.getId(), location, neighbors.size(), substances.size(), empties.size());
+            Response response = organism.respond(empties, substances, neighbors);
+            log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
             synchronized (this.lock) {
                 organism.setState(response.newState());
@@ -160,8 +180,8 @@ public class Jakku implements Ecosystem {
             boolean mutable
     ) {
         boolean modified = false;
-        for (Map.Entry<Location, Thing> entry : changes.entrySet()) {
-            Location destination = location.add(entry.getKey(), things.length, things[0].length);
+        for (var entry : changes.entrySet()) {
+            Location destination = location.add(entry.getKey(), this.grid);
             Thing current = things[destination.getLat()][destination.getLon()];
             Thing replacement = entry.getValue();
             if ((mutable && current != null && replacement != null)
@@ -172,8 +192,8 @@ public class Jakku implements Ecosystem {
                 modified |= current != replacement;
             } else {
                 this.rejectedChangeRecorder.accept(String.format(
-                        "Ignoring invalid %s modification at (%s,%s) from %s to %s",
-                        label, destination.getLat(), destination.getLon(),
+                        "Ignoring invalid %s modification at %s from %s to %s",
+                        label, destination,
                         Optional.ofNullable(current).map(describer).orElse(null),
                         Optional.ofNullable(replacement).map(describer).orElse(null)));
             }
@@ -184,12 +204,12 @@ public class Jakku implements Ecosystem {
     public Set<Location> lookForEmpties(int lat, int lon, double radius) {
         Set<Location> empties = new HashSet<>();
         visit(
-                (i, j) -> Pair.of(this.substances[i][j], this.organisms[i][j]),
+                (i, j) -> this.organisms[i][j],
                 lat,
                 lon,
                 radius,
-                (deltaLat, deltaLon, pair) -> {
-                    if (pair.getLeft() == null && pair.getRight() == null) {
+                (deltaLat, deltaLon, organism) -> {
+                    if (organism == null) {
                         empties.add(Location.of(deltaLat, deltaLon));
                     }
                 });
@@ -254,7 +274,7 @@ public class Jakku implements Ecosystem {
     }
 
     int wrap(int index) {
-        return ((index % this.grid) + this.grid) % this.grid;
+        return Location.wrap(index, this.grid);
     }
 
 }

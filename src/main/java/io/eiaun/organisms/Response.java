@@ -1,5 +1,6 @@
-package io.eiaun.concepts.ecosystem;
+package io.eiaun.organisms;
 
+import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 
 import java.util.Map;

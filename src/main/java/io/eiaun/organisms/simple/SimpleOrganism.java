@@ -1,6 +1,11 @@
-package io.eiaun.implementations.simple;
+package io.eiaun.organisms.simple;
 
-import io.eiaun.concepts.ecosystem.*;
+import io.eiaun.organisms.Genome;
+import io.eiaun.organisms.Organism;
+import io.eiaun.organisms.Response;
+import io.eiaun.organisms.State;
+import io.eiaun.physics.Jakku;
+import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.Data;
 
@@ -8,6 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * An utterly trivial organism that doesn't do anything.
+ */
 @Data
 public class SimpleOrganism implements Organism {
 
@@ -18,7 +26,10 @@ public class SimpleOrganism implements Organism {
     private final Genome genome;
     private State state;
 
-    public SimpleOrganism(Map<String, Double> properties) {
+    public SimpleOrganism(
+            Jakku ignored,
+            Map<String, Double> properties
+    ) {
         this.id = ID.incrementAndGet();
         this.genome = new SimpleGenome(properties.get(VISION_RADIUS_PROPERTY));
         this.state = new SimpleState();
@@ -26,11 +37,11 @@ public class SimpleOrganism implements Organism {
 
     @Override
     public Response respond(
-            Set<Location> empty,
+            Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location, Organism> neighbors
     ) {
-        return this.genome.respond(this.state, empty, substances, neighbors);
+        return this.genome.respond(this.state, empties, substances, neighbors);
     }
 
 }

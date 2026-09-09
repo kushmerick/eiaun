@@ -1,5 +1,6 @@
-package io.eiaun.concepts.ecosystem;
+package io.eiaun.organisms;
 
+import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 
 import java.util.Map;
@@ -13,6 +14,6 @@ public interface Genome {
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,
-            Map<Location,Organism> neighbors);
+            Map<Location, Organism> neighbors);
 
 }

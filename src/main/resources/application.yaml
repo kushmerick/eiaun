@@ -4,406 +4,410 @@ spring:
 
 eiaun:
   control:
-    duration_secs: 2
+    duration_secs: -1
     processor_fraction: 0.9
   jakku:
     grid: 1000
-    initial_density:
-      organism: 0.1
-      substance: 0.2
     organisms:
-      type: io.eiaun.implementations.simple.SimpleOrganism
+      density: 0.4
+      # type: io.eiaun.organisms.simple.SimpleOrganism
+      type: io.eiaun.organisms.mover.Mover
       properties:
-        "[io.eiaun.implementations.simple.SimpleOrganism]":
+        "[io.eiaun.organisms.simple.SimpleOrganism]":
           vision_radius: 5
+        "[io.eiaun.organisms.mover.Mover]":
+          vision_radius: 3
+          desirable_properties: 2
     substances:
-    - abundance: 6.0
-      id: Uranium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vdi4B
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VNkzk
-    - abundance: 15.0
-      id: Aluminum
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VCAPH
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 2.0
-      id: Phosphorus
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vdi4B
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VpaWr
-    - abundance: 3.0
-      id: Cobalt
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vacex
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VxBru
-        Miscibility: Vuvyi
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VpaWr
-    - abundance: 2.0
-      id: Copper
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vdi4B
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: V7z98
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VpaWr
-    - abundance: 12.0
-      id: Carbon
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: V9r7n
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VCAPH
-        Miscibility: VSelz
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VO577
-    - abundance: 4.0
-      id: Bohrium
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vacex
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VxBru
-        Miscibility: VSelz
-        Hydrophile: V7z98
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 9.0
-      id: Rubidium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vdi4B
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VxBru
-        Miscibility: Vuvyi
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 5.0
-      id: Sodium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vdi4B
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VxBru
-        Miscibility: Vuvyi
-        Hydrophile: VJHfD
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VO577
-    - abundance: 18.0
-      id: Polonium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vdi4B
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VxBru
-        Miscibility: V8QMO
-        Hydrophile: V7z98
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 6.0
-      id: Technetium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VxBru
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VNkzk
-    - abundance: 3.0
-      id: Bismuth
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VCAPH
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VpaWr
-    - abundance: 16.0
-      id: Francium
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vdi4B
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VYbL0
-        Miscibility: Vuvyi
-        Hydrophile: VdAEk
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VpaWr
-    - abundance: 2.0
-      id: Darmstadtium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: V9r7n
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VCAPH
-        Miscibility: Vuvyi
-        Hydrophile: V7z98
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VpaWr
-    - abundance: 16.0
-      id: Copernicium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VCAPH
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 7.0
-      id: Cerium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vdi4B
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VxBru
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VNkzk
-    - abundance: 3.0
-      id: Terbium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: V9r7n
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VCAPH
-        Miscibility: Vuvyi
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VO577
-    - abundance: 3.0
-      id: Thallium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vdi4B
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: V7z98
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VNkzk
-    - abundance: 2.0
-      id: Promethium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: V9r7n
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VxBru
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VNkzk
-    - abundance: 17.0
-      id: Roentgenium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vdi4B
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VxBru
-        Miscibility: VSelz
-        Hydrophile: VdAEk
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VpaWr
-    - abundance: 2.0
-      id: Boron
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: V9r7n
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VG4Zn
-        FirePoint: VYbL0
-        Miscibility: Vuvyi
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VNkzk
-    - abundance: 9.0
-      id: Lanthanum
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: VybFX
-        AqueousSolution: V9r7n
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: V7z98
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VO577
-    - abundance: 8.0
-      id: Krypton
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: VybFX
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: V7z98
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VNkzk
-    - abundance: 2.0
-      id: Dubnium
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vdi4B
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VCAPH
-        Miscibility: VSelz
-        Hydrophile: V7z98
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VO577
-    - abundance: 8.0
-      id: Hydrogen
-      properties:
-        MolecularMass: VXxho
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vdi4B
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VCAPH
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: Vub1Y
-        VanDerWaalsRadius: VO577
-    - abundance: 4.0
-      id: Zinc
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: VybFX
-        AqueousSolution: V9r7n
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VKc9C
-        FirePoint: VxBru
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VNkzk
-    - abundance: 4.0
-      id: Helium
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: VybFX
-        AqueousSolution: V9r7n
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: VdAEk
-        AcidityFunction: VVntM
-        VanDerWaalsRadius: VpaWr
-    - abundance: 2.0
-      id: Arsenic
-      properties:
-        MolecularMass: VgXcn
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: V9r7n
-        MolarMass: V7eG7
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VxBru
-        Miscibility: VSelz
-        Hydrophile: VJHfD
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VNkzk
-    - abundance: 13.0
-      id: Rhodium
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: Vb7Vg
-        AqueousSolution: Vacex
-        MolarMass: VZHHm
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VCAPH
-        Miscibility: VSelz
-        Hydrophile: VdAEk
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VpaWr
-    - abundance: 2.0
-      id: Rutherfordium
-      properties:
-        MolecularMass: V2Bcv
-        Freezing-pointDepression: V4BE8
-        AqueousSolution: Vdi4B
-        MolarMass: VkfTU
-        LyotropicLiquidCrystal: VMOk5
-        FirePoint: VYbL0
-        Miscibility: V8QMO
-        Hydrophile: VJHfD
-        AcidityFunction: VuiV6
-        VanDerWaalsRadius: VNkzk
+      density: 0.2
+      specs:
+      - abundance: 6.0
+        id: Uranium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vdi4B
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VNkzk
+      - abundance: 15.0
+        id: Aluminum
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VCAPH
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 2.0
+        id: Phosphorus
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vdi4B
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VpaWr
+      - abundance: 3.0
+        id: Cobalt
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vacex
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VxBru
+          Miscibility: Vuvyi
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VpaWr
+      - abundance: 2.0
+        id: Copper
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vdi4B
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: V7z98
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VpaWr
+      - abundance: 12.0
+        id: Carbon
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: V9r7n
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VCAPH
+          Miscibility: VSelz
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VO577
+      - abundance: 4.0
+        id: Bohrium
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vacex
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VxBru
+          Miscibility: VSelz
+          Hydrophile: V7z98
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 9.0
+        id: Rubidium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vdi4B
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VxBru
+          Miscibility: Vuvyi
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 5.0
+        id: Sodium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vdi4B
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VxBru
+          Miscibility: Vuvyi
+          Hydrophile: VJHfD
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VO577
+      - abundance: 18.0
+        id: Polonium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vdi4B
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VxBru
+          Miscibility: V8QMO
+          Hydrophile: V7z98
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 6.0
+        id: Technetium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VxBru
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VNkzk
+      - abundance: 3.0
+        id: Bismuth
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VCAPH
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VpaWr
+      - abundance: 16.0
+        id: Francium
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vdi4B
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VYbL0
+          Miscibility: Vuvyi
+          Hydrophile: VdAEk
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VpaWr
+      - abundance: 2.0
+        id: Darmstadtium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: V9r7n
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VCAPH
+          Miscibility: Vuvyi
+          Hydrophile: V7z98
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VpaWr
+      - abundance: 16.0
+        id: Copernicium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VCAPH
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 7.0
+        id: Cerium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vdi4B
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VxBru
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VNkzk
+      - abundance: 3.0
+        id: Terbium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: V9r7n
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VCAPH
+          Miscibility: Vuvyi
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VO577
+      - abundance: 3.0
+        id: Thallium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vdi4B
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: V7z98
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VNkzk
+      - abundance: 2.0
+        id: Promethium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: V9r7n
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VxBru
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VNkzk
+      - abundance: 17.0
+        id: Roentgenium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vdi4B
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VxBru
+          Miscibility: VSelz
+          Hydrophile: VdAEk
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VpaWr
+      - abundance: 2.0
+        id: Boron
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: V9r7n
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VG4Zn
+          FirePoint: VYbL0
+          Miscibility: Vuvyi
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VNkzk
+      - abundance: 9.0
+        id: Lanthanum
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: VybFX
+          AqueousSolution: V9r7n
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: V7z98
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VO577
+      - abundance: 8.0
+        id: Krypton
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: VybFX
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: V7z98
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VNkzk
+      - abundance: 2.0
+        id: Dubnium
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vdi4B
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VCAPH
+          Miscibility: VSelz
+          Hydrophile: V7z98
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VO577
+      - abundance: 8.0
+        id: Hydrogen
+        properties:
+          MolecularMass: VXxho
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vdi4B
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VCAPH
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: Vub1Y
+          VanDerWaalsRadius: VO577
+      - abundance: 4.0
+        id: Zinc
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: VybFX
+          AqueousSolution: V9r7n
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VKc9C
+          FirePoint: VxBru
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VNkzk
+      - abundance: 4.0
+        id: Helium
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: VybFX
+          AqueousSolution: V9r7n
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: VdAEk
+          AcidityFunction: VVntM
+          VanDerWaalsRadius: VpaWr
+      - abundance: 2.0
+        id: Arsenic
+        properties:
+          MolecularMass: VgXcn
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: V9r7n
+          MolarMass: V7eG7
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VxBru
+          Miscibility: VSelz
+          Hydrophile: VJHfD
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VNkzk
+      - abundance: 13.0
+        id: Rhodium
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: Vb7Vg
+          AqueousSolution: Vacex
+          MolarMass: VZHHm
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VCAPH
+          Miscibility: VSelz
+          Hydrophile: VdAEk
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VpaWr
+      - abundance: 2.0
+        id: Rutherfordium
+        properties:
+          MolecularMass: V2Bcv
+          Freezing-pointDepression: V4BE8
+          AqueousSolution: Vdi4B
+          MolarMass: VkfTU
+          LyotropicLiquidCrystal: VMOk5
+          FirePoint: VYbL0
+          Miscibility: V8QMO
+          Hydrophile: VJHfD
+          AcidityFunction: VuiV6
+          VanDerWaalsRadius: VNkzk

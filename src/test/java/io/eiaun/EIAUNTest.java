@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 class EIAUNTest {
 
     @Test
-    void canRunMain() throws InterruptedException {
+    void canRunMain() {
         EIAUN.main(new String[]{"--spring.profiles.active=test"});
     }
 

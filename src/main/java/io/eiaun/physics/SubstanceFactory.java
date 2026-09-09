@@ -1,5 +1,6 @@
 package io.eiaun.physics;
 
+import lombok.Getter;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.yaml.snakeyaml.DumperOptions;
@@ -14,15 +15,17 @@ import java.util.stream.Stream;
 public class SubstanceFactory {
 
     private final Random random = new Random();
-    private final List<SubstanceSpec> specs;
 
-    public SubstanceFactory(List<SubstanceSpec> specs) {
-        this.specs = specs;
+    @Getter
+    private final List<SubstanceSpec> substanceSpecs;
+
+    public SubstanceFactory(List<SubstanceSpec> substanceSpecs) {
+        this.substanceSpecs = substanceSpecs;
         double sum = 0;
-        for (SubstanceSpec spec: this.specs) {
+        for (SubstanceSpec spec: this.substanceSpecs) {
             sum += spec.abundance;
         }
-        for (SubstanceSpec spec: this.specs) {
+        for (SubstanceSpec spec: this.substanceSpecs) {
             spec.abundance /= sum;
         }
     }
@@ -30,7 +33,7 @@ public class SubstanceFactory {
     public Substance make() {
         double threshold = this.random.nextDouble();
         double cumulative = 0;
-        for (SubstanceSpec spec: this.specs) {
+        for (SubstanceSpec spec: this.substanceSpecs) {
             cumulative += spec.abundance;
             if (threshold < cumulative) {
                 return spec.make();
@@ -71,7 +74,7 @@ public class SubstanceFactory {
                     .findFirst()
                     .orElseThrow();
             Map<String,String> properties = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry: propertyValues.entrySet()) {
+            for (var entry: propertyValues.entrySet()) {
                 properties.put(
                         entry.getKey(),
                         entry.getValue().get(random.nextInt(nValues)));
