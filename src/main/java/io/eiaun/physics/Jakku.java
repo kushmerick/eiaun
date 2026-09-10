@@ -129,6 +129,15 @@ public class Jakku {
                             Map<Location, Organism> neighbors;
                             Set<Location> empties;
                             synchronized (this.lock) {
+                                if (!this.organismLocationsIterator.hasNext()) {
+                                    // Comment {%%**%%}: Protect ourselves against race/edge cases where extinction is
+                                    // not caught in time to halt this step. The most obvious case is just concurrent
+                                    // step execution. A subtler scenario is where some prior step both lead to
+                                    // extinction and failed, in which case Control logged the failure but did not
+                                    // terminate the simulation.
+                                    log.warn("Undetected extinction");
+                                    return;
+                                }
                                 location = this.organismLocationsIterator.next();
                                 int lat = location.getLat();
                                 int lon = location.getLon();
@@ -152,10 +161,18 @@ public class Jakku {
                             }
                         }, executor)
                 .handleAsync(
-                        (_, __) -> {
+                        (_, failure) -> {
                             // check whether any organisms are still living
-                            synchronized (this.lock) {
-                                return !this.organismLocationsIterator.hasNext();
+                            if (failure == null) {
+                                synchronized (this.lock) {
+                                    return !this.organismLocationsIterator.hasNext();
+                                }
+                            } else {
+                                // Propagate step failure so Control can log it and proceed. It is possible we went
+                                // extinct and then failed, so we're missing an opportunity to notify Control of the
+                                // extinction. But such failures represent bugs that should be fixed, so it's OK that
+                                // we're not cleanly handling such a scenario. See also comment {%%**%%} above.
+                                throw new RuntimeException(failure);
                             }
                         },
                         executor);

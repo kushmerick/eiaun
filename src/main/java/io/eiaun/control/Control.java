@@ -19,6 +19,7 @@ public class Control {
     private final int maxConcurrency;
     private final int durationSeconds;
     private boolean running = false;
+    private CountDownLatch runningForever = null;
 
     @Autowired
     public Control(
@@ -44,14 +45,14 @@ public class Control {
         // wait a given number of seconds, then exit the simulation (or run the
         // simulation forever if a negative duration is specified)
         if (this.durationSeconds < 0) {
-            log.info("Waiting forever");
-            // we're using virtual threads, which are daemons, so block on a condition that will never obtain
-            new CountDownLatch(1).await();
+            log.info("Running forever");
+            this.runningForever = new CountDownLatch(1);
+            this.runningForever.await();
         } else {
             log.info("Sleeping for {} seconds", this.durationSeconds);
             Thread.sleep(Duration.ofSeconds(durationSeconds));
             log.info("Stopping");
-            this.stop();
+            stop();
             log.info("Stopped");
         }
     }
@@ -89,6 +90,9 @@ public class Control {
         log.info("Shutting down");
         this.running = false;
         this.executor.shutdownNow();
+        if (this.runningForever != null) {
+            this.runningForever.countDown();
+        }
     }
 
 }
