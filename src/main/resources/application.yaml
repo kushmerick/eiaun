@@ -20,6 +20,7 @@ eiaun:
           desirable_properties: 2
           peak_energy: 5
           move_energy: 1
+          rest_energy: 0.5
     substances:
       density: 0.2
       specs:

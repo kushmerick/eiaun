@@ -29,6 +29,7 @@ public class Mover implements Organism {
     public static final String DESIRABLE_PROPERTIES_PROPERTY = "desirable_properties";
     public static final String PEAK_ENERGY_PROPERTY = "peak_energy";
     public static final String MOVE_ENERGY_PROPERTY = "move_energy";
+    public static final String REST_ENERGY_PROPERTY = "rest_energy";
 
     private final long id;
     private final Genome genome;
@@ -59,7 +60,8 @@ public class Mover implements Organism {
                 desirableSubstanceProperties,
                 properties.get(VISION_RADIUS_PROPERTY),
                 peakEnergy,
-                properties.get(MOVE_ENERGY_PROPERTY));
+                properties.get(MOVE_ENERGY_PROPERTY),
+                properties.get(REST_ENERGY_PROPERTY));
         this.state = new MoverState(peakEnergy);
     }
 

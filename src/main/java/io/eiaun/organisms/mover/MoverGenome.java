@@ -22,6 +22,7 @@ public class MoverGenome implements Genome {
     @Getter private final double visionRadius;
     private final double peakEnergy;
     private final double moveEnergy;
+    private final double restEnergy;
     private final Random random = new Random();
 
     public MoverGenome(
@@ -29,13 +30,15 @@ public class MoverGenome implements Genome {
             Map<String, String> desireableSubstanceProperties,
             double visionRadius,
             double peakEnergy,
-            double moveEnergy
+            double moveEnergy,
+            double restEnergy
     ) {
         this.organism = organism;
         this.desireableSubstanceProperties = desireableSubstanceProperties;
         this.visionRadius = visionRadius;
         this.peakEnergy = peakEnergy;
         this.moveEnergy = moveEnergy;
+        this.restEnergy = restEnergy;
     }
 
     @Override
@@ -112,7 +115,7 @@ public class MoverGenome implements Genome {
                     });
         }
         State newState = organismChanges.isEmpty()
-                ? state
+                ? new MoverState(moverState.getEnergy() - restEnergy)
                 : new MoverState(moverState.getEnergy() - moveEnergy);
         return Response.of(
                 newState,
