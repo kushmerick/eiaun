@@ -8,6 +8,7 @@ import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -51,8 +52,9 @@ public class MoverGenome implements Genome {
                 .filter(entry -> isDesirable(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         if (desirableSubstances.containsKey(Location.ORIGIN)) {
-            log.info("Content: Organism {} with energy {} found desirable substance {}",
-                    this.organism.getId(), moverState.getEnergy(), substances.get(Location.ORIGIN).getId());
+            Substance substance = desirableSubstances.get(Location.ORIGIN);
+            log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
+                    this.organism.getId(), moverState.getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
             substanceChanges.put(Location.ORIGIN, null);
             // replenish energy
@@ -76,6 +78,7 @@ public class MoverGenome implements Genome {
                     .ifPresentOrElse(location -> {
                         // location of the nearest desirable substance
                         Substance desiredSubstance = substances.get(location);
+                        String explanation = explainDesire(desiredSubstance);
                         if (organisms.containsKey(location)) {
                             // can't move directly to the substance, so move to the nearest empty location
                             empties.stream()
@@ -84,18 +87,17 @@ public class MoverGenome implements Genome {
                                     .map(Pair::getLeft)
                                     .findFirst()
                                     .ifPresentOrElse(empty -> {
-                                        log.info("Motivated: Organism {} with energy {} moving by {} toward substance {} at {}",
-                                                this.organism.getId(), moverState.getEnergy(), empty, desiredSubstance.getId(), location);
-                                        organismChanges.put(Location.ORIGIN, null);
-                                        organismChanges.put(empty, this.organism);
+                                        log.info("Motivated: Organism {} with energy {} moving by {} toward substance {} at {} - {}",
+                                                this.organism.getId(), moverState.getEnergy(), empty, desiredSubstance.getId(), location, explanation);
+                                        moveTo(organismChanges, empty);
                                     }, () -> {
-                                        log.info("Stuck: Organism {} with energy {} desires {} at {} but can't move",
-                                                this.organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location);
+                                        log.info("Stuck: Organism {} with energy {} desires {} at {} but can't move - {}",
+                                                this.organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location, explanation);
                                     });
                         } else {
                             // we can move directly to the substance because there is no organism already there
-                            log.info("Excited: Organism {} with energy {} moving directly to substance {} at {}",
-                                    this.organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location);
+                            log.info("Excited: Organism {} with energy {} moving directly to substance {} at {} - {}",
+                                    this.organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location, explanation);
                             moveTo(organismChanges, location);
                         }
                     }, () -> {
@@ -127,6 +129,22 @@ public class MoverGenome implements Genome {
         return this.desireableSubstanceProperties.entrySet().stream()
                 .anyMatch(entry ->
                         substance.getProperties().get(entry.getKey()).equals(entry.getValue()));
+    }
+
+    private String explainDesire(Substance substance) {
+        return SetUtils.intersection(
+                    this.desireableSubstanceProperties.keySet(),
+                    substance.getProperties().keySet())
+                .stream()
+                .map(property -> {
+                    String desiredValue = this.desireableSubstanceProperties.get(property);
+                    String actualValue = substance.getProperties().get(property);
+                    return property +
+                            (Objects.equals(desiredValue, actualValue)
+                                    ? ("=" + desiredValue)
+                                    : (":" + desiredValue + "/" + actualValue));
+                })
+                .collect(Collectors.joining(";"));
     }
 
 }
