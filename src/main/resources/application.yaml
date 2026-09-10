@@ -18,6 +18,8 @@ eiaun:
         "[io.eiaun.organisms.mover.Mover]":
           vision_radius: 3
           desirable_properties: 2
+          peak_energy: 5
+          move_energy: 1
     substances:
       density: 0.2
       specs:

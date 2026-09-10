@@ -13,9 +13,12 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Every mover prefers substances with a randomly selected property.
- * The mover simply moves toward the closest substance that doesn't
- * already have a co-located organism.
+ * Every mover prefers substances with randomly selected properties.
+ * The organism moves toward the closest substance that doesn't
+ * already have a co-located organism. It starts with some energy;
+ * each move consumes some energy; its energy is replenished when it
+ * eats one of it's preferred substances; an organism dies if it uses up
+ * all its energy.
  */
 @Data
 public class Mover implements Organism {
@@ -24,6 +27,8 @@ public class Mover implements Organism {
     private static final Random RANDOM = new Random();
     public static final String VISION_RADIUS_PROPERTY = "vision_radius";
     public static final String DESIRABLE_PROPERTIES_PROPERTY = "desirable_properties";
+    public static final String PEAK_ENERGY_PROPERTY = "peak_energy";
+    public static final String MOVE_ENERGY_PROPERTY = "move_energy";
 
     private final long id;
     private final Genome genome;
@@ -48,11 +53,14 @@ public class Mover implements Organism {
             String value = values[RANDOM.nextInt(values.length)];
             desirableSubstanceProperties.put(property, value);
         }
+        double peakEnergy = properties.get(PEAK_ENERGY_PROPERTY);
         this.genome = new MoverGenome(
                 this,
                 desirableSubstanceProperties,
-                properties.get(VISION_RADIUS_PROPERTY));
-        this.state = new MoverState();
+                properties.get(VISION_RADIUS_PROPERTY),
+                peakEnergy,
+                properties.get(MOVE_ENERGY_PROPERTY));
+        this.state = new MoverState(peakEnergy);
     }
 
     @Override

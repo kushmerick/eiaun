@@ -23,7 +23,7 @@ public class InfiniteFairIterator<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        return true;
+        return !this.items.isEmpty();
     }
 
     @Override
