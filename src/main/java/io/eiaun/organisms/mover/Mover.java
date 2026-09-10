@@ -37,12 +37,16 @@ public class Mover implements Organism {
         Map<String,String> desirableSubstanceProperties = new HashMap<>();
         Map<String,Set<String>> allSubstanceProperties = jakku.getAllSubstanceProperties();
         String[] allSubstancePropertiesKeys = allSubstanceProperties.keySet().toArray(String[]::new);
-        while (desirableSubstanceProperties.size() < properties.get(DESIRABLE_PROPERTIES_PROPERTY)) {
+        int desirablePropertyCount = properties.get(DESIRABLE_PROPERTIES_PROPERTY).intValue();
+        if (desirablePropertyCount > allSubstancePropertiesKeys.length) {
+            throw new RuntimeException(String.format("%s %s is larger than the number of properties %s",
+                    DESIRABLE_PROPERTIES_PROPERTY, desirablePropertyCount,  allSubstancePropertiesKeys.length));
+        }
+        while (desirableSubstanceProperties.size() < desirablePropertyCount) {
             String property = allSubstancePropertiesKeys[RANDOM.nextInt(allSubstancePropertiesKeys.length)];
             String[] values = allSubstanceProperties.get(property).toArray(String[]::new);
             String value = values[RANDOM.nextInt(values.length)];
             desirableSubstanceProperties.put(property, value);
-            // TODO: add check for infinite loop
         }
         this.genome = new MoverGenome(
                 this,
