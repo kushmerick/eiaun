@@ -118,37 +118,44 @@ public class Jakku {
         this.organismLocationsIterator = this.organismLocationsIteratorGenerator.apply(organismLocations);
     }
 
-    public CompletableFuture<Void> step(ExecutorService executor) {
+    public CompletableFuture<Boolean> step(ExecutorService executor) {
         log.trace("Stepping");
-        return CompletableFuture.runAsync(() -> {
-            Location location;
-            Organism organism;
-            Map<Location, Substance> substances;
-            Map<Location, Organism> neighbors;
-            Set<Location> empties;
-            synchronized (this.lock) {
-                location = this.organismLocationsIterator.next();
-                int lat = location.getLat();
-                int lon = location.getLon();
-                organism = this.organisms[lat][lon];
-                double radius = organism.getGenome().getVisionRadius();
-                empties = lookForEmpties(lat, lon, radius);
-                substances = lookForSubstances(lat, lon, radius);
-                neighbors = lookForNeighbors(lat, lon, radius);
-            }
-            log.debug("Stepping organism {} at {} with {} neighbors, {} substances, {} empties",
-                    organism.getId(), location, neighbors.size(), substances.size(), empties.size());
-            Response response = organism.respond(empties, substances, neighbors);
-            log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
-                    organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
-            synchronized (this.lock) {
-                organism.setState(response.newState());
-                changeSubstances(location, response);
-                if (changeOrganisms(location, response)) {
-                    updateOrganismLocationsIterator();
-                }
-            }
-        }, executor);
+        return CompletableFuture
+                .runAsync(
+                        () -> {
+                            Location location;
+                            Organism organism;
+                            Map<Location, Substance> substances;
+                            Map<Location, Organism> neighbors;
+                            Set<Location> empties;
+                            synchronized (this.lock) {
+                                location = this.organismLocationsIterator.next();
+                                int lat = location.getLat();
+                                int lon = location.getLon();
+                                organism = this.organisms[lat][lon];
+                                double radius = organism.getGenome().getVisionRadius();
+                                empties = lookForEmpties(lat, lon, radius);
+                                substances = lookForSubstances(lat, lon, radius);
+                                neighbors = lookForNeighbors(lat, lon, radius);
+                            }
+                            log.debug("Stepping organism {} at {} with {} neighbors, {} substances, {} empties",
+                                    organism.getId(), location, neighbors.size(), substances.size(), empties.size());
+                            Response response = organism.respond(empties, substances, neighbors);
+                            log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
+                                    organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
+                            synchronized (this.lock) {
+                                organism.setState(response.newState());
+                                changeSubstances(location, response);
+                                if (changeOrganisms(location, response)) {
+                                    updateOrganismLocationsIterator();
+                                }
+                            }
+                        }, executor)
+                .handleAsync(
+                        (_, __) ->
+                                // check whether any organisms are still living
+                                !this.organismLocationsIterator.hasNext(),
+                        executor);
     }
 
     private void changeSubstances(Location location, Response response) {

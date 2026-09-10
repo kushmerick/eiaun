@@ -63,8 +63,15 @@ public class Control {
                 CompletableFuture
                         .runAsync(() -> log.trace("Task {} started", id), this.executor)
                         .thenCompose(_ -> this.jakku.step(this.executor))
+                        .thenAccept(extinction -> {
+                            if (extinction) {
+                                log.info("Extinction");
+                                stop();
+                            }
+                        })
                         .thenRunAsync(() -> log.trace("Task {} finished", id), this.executor)
                         .get();
+
             } catch (InterruptedException interrupted) {
                 log.info("Task {} interrupted", id);
                 return;
