@@ -152,9 +152,12 @@ public class Jakku {
                             }
                         }, executor)
                 .handleAsync(
-                        (_, __) ->
-                                // check whether any organisms are still living
-                                !this.organismLocationsIterator.hasNext(),
+                        (_, __) -> {
+                            // check whether any organisms are still living
+                            synchronized (this.lock) {
+                                return !this.organismLocationsIterator.hasNext();
+                            }
+                        },
                         executor);
     }
 
