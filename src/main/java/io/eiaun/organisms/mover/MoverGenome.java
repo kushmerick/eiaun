@@ -17,16 +17,10 @@ import java.util.stream.Collectors;
 public class MoverGenome implements Genome {
 
     private final Mover organism;
-
     private final Map<String, String> desireableSubstanceProperties;
-
-    @Getter
-    private final double visionRadius;
-
+    @Getter private final double visionRadius;
     private final double peakEnergy;
-
     private final double moveEnergy;
-
     private final Random random = new Random();
 
     public MoverGenome(
@@ -130,12 +124,9 @@ public class MoverGenome implements Genome {
     }
 
     private boolean isDesirable(Substance substance) {
-        for (var entry : this.desireableSubstanceProperties.entrySet()) {
-            if (substance.getProperties().get(entry.getKey()).equals(entry.getValue())) {
-                return true;
-            }
-        }
-        return false;
+        return this.desireableSubstanceProperties.entrySet().stream()
+                .anyMatch(entry ->
+                        substance.getProperties().get(entry.getKey()).equals(entry.getValue()));
     }
 
 }
