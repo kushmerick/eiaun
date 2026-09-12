@@ -11,6 +11,7 @@ import io.eiaun.organisms.simple.SimpleState;
 import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -44,6 +45,13 @@ class JakkuTest {
         return new SimpleOrganism(
                 jakku,
                 Map.of(SimpleOrganism.VISION_RADIUS_PROPERTY, 5d));
+    }
+
+    @BeforeEach
+    void beforeEach() {
+        lenient() // most but not all tests actually rely on this behavior
+                .when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class)))
+                .thenReturn(CompletableFuture.completedFuture(1L));
     }
 
     @Test
@@ -209,7 +217,6 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
@@ -272,7 +279,6 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
@@ -321,7 +327,6 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
@@ -369,7 +374,6 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
@@ -417,7 +421,6 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
