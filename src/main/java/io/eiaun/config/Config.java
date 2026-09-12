@@ -3,6 +3,8 @@ package io.eiaun.config;
 import io.eiaun.organisms.Organism;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.SubstanceFactory;
+import io.eiaun.snapshot.SnapshotFileRecorder;
+import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -100,12 +102,18 @@ public class Config {
     }
 
     @Bean
+    public SnapshotRecorder snapshotRecorder() {
+        return new SnapshotFileRecorder();
+    }
+
+    @Bean
     public Jakku jakku(
             int grid,
             double organismDensity,
             Function<Jakku, Organism> organismCreator,
             double substanceDensity,
-            SubstanceFactory substanceFactory
+            SubstanceFactory substanceFactory,
+            SnapshotRecorder snapshotRecorder
     ) {
         return new Jakku(
                 grid,
@@ -114,7 +122,8 @@ public class Config {
                 substanceDensity,
                 substanceFactory,
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                snapshotRecorder);
     }
 
 }

@@ -8,6 +8,7 @@ import io.eiaun.organisms.Response;
 import io.eiaun.organisms.State;
 import io.eiaun.organisms.simple.SimpleOrganism;
 import io.eiaun.organisms.simple.SimpleState;
+import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -32,6 +35,9 @@ class JakkuTest {
     @Mock
     private Consumer<String> rejectedChangeRecorder;
 
+    @Mock
+    private SnapshotRecorder snapshotRecorder;
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private Organism newSimpleOrganism(Jakku jakku) {
@@ -47,7 +53,8 @@ class JakkuTest {
                 0.1, this::newSimpleOrganism,
                 0.1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
     }
 
@@ -59,7 +66,8 @@ class JakkuTest {
                 1, this::newSimpleOrganism,
                 1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         int radius = 5;
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(grid / 2, grid / 2, radius);
@@ -75,7 +83,8 @@ class JakkuTest {
                 1, this::newSimpleOrganism,
                 1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         int radius = 5;
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(grid / 2, grid / 2, radius);
@@ -91,7 +100,8 @@ class JakkuTest {
                 1, this::newSimpleOrganism,
                 1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(grid / 2, grid / 2, radius);
@@ -106,7 +116,8 @@ class JakkuTest {
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(grid / 2, grid / 2, radius);
@@ -122,7 +133,8 @@ class JakkuTest {
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         int lat = grid / 2;
         int lon = grid / 2;
@@ -153,7 +165,8 @@ class JakkuTest {
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = newSimpleOrganism(jakku);
@@ -196,13 +209,15 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new  FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
-                this.rejectedChangeRecorder);
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
         jakku.initialize();
         Organism organism = mock(Organism.class);
         Genome genome = mock(Genome.class);
@@ -257,13 +272,15 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
-                this.rejectedChangeRecorder);
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
         jakku.initialize();
         Organism organism = mock(Organism.class);
         Genome genome = mock(Genome.class);
@@ -298,19 +315,69 @@ class JakkuTest {
     }
 
     @Test
-    void invalidOrganismChangesAreRejected() {
+    void canSnapshot() {
         int grid = 1234;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
-                this.rejectedChangeRecorder);
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
+        jakku.initialize();
+        Organism organism = mock(Organism.class);
+        Genome genome = mock(Genome.class);
+        when(genome.getVisionRadius()).thenReturn(1d);
+        when(organism.getGenome()).thenReturn(genome);
+        State newState = new SimpleState();
+        Map<Location, Substance> substanceChanges = Collections.emptyMap();
+        Map<Location, Organism> organismChanges = new HashMap<>();
+        organismChanges.put(Location.of(+1, +1), organism);
+        organismChanges.put(Location.of(0, 0), null);
+        Response response = new Response(newState, substanceChanges, organismChanges);
+        Organism[][] organisms = new Organism[grid][grid];
+        organisms[lat][lon] = organism;
+        jakku.setOrganisms(organisms);
+        when(organism.respond(
+                eq(Set.of(
+                        Location.of(+1, +1),
+                        Location.of(+1, 0),
+                        Location.of(+1, -1),
+                        Location.of(0, +1),
+                        Location.of(0, -1),
+                        Location.of(-1, +1),
+                        Location.of(-1, 0),
+                        Location.of(-1, -1))),
+                eq(Collections.emptyMap()),
+                eq(Collections.emptyMap())))
+                .thenReturn(response);
+        jakku.step(this.executor).join();
+        verify(this.snapshotRecorder, times(1))
+                .record(eq(jakku), eq(this.executor));
+    }
+
+    @Test
+    void invalidOrganismChangesAreRejected() {
+        int grid = 1234;
+        int lat = grid / 2;
+        int lon = grid / 2;
+        Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
+                InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
+        Jakku jakku = new Jakku(
+                grid,
+                // note zero densities; substances and organisms are injected below
+                0, this::newSimpleOrganism,
+                0, new FakeSubstanceFactory(),
+                organismLocationIteratorGenerator,
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
         jakku.initialize();
         Organism organism = mock(Organism.class);
         Genome genome = mock(Genome.class);
@@ -350,13 +417,15 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class))).thenReturn(CompletableFuture.completedFuture(1L));
         Jakku jakku = new Jakku(
                 grid,
                 // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
-                this.rejectedChangeRecorder);
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
         jakku.initialize();
         Organism organism = mock(Organism.class);
         Genome genome = mock(Genome.class);
@@ -398,7 +467,8 @@ class JakkuTest {
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
-                log::info);
+                log::info,
+                this.snapshotRecorder);
         jakku.initialize();
         assertEquals(grid - 2, jakku.wrap(-2));
         assertEquals(grid - 1, jakku.wrap(-1));

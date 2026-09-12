@@ -2,6 +2,7 @@ package io.eiaun.physics;
 
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
+import io.eiaun.snapshot.SnapshotRecorder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,8 @@ public class Jakku {
 
     private final Consumer<String> rejectedChangeRecorder;
 
+    private final SnapshotRecorder snapshotRecorder;
+
     private final Object lock = new Object();
 
     public Jakku(
@@ -51,7 +54,8 @@ public class Jakku {
             double substanceInitialDensity,
             SubstanceFactory substanceFactory,
             Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator,
-            Consumer<String> rejectedChangeRecorder
+            Consumer<String> rejectedChangeRecorder,
+            SnapshotRecorder snapshotRecorder
     ) {
         this.grid = grid;
         this.organismInitialDensity = organismInitialDensity;
@@ -60,6 +64,7 @@ public class Jakku {
         this.substanceFactory = substanceFactory;
         this.organismLocationsIteratorGenerator = organismLocationsIteratorGenerator;
         this.rejectedChangeRecorder = rejectedChangeRecorder;
+        this.snapshotRecorder = snapshotRecorder;
     }
 
     public void initialize() {
@@ -160,6 +165,7 @@ public class Jakku {
                                 }
                             }
                         }, executor)
+                .thenCompose(_ -> this.snapshotRecorder.record(this, executor))
                 .handleAsync(
                         (_, failure) -> {
                             // check whether any organisms are still living
