@@ -139,7 +139,7 @@ public class Jakku {
                                     // not caught in time to halt this step. The most obvious case is just concurrent
                                     // step execution. A subtler scenario is where some prior step both lead to
                                     // extinction and failed, in which case Control logged the failure but did not
-                                    // terminate the simulation.
+                                    // terminate the run.
                                     log.warn("Undetected extinction");
                                     return;
                                 }
@@ -165,7 +165,9 @@ public class Jakku {
                                 }
                             }
                         }, executor)
-                .thenCompose(_ -> this.snapshotRecorder.record(this, executor))
+                .thenCompose(_ ->
+                        this.snapshotRecorder.record(this, executor)
+                        .thenAccept(snapshotId -> log.info("Snapshot {}", snapshotId)))
                 .handleAsync(
                         (_, failure) -> {
                             // check whether any organisms are still living

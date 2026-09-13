@@ -7,6 +7,6 @@ import java.util.concurrent.Executor;
 
 public interface SnapshotRecorder {
 
-    CompletableFuture<Long> record(Jakku jakku, Executor executor);
+    CompletableFuture<String> record(Jakku jakku, Executor executor);
 
 }

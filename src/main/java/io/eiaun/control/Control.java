@@ -42,8 +42,8 @@ public class Control {
             this.executor.submit(this::taskLoop);
         }
         log.info("Started");
-        // wait a given number of seconds, then exit the simulation (or run the
-        // simulation forever if a negative duration is specified)
+        // wait a given number of seconds, then exit; or
+        // run forever if a negative duration is specified
         if (this.durationSeconds < 0) {
             log.info("Running forever");
             this.runningForever = new CountDownLatch(1);
