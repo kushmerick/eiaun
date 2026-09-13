@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.TriConsumer;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -20,21 +21,25 @@ public class Jakku {
 
     private static final Random RANDOM = new Random();
 
+    @Getter
     private final int grid;
 
-    private final double organismInitialDensity;
+    @Getter
+    private final double organismDensity;
+
+    @Getter
+    private final double substanceDensity;
 
     @Getter
     private Organism[][] organisms;
 
     private final Supplier<Organism> organismCreator;
 
-    private final double substanceInitialDensity;
-
     @Setter
     @Getter
     private Substance[][] substances;
 
+    @Getter
     private final SubstanceFactory substanceFactory;
 
     private final Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator;
@@ -49,18 +54,18 @@ public class Jakku {
 
     public Jakku(
             int grid,
-            double organismInitialDensity,
+            double organismDensity,
             Function<Jakku, Organism> organismCreator,
-            double substanceInitialDensity,
+            double substanceDensity,
             SubstanceFactory substanceFactory,
             Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator,
             Consumer<String> rejectedChangeRecorder,
             SnapshotRecorder snapshotRecorder
     ) {
         this.grid = grid;
-        this.organismInitialDensity = organismInitialDensity;
+        this.organismDensity = organismDensity;
         this.organismCreator = () -> organismCreator.apply(this);
-        this.substanceInitialDensity = substanceInitialDensity;
+        this.substanceDensity = substanceDensity;
         this.substanceFactory = substanceFactory;
         this.organismLocationsIteratorGenerator = organismLocationsIteratorGenerator;
         this.rejectedChangeRecorder = rejectedChangeRecorder;
@@ -71,7 +76,7 @@ public class Jakku {
         log.info("Initializing");
         // random initial organisms
         Organism[][] organisms = new Organism[this.grid][this.grid];
-        int want = (int) (this.organismInitialDensity * this.grid * this.grid);
+        int want = (int) (this.organismDensity * this.grid * this.grid);
         int created = 0;
         while (created < want) {
             int lat = RANDOM.nextInt(this.grid);
@@ -84,7 +89,7 @@ public class Jakku {
         setOrganisms(organisms);
         // random initial substances
         Substance[][] substances = new Substance[this.grid][this.grid];
-        want = (int) (this.substanceInitialDensity * this.grid * this.grid);
+        want = (int) (this.substanceDensity * this.grid * this.grid);
         created = 0;
         while (created < want) {
             int lat = RANDOM.nextInt(this.grid);
@@ -163,8 +168,15 @@ public class Jakku {
                                 if (changeOrganisms(location, response)) {
                                     updateOrganismLocationsIterator();
                                 }
-                                String snapshotId = this.snapshotRecorder.record(this);
-                                log.info("Snapshot {}", snapshotId);
+                                try {
+                                    String snapshotId = this.snapshotRecorder.record(
+                                            this,
+                                            response.organismChanges(),
+                                            response.substanceChanges());
+                                    log.info("Snapshot {}", snapshotId);
+                                } catch (IOException failure) {
+                                    throw new RuntimeException("Failure while writing snapshot", failure);
+                                }
                                 return !this.organismLocationsIterator.hasNext();
                             }
                         }, executor);

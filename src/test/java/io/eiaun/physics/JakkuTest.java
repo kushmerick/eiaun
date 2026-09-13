@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -48,9 +49,9 @@ class JakkuTest {
     }
 
     @BeforeEach
-    void beforeEach() {
+    void beforeEach() throws IOException {
         lenient() // most but not all tests actually rely on this behavior
-                .when(this.snapshotRecorder.record(any(Jakku.class)))
+                .when(this.snapshotRecorder.record(any(Jakku.class), anyMap(), anyMap()))
                 .thenReturn("snapshot-id-123");
     }
 
@@ -321,7 +322,7 @@ class JakkuTest {
     }
 
     @Test
-    void canSnapshot() {
+    void canSnapshot() throws IOException {
         int grid = 1234;
         int lat = grid / 2;
         int lon = grid / 2;
@@ -364,7 +365,7 @@ class JakkuTest {
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
-                .record(eq(jakku));
+                .record(eq(jakku), eq(organismChanges), eq(substanceChanges));
     }
 
     @Test
