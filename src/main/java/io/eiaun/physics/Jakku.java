@@ -126,7 +126,7 @@ public class Jakku {
     public CompletableFuture<Boolean> step(ExecutorService executor) {
         log.trace("Stepping");
         return CompletableFuture
-                .runAsync(
+                .supplyAsync(
                         () -> {
                             Location location;
                             Organism organism;
@@ -135,13 +135,13 @@ public class Jakku {
                             Set<Location> empties;
                             synchronized (this.lock) {
                                 if (!this.organismLocationsIterator.hasNext()) {
-                                    // Comment {%%**%%}: Protect ourselves against race/edge cases where extinction is
-                                    // not caught in time to halt this step. The most obvious case is just concurrent
-                                    // step execution. A subtler scenario is where some prior step both lead to
-                                    // extinction and failed, in which case Control logged the failure but did not
-                                    // terminate the run.
+                                    // Protect ourselves against race/edge cases where extinction is not caught in
+                                    // time to halt this step. The most obvious case is just concurrent step
+                                    // execution. A subtler scenario is where some prior step both lead to extinction
+                                    // and failed, in which case Control logged the failure but did not terminate
+                                    // the run.
                                     log.warn("Undetected extinction");
-                                    return;
+                                    return true;
                                 }
                                 location = this.organismLocationsIterator.next();
                                 int lat = location.getLat();
@@ -163,27 +163,11 @@ public class Jakku {
                                 if (changeOrganisms(location, response)) {
                                     updateOrganismLocationsIterator();
                                 }
+                                String snapshotId = this.snapshotRecorder.record(this);
+                                log.info("Snapshot {}", snapshotId);
+                                return !this.organismLocationsIterator.hasNext();
                             }
-                        }, executor)
-                .thenCompose(_ ->
-                        this.snapshotRecorder.record(this, executor)
-                        .thenAccept(snapshotId -> log.info("Snapshot {}", snapshotId)))
-                .handleAsync(
-                        (_, failure) -> {
-                            // check whether any organisms are still living
-                            if (failure == null) {
-                                synchronized (this.lock) {
-                                    return !this.organismLocationsIterator.hasNext();
-                                }
-                            } else {
-                                // Propagate step failure so Control can log it and proceed. It is possible we went
-                                // extinct and then failed, so we're missing an opportunity to notify Control of the
-                                // extinction. But such failures represent bugs that should be fixed, so it's OK that
-                                // we're not cleanly handling such a scenario. See also comment {%%**%%} above.
-                                throw new RuntimeException(failure);
-                            }
-                        },
-                        executor);
+                        }, executor);
     }
 
     private void changeSubstances(Location location, Response response) {

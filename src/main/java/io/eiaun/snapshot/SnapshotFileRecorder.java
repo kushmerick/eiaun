@@ -1,13 +1,12 @@
 package io.eiaun.snapshot;
 
+import com.google.gson.Gson;
 import io.eiaun.physics.Jakku;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
@@ -30,7 +29,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
 
     private final Path recordingsPath;
     private long snapshotCounter;
-    private final Object lock = new Object();
+    private final Gson gson = new Gson();
 
     public SnapshotFileRecorder() {
         long recordingTimestamp = System.currentTimeMillis();
@@ -47,19 +46,15 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     }
 
     @Override
-    public CompletableFuture<String> record(Jakku jakku, Executor executor) {
+    public String record(Jakku jakku) {
         long snapshotId = this.snapshotCounter++;
         long snapshotTimestamp = System.currentTimeMillis();
         Path snapshotPath = this.recordingsPath.resolve(
                 Path.of(formatYMDHTimestamp(snapshotTimestamp),
                         formatFullTimestamp(snapshotTimestamp),
                         String.format(ID_FORMAT + "-%s", snapshotId, formatFullTimestamp(snapshotTimestamp))));
-        return CompletableFuture.runAsync(() -> {
-                    synchronized (lock) {
-                        write(jakku, snapshotPath);
-                    }
-                }, executor)
-                .thenApply(_ -> snapshotPath.toString());
+        write(jakku, snapshotPath);
+        return snapshotPath.toString();
     }
 
     private String formatFullTimestamp(long timestamp) {

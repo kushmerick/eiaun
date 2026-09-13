@@ -50,8 +50,8 @@ class JakkuTest {
     @BeforeEach
     void beforeEach() {
         lenient() // most but not all tests actually rely on this behavior
-                .when(this.snapshotRecorder.record(any(Jakku.class), any(Executor.class)))
-                .thenReturn(CompletableFuture.completedFuture("snapshot-id-123"));
+                .when(this.snapshotRecorder.record(any(Jakku.class)))
+                .thenReturn("snapshot-id-123");
     }
 
     @Test
@@ -364,7 +364,7 @@ class JakkuTest {
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
-                .record(eq(jakku), eq(this.executor));
+                .record(eq(jakku));
     }
 
     @Test
