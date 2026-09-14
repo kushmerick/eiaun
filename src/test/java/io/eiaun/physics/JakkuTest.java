@@ -81,7 +81,7 @@ class JakkuTest {
         int radius = 5;
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
-        assertEquals(diameter * diameter - 1, neighbors.size());
+        assertEquals(diameter * diameter, neighbors.size());
     }
 
     @Test
@@ -206,6 +206,7 @@ class JakkuTest {
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(lat, lon, radius);
         assertEquals(
                 Map.of(
+                        Location.of(0, 0), organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1],
                         Location.of(-1, -1), organisms[lat - 1][lon - 1]),
                 neighbors);
@@ -260,6 +261,7 @@ class JakkuTest {
                         Location.of(+1, -1), substances[lat + 1][lon - 1],
                         Location.of(-1, +1), substances[lat - 1][lon + 1])),
                 eq(Map.of(
+                        Location.of(0, 0), organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1],
                         Location.of(-1, -1), organisms[lat - 1][lon - 1]))))
                 .thenReturn(response);
@@ -313,7 +315,8 @@ class JakkuTest {
                         Location.of(-1, 0),
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
-                eq(Collections.emptyMap())))
+                eq(Map.of(
+                        Location.of(0, 0), organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         assertNull(organisms[lat][lon]);
@@ -361,7 +364,8 @@ class JakkuTest {
                         Location.of(-1, 0),
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
-                eq(Collections.emptyMap())))
+                eq(Map.of(
+                        Location.of(0, 0), organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
@@ -409,6 +413,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
+                        Location.of(0, 0), organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
@@ -457,7 +462,8 @@ class JakkuTest {
                         Location.of(-1, 0),
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
-                eq(Collections.emptyMap())))
+                eq(Map.of(
+                        Location.of(0, 0), organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(2)).accept(anyString());

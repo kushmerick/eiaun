@@ -6,14 +6,24 @@ import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.function.TriConsumer;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Snapshots are written to files like:
@@ -40,6 +50,11 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private static final String PHYSICS = "physics.json";
     private static final String CONFIG = "config.json";
     private static final String SNAPSHOTS = "snapshots";
+    private static final String ORGANISMS = "organisms";
+    private static final String ORGANISM_CHANGES = "organism-changes";
+    private static final String SUBSTANCES = "substances";
+    private static final String SUBSTANCE_CHANGES = "substances-changes";
+    private static final String DOT_JSON_GZ = ".json.gz";
 
     private final Path recordingsPath;
     private long snapshotCounter;
@@ -99,12 +114,30 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                 path.resolve(CONFIG));
     }
 
-    private void writeOrganisms(Organism[][] organisms, Path path) {
-        // TODO
+    private void writeOrganisms(Organism[][] organisms, Path path) throws IOException {
+        gzWrite(gson.toJson(representAsMap(organisms, Function.identity())),
+                path.resolve(ORGANISMS + DOT_JSON_GZ));
     }
 
-    private void writeSubstances(Substance[][] substances, Path path) {
-        // TODO
+    private void writeSubstances(Substance[][] substances, Path path) throws IOException {
+        gzWrite(gson.toJson(representAsMap(substances, Substance::getId)),
+                path.resolve(SUBSTANCES + DOT_JSON_GZ));
+    }
+
+    private static <Thing, Representation> Map<String, Map<String, Representation>> representAsMap(
+            Thing[][] things,
+            Function<Thing, Representation> representer
+    ) {
+        Map<String, Map<String, Representation>> map = new HashMap<>(); // lat -> lon -> representation
+        for (int lat = 0; lat < things.length; lat++) {
+            for (int lon = 0; lon < things[lat].length; lon++) {
+                if (things[lat][lon] != null) {
+                    map.computeIfAbsent(Integer.toString(lat), _ -> new HashMap<>())
+                            .put(Integer.toString(lon), representer.apply(things[lat][lon]));
+                }
+            }
+        }
+        return map;
     }
 
     private void writeOrganismChanges(Map<Location, Organism> organismChanges, Path path) {
@@ -120,5 +153,14 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         Files.write(path, payload.getBytes(), StandardOpenOption.CREATE);
     }
 
+    private void gzWrite(String payload, Path path) throws IOException {
+        Files.createDirectories(path.getParent());
+        try (FileOutputStream fos = new FileOutputStream(path.toFile());
+             GZIPOutputStream gzos = new GZIPOutputStream(fos);
+             WritableByteChannel out = Channels.newChannel(gzos)
+        ) {
+            out.write(ByteBuffer.wrap(payload.getBytes()));
+        }
+    }
 
 }

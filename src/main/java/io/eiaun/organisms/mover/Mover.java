@@ -56,7 +56,6 @@ public class Mover implements Organism {
         }
         double peakEnergy = properties.get(PEAK_ENERGY_PROPERTY);
         this.genome = new MoverGenome(
-                this,
                 desirableSubstanceProperties,
                 properties.get(VISION_RADIUS_PROPERTY),
                 peakEnergy,

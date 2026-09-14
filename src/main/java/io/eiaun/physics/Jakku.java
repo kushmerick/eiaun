@@ -248,19 +248,18 @@ public class Jakku {
     }
 
     public Map<Location, Substance> lookForSubstances(int lat, int lon, double radius) {
-        return getThings(this.substances, lat, lon, radius, false);
+        return getThings(this.substances, lat, lon, radius);
     }
 
     public Map<Location, Organism> lookForNeighbors(int lat, int lon, double radius) {
-        return getThings(this.organisms, lat, lon, radius, true);
+        return getThings(this.organisms, lat, lon, radius);
     }
 
     private <Thing> Map<Location, Thing> getThings(
             Thing[][] things,
             int lat,
             int lon,
-            double radius,
-            boolean skipCenter
+            double radius
     ) {
         Map<Location, Thing> neighbors = new HashMap<>();
         visit(
@@ -269,10 +268,8 @@ public class Jakku {
                 lon,
                 radius,
                 (deltaLat, deltaLon, thing) -> {
-                    if (!skipCenter || deltaLat != 0 || deltaLon != 0) {
-                        if (thing != null) {
-                            neighbors.put(Location.of(deltaLat, deltaLon), thing);
-                        }
+                    if (thing != null) {
+                        neighbors.put(Location.of(deltaLat, deltaLon), thing);
                     }
                 });
         return neighbors;
