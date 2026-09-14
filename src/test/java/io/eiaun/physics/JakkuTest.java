@@ -19,8 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -51,7 +49,7 @@ class JakkuTest {
     @BeforeEach
     void beforeEach() throws IOException {
         lenient() // most but not all tests actually rely on this behavior
-                .when(this.snapshotRecorder.record(any(Jakku.class), anyMap(), anyMap()))
+                .when(this.snapshotRecorder.record(any(Jakku.class), eq(Location.ORIGIN), anyList(), anyList()))
                 .thenReturn("snapshot-id-123");
     }
 
@@ -206,7 +204,7 @@ class JakkuTest {
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(lat, lon, radius);
         assertEquals(
                 Map.of(
-                        Location.of(0, 0), organisms[lat][lon],
+                        Location.ORIGIN, organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1],
                         Location.of(-1, -1), organisms[lat - 1][lon - 1]),
                 neighbors);
@@ -223,7 +221,7 @@ class JakkuTest {
                 grid,
                 // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
-                0, new  FakeSubstanceFactory(),
+                0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
                 this.snapshotRecorder);
@@ -232,14 +230,6 @@ class JakkuTest {
         Genome genome = mock(Genome.class);
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
-        State newState = new SimpleState();
-        Map<Location, Substance> substanceChanges = new HashMap<>();
-        substanceChanges.put(Location.of(+1, -1), null);
-        substanceChanges.put(Location.of(-1, +1), new FakeSubstance());
-        Map<Location, Organism> organismChanges = new HashMap<>();
-        organismChanges.put(Location.of(+1, +1), null);
-        organismChanges.put(Location.of(0, -1), newSimpleOrganism(jakku));
-        Response response = new Response(newState, substanceChanges, organismChanges);
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = organism;
         organisms[lat + 1][lon + 1] = newSimpleOrganism(jakku);
@@ -249,6 +239,16 @@ class JakkuTest {
         substances[lat + 1][lon - 1] = new FakeSubstance();
         substances[lat - 1][lon + 1] = new FakeSubstance();
         jakku.setSubstances(substances);
+        State newState = new SimpleState();
+        Substance replacementSubstance = new FakeSubstance();
+        List<Change<Substance>> substanceChanges = List.of(
+                Change.destroy(substances[lat + 1][lon - 1], Location.of(+1, -1)),
+                Change.replace(substances[lat - 1][lon + 1], replacementSubstance, Location.of(-1, +1)));
+        Organism newborn = newSimpleOrganism(jakku);
+        List<Change<Organism>> organismChanges = List.of(
+                Change.destroy(organisms[lat + 1][lon + 1], Location.of(+1, +1)),
+                Change.create(newborn, Location.of(0, -1)));
+        Response response = new Response(newState, substanceChanges, organismChanges);
         when(organism.respond(
                 eq(Set.of(
                         Location.of(+1, 0),
@@ -261,17 +261,17 @@ class JakkuTest {
                         Location.of(+1, -1), substances[lat + 1][lon - 1],
                         Location.of(-1, +1), substances[lat - 1][lon + 1])),
                 eq(Map.of(
-                        Location.of(0, 0), organisms[lat][lon],
+                        Location.ORIGIN, organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1],
                         Location.of(-1, -1), organisms[lat - 1][lon - 1]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(organism).setState(eq(newState));
         assertNull(substances[lat + 1][lon - 1]);
-        assertEquals(substances[lat - 1][lon + 1], substanceChanges.get(Location.of(-1, +1)));
+        assertEquals(replacementSubstance, substances[lat - 1][lon + 1]);
         assertNull(organisms[lat + 1][lon + 1]);
         assertNotNull(organisms[lat - 1][lon - 1]);
-        assertEquals(organisms[lat][lon - 1], organismChanges.get(Location.of(0, -1)));
+        assertEquals(newborn, organisms[lat][lon - 1]);
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -296,10 +296,9 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        Map<Location, Substance> substanceChanges = Collections.emptyMap();
-        Map<Location, Organism> organismChanges = new HashMap<>();
-        organismChanges.put(Location.of(+1, +1), organism);
-        organismChanges.put(Location.of(0, 0), null);
+        List<Change<Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Organism>> organismChanges = List.of(
+                Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = organism;
@@ -316,7 +315,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.of(0, 0), organisms[lat][lon]))))
+                        Location.ORIGIN, organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         assertNull(organisms[lat][lon]);
@@ -345,10 +344,9 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        Map<Location, Substance> substanceChanges = Collections.emptyMap();
-        Map<Location, Organism> organismChanges = new HashMap<>();
-        organismChanges.put(Location.of(+1, +1), organism);
-        organismChanges.put(Location.of(0, 0), null);
+        List<Change<Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Organism>> organismChanges = List.of(
+                Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = organism;
@@ -365,11 +363,11 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.of(0, 0), organisms[lat][lon]))))
+                        Location.ORIGIN, organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
-                .record(eq(jakku), eq(organismChanges), eq(substanceChanges));
+                .record(eq(jakku), eq(Location.of(lat, lon)), eq(organismChanges), eq(substanceChanges));
     }
 
     @Test
@@ -393,10 +391,10 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        Map<Location, Substance> substanceChanges = Collections.emptyMap();
-        Map<Location, Organism> organismChanges = Map.of(
+        List<Change<Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Organism>> organismChanges = List.of(
                 // try to put a child on a neighbor
-                Location.of(+1, +1), newSimpleOrganism(jakku));
+                Change.create(organism, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = organism;
@@ -413,7 +411,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.of(0, 0), organisms[lat][lon],
+                        Location.ORIGIN, organisms[lat][lon],
                         Location.of(+1, +1), organisms[lat + 1][lon + 1]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
@@ -441,12 +439,12 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        Map<Location, Substance> substanceChanges = new HashMap<>();
-        // consume a non-existent substance
-        substanceChanges.put(Location.of(-1, -1), null);
-        Map<Location, Organism> organismChanges = new HashMap<>();
-        // eat a non-existent neighbor
-        organismChanges.put(Location.of(+1, +1), null);
+        List<Change<Substance>> substanceChanges = List.of(
+                // consume a non-existent substance
+                Change.destroy(new FakeSubstance(), Location.of(-1, -1)));
+        List<Change<Organism>> organismChanges = List.of(
+                // eat a non-existent neighbor
+                Change.destroy(newSimpleOrganism(jakku), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         Organism[][] organisms = new Organism[grid][grid];
         organisms[lat][lon] = organism;
@@ -463,7 +461,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.of(0, 0), organisms[lat][lon]))))
+                        Location.ORIGIN, organisms[lat][lon]))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(2)).accept(anyString());

@@ -30,8 +30,8 @@ public class SimpleGenome implements Genome {
     ) {
         return Response.of(
                 state,
-                Collections.emptyMap(),
-                Collections.emptyMap());
+                Collections.emptyList(),
+                Collections.emptyList());
     }
 
 }

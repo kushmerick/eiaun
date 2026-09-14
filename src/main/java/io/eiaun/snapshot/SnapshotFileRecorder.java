@@ -2,13 +2,12 @@ package io.eiaun.snapshot;
 
 import com.google.gson.Gson;
 import io.eiaun.organisms.Organism;
+import io.eiaun.physics.Change;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.function.TriConsumer;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,10 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.*;
 import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
 
@@ -55,6 +51,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private static final String SUBSTANCES = "substances";
     private static final String SUBSTANCE_CHANGES = "substances-changes";
     private static final String DOT_JSON_GZ = ".json.gz";
+    private static final String DOT_JSON = ".json";
 
     private final Path recordingsPath;
     private long snapshotCounter;
@@ -78,8 +75,9 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     @Override
     public String record(
             Jakku jakku,
-            Map<Location, Organism> organismChanges,
-            Map<Location, Substance> substanceChanges
+            Location changeOffset,
+            List<Change<Organism>> organismChanges,
+            List<Change<Substance>> substanceChanges
     ) throws IOException {
         if (!wrotePreamble) {
             writePreamble(jakku, this.recordingsPath);
@@ -94,8 +92,9 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                         String.format(ID_FORMAT + "-%s", snapshotId, formatFullTimestamp(snapshotTimestamp))));
         writeOrganisms(jakku.getOrganisms(), snapshotPath);
         writeSubstances(jakku.getSubstances(), snapshotPath);
-        writeOrganismChanges(organismChanges, snapshotPath);
-        writeSubstanceChanges(substanceChanges, snapshotPath);
+        int grid = jakku.getGrid();
+        writeOrganismChanges(organismChanges, changeOffset, grid, snapshotPath);
+        writeSubstanceChanges(substanceChanges, changeOffset, grid, snapshotPath);
         return snapshotPath.toString();
     }
 
@@ -107,24 +106,33 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         return YMDH_TIMESTAMP_FORMAT.format(new Date(timestamp));
     }
 
-    private void writePreamble(Jakku jakku, Path path) throws IOException {
+    private void writePreamble(
+            Jakku jakku,
+            Path path
+    ) throws IOException {
         write(this.gson.toJson(Physics.from(jakku)),
                 path.resolve(PHYSICS));
         write(this.gson.toJson(Config.from(jakku)),
                 path.resolve(CONFIG));
     }
 
-    private void writeOrganisms(Organism[][] organisms, Path path) throws IOException {
-        gzWrite(gson.toJson(representAsMap(organisms, Function.identity())),
+    private void writeOrganisms(
+            Organism[][] organisms,
+            Path path
+    ) throws IOException {
+        gzWrite(gson.toJson(thingsAsMap(organisms, Function.identity())),
                 path.resolve(ORGANISMS + DOT_JSON_GZ));
     }
 
-    private void writeSubstances(Substance[][] substances, Path path) throws IOException {
-        gzWrite(gson.toJson(representAsMap(substances, Substance::getId)),
+    private void writeSubstances(
+            Substance[][] substances,
+            Path path
+    ) throws IOException {
+        gzWrite(gson.toJson(thingsAsMap(substances, Substance::getId)),
                 path.resolve(SUBSTANCES + DOT_JSON_GZ));
     }
 
-    private static <Thing, Representation> Map<String, Map<String, Representation>> representAsMap(
+    private static <Thing, Representation> Map<String, Map<String, Representation>> thingsAsMap(
             Thing[][] things,
             Function<Thing, Representation> representer
     ) {
@@ -140,12 +148,51 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         return map;
     }
 
-    private void writeOrganismChanges(Map<Location, Organism> organismChanges, Path path) {
-        // TODO
+    private void writeOrganismChanges(
+            List<Change<Organism>> organismChanges,
+            Location changeOffset,
+            int grid,
+            Path path
+    ) throws IOException {
+        write(this.gson.toJson(
+                        changesAsList(
+                                organismChanges,
+                                changeOffset,
+                                grid,
+                                organism -> Long.toString(organism.getId()))),
+                path.resolve(ORGANISM_CHANGES + DOT_JSON));
     }
 
-    private void writeSubstanceChanges(Map<Location, Substance> substanceChanges, Path path) {
-        // TODO
+    private void writeSubstanceChanges(
+            List<Change<Substance>> substanceChanges,
+            Location changeOffset,
+            int grid,
+            Path path
+    ) throws IOException {
+        write(this.gson.toJson(
+                        changesAsList(
+                                substanceChanges,
+                                changeOffset,
+                                grid,
+                                Substance::getId)),
+                path.resolve(SUBSTANCE_CHANGES + DOT_JSON));
+    }
+
+    private <Thing> List<Change<String>> changesAsList(
+            List<Change<Thing>> changes,
+            Location changeOffset,
+            int grid,
+            Function<Thing,String> describer
+    ) {
+        Function<Location, Location> offsetter = l -> l.add(changeOffset, grid);
+        return changes.stream()
+                .map(change ->
+                        new Change<>(
+                                Optional.ofNullable(change.getOriginal()).map(describer).orElse(null),
+                                Optional.ofNullable(change.getReplacement()).map(describer).orElse(null),
+                                Optional.ofNullable(change.getFrom()).map(offsetter).orElse(null),
+                                Optional.ofNullable(change.getTo()).map(offsetter).orElse(null)))
+                .toList();
     }
 
     private void write(String payload, Path path) throws IOException {

@@ -171,6 +171,7 @@ public class Jakku {
                                 try {
                                     String snapshotId = this.snapshotRecorder.record(
                                             this,
+                                            location,
                                             response.organismChanges(),
                                             response.substanceChanges());
                                     log.info("Snapshot {}", snapshotId);
@@ -204,29 +205,82 @@ public class Jakku {
             String label,
             Function<Thing, Object> describer,
             Location location,
-            Map<Location, Thing> changes,
+            List<Change<Thing>> changes,
             Thing[][] things,
             // a substance can be changed to a different substance,
             // but an organism cannot be changed to a different organism
             boolean mutable
     ) {
         boolean modified = false;
-        for (var entry : changes.entrySet()) {
-            Location destination = location.add(entry.getKey(), this.grid);
-            Thing current = things[destination.getLat()][destination.getLon()];
-            Thing replacement = entry.getValue();
-            if ((mutable && current != null && replacement != null)
-                    || (current == null && replacement != null)
-                    || (current != null && replacement == null)
-            ) {
-                things[destination.getLat()][destination.getLon()] = replacement;
-                modified |= current != replacement;
+        for (var change : changes) {
+            boolean rejected = false;
+            if (change.isCreation()) {
+                Location to = location.add(change.getTo(), this.grid);
+                int lat = to.getLat();
+                int lon = to.getLon();
+                if (things[lat][lon] != null) {
+                    // another thing is already at the destination
+                    rejected = true;
+                } else {
+                    things[lat][lon] = change.getReplacement();
+                    modified = true;
+                }
+            } else if (change.isDestroy()) {
+                Location from = location.add(change.getFrom(), this.grid);
+                int lat = from.getLat();
+                int lon = from.getLon();
+                if (!Objects.equals(things[lat][lon], change.getOriginal()))
+                {
+                    // already changed, or no-op (already deleted)
+                    rejected = true;
+                } else {
+                    things[lat][lon] = null;
+                    modified = true;
+                }
+            } else if (change.isReplacement()) {
+                Location from = location.add(change.getFrom(), this.grid);
+                int lat = from.getLat();
+                int lon = from.getLon();
+                if (!Objects.equals(things[lat][lon], change.getOriginal()) ||
+                        Objects.equals(things[lat][lon], change.getReplacement()))
+                {
+                    // original is already gone
+                    // no-op (already replaced)
+                    rejected = true;
+                } else {
+                    things[lat][lon] = change.getReplacement();
+                    modified = true;
+                }
+            } else if (change.isMove()) {
+                Location from = location.add(change.getFrom(), this.grid);
+                int flat = from.getLat();
+                int flon = from.getLon();
+                Location to = location.add(change.getTo(), this.grid);
+                int tlat = to.getLat();
+                int tlon = to.getLon();
+                if (!Objects.equals(things[flat][flon], change.getOriginal()) ||
+                        things[tlat][tlon] != null)
+                {
+                    // original object changed or been removed,
+                    // or another thing is already at the destination
+                    rejected = true;
+                } else {
+                    things[flat][flon] = null;
+                    things[tlat][tlon] = change.getOriginal();
+                    modified = true;
+                }
             } else {
+                log.warn(String.format("Gibberish change: %s", change));
+                rejected = true;
+            }
+            if (rejected) {
                 this.rejectedChangeRecorder.accept(String.format(
-                        "Ignoring invalid %s modification at %s from %s to %s",
-                        label, destination,
-                        Optional.ofNullable(current).map(describer).orElse(null),
-                        Optional.ofNullable(replacement).map(describer).orElse(null)));
+                        "Rejecting %s change: %s -> replacement %s; %s -> %s",
+                        label,
+                        Optional.ofNullable(change.getOriginal()).map(describer).orElse(null),
+                        Optional.ofNullable(change.getReplacement()).map(describer).orElse(null),
+                        change.getFrom(),
+                        change.getTo()));
             }
         }
         return modified;

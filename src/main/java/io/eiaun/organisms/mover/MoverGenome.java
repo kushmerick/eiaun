@@ -4,6 +4,7 @@ import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.organisms.State;
+import io.eiaun.physics.Change;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.Getter;
@@ -48,8 +49,8 @@ public class MoverGenome implements Genome {
     ) {
         Organism organism = organisms.get(Location.ORIGIN);
         MoverState moverState = (MoverState) state;
-        Map<Location, Organism> organismChanges = new HashMap<>();
-        Map<Location, Substance> substanceChanges = new HashMap<>();
+        List<Change<Organism>> organismChanges = new ArrayList<>();
+        List<Change<Substance>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
                 .filter(entry -> isDesirable(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -58,7 +59,7 @@ public class MoverGenome implements Genome {
             log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
                     organism.getId(), moverState.getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
-            substanceChanges.put(Location.ORIGIN, null);
+            substanceChanges.add(Change.destroy(substance));
             // replenish energy
             state = new MoverState(moverState.getEnergy() + this.peakEnergy);
         } else {
@@ -66,8 +67,8 @@ public class MoverGenome implements Genome {
                 log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState.getEnergy());
                 return Response.of(
                         state,
-                        Collections.emptyMap(),
-                        Collections.singletonMap(Location.ORIGIN, null));
+                        Collections.emptyList(),
+                        List.of(Change.destroy(organism)));
             }
             desirableSubstances.keySet().stream()
                     // calculate distance to each desirable substance
@@ -106,7 +107,7 @@ public class MoverGenome implements Genome {
                         // there is no nearby desirable substance, so move to a random empty location
                         if (!empties.isEmpty()) {
                             Location[] asArray = empties.toArray(Location[]::new);
-                            Location empty = asArray[this.RANDOM.nextInt(asArray.length)];
+                            Location empty = asArray[RANDOM.nextInt(asArray.length)];
                             moveTo(organismChanges, empty, organism);
                             log.info("Frustrated: Organism {} with energy {} sees no desirable substances, so moving randomly by {}",
                                     organism.getId(), moverState.getEnergy(), empty);
@@ -122,9 +123,8 @@ public class MoverGenome implements Genome {
                 organismChanges);
     }
 
-    private void moveTo(Map<Location, Organism> organismChanges, Location location, Organism organism) {
-        organismChanges.put(Location.ORIGIN, null);
-        organismChanges.put(location, organism);
+    private void moveTo(List<Change<Organism>> changes, Location location, Organism organism) {
+        changes.add(Change.move(organism, Location.ORIGIN, location));
     }
 
     private boolean isDesirable(Substance substance) {
