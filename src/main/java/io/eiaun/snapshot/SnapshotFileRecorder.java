@@ -34,15 +34,15 @@ import java.util.zip.GZIPOutputStream;
  *               0000023782371-2026-10-14-10-51-17-186.organisms.json.gz         Locations and contents of all organisms
  *               0000023782371-2026-10-14-10-51-17-186.substances.json.gz        Locations and contents of all substances
  *               0000023782371-2026-10-14-10-51-17-186.organism-changes.json.gz  Organism changes that produced this state from the prior state
- *               0000023782371-2026-10-14-10-51-17-186.substance-changes.json.gz Organism changes that produced this state from the prior state
+ *               0000023782371-2026-10-14-10-51-17-186.substance-changes.json.gz Substance changes that produced this state from the prior state
  */
 @Slf4j
 public class SnapshotFileRecorder implements SnapshotRecorder {
 
-    private final static SimpleDateFormat YMDH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH");
-    private final static SimpleDateFormat FULL_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
-    private final static String ID_FORMAT = "%013d"; // pad ids with enough 0's so that a trillion sorts alphabetically
-    private final static String ROOT = "recordings";
+    private static final SimpleDateFormat YMDH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH");
+    private static final SimpleDateFormat FULL_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
+    private static final String ID_FORMAT = "%013d"; // pad ids with enough 0's so that a trillion sorts alphabetically
+    private static final String ROOT = "recordings";
     private static final String PHYSICS = "physics.json";
     private static final String CONFIG = "config.json";
     private static final String SNAPSHOTS = "snapshots";
