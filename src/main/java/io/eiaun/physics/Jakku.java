@@ -229,8 +229,7 @@ public class Jakku {
                 Location from = location.add(change.getFrom(), this.grid);
                 int lat = from.getLat();
                 int lon = from.getLon();
-                if (!Objects.equals(things[lat][lon], change.getOriginal()))
-                {
+                if (!Objects.equals(things[lat][lon], change.getOriginal())) {
                     // already changed, or no-op (already deleted)
                     rejected = true;
                 } else {
@@ -275,7 +274,7 @@ public class Jakku {
             }
             if (rejected) {
                 this.rejectedChangeRecorder.accept(String.format(
-                        "Rejecting %s change: %s -> replacement %s; %s -> %s",
+                        "Rejecting %s change: %s -> %s; %s -> %s",
                         label,
                         Optional.ofNullable(change.getOriginal()).map(describer).orElse(null),
                         Optional.ofNullable(change.getReplacement()).map(describer).orElse(null),
