@@ -13,6 +13,9 @@ ext {
 	apacheLang3Version = '3.20.0'
 	apacheMath3Version = '3.6.1'
 	apacheCollections4Version = '4.6.0'
+	apacheCompressVersion = '1.28.0'
+	xzVersion = '1.12'
+	zstdVersion = '1.5.7-16'
 	gsonVersion = '2.14.0'
 }
 
@@ -32,6 +35,9 @@ dependencies {
 	implementation "org.apache.commons:commons-lang3:${apacheLang3Version}"
 	implementation "org.apache.commons:commons-math3:${apacheMath3Version}"
 	implementation "org.apache.commons:commons-collections4:${apacheCollections4Version}"
+	implementation "org.apache.commons:commons-compress:${apacheCompressVersion}"
+	implementation "org.tukaani:xz:${xzVersion}"
+	implementation "com.github.luben:zstd-jni:${zstdVersion}"
 	implementation "com.google.code.gson:gson:${gsonVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

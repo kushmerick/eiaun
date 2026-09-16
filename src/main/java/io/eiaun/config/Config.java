@@ -17,9 +17,12 @@ import org.springframework.validation.annotation.Validated;
 
 import java.lang.reflect.Constructor;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+
+import static org.apache.commons.compress.compressors.CompressorStreamFactory.*;
 
 @Configuration
 @Validated
@@ -101,9 +104,38 @@ public class Config {
         return density;
     }
 
+    public static final Set<String> SNAPSHOT_COMPRESSION = Set.of(
+            // To support another algorithm, adding dependency to build.gradle.
+            // From this experiment:
+            // https://docs.google.com/spreadsheets/d/1MlanJPIokGAOB5kAZ0fXQ58LH6g6LBmlZMTjXMT3Z8Y/edit?usp=sharing
+            // we declare ZSTANDARD the winner, followed closely by GZIP. The others don't handle
+            // our data well (ie they are much slower but give comparable and sometimes much worse
+            // compression).
+            GZIP,
+            XZ,
+            LZMA,
+            LZ4_FRAMED,
+            LZ4_BLOCK,
+            ZSTANDARD
+    );
+
     @Bean
-    public SnapshotRecorder snapshotRecorder() {
-        return new SnapshotFileRecorder();
+    public String snapshotCompression(
+            @Value("${eiaun.control.snapshot_compression:" + ZSTANDARD + "}") String snapshotCompression
+    ) {
+        if (!SNAPSHOT_COMPRESSION.contains(snapshotCompression)) {
+            throw new IllegalArgumentException(String.format("`snapshot_compression` %s must be in %s",
+                    snapshotCompression, SNAPSHOT_COMPRESSION));
+        }
+        log.info("Snapshot compression {}", snapshotCompression);
+        return snapshotCompression;
+    }
+
+    @Bean
+    public SnapshotRecorder snapshotRecorder(
+            String snapshotCompression
+    ) {
+        return new SnapshotFileRecorder(snapshotCompression);
     }
 
     @Bean

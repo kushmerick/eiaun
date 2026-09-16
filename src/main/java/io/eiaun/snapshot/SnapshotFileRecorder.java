@@ -7,34 +7,38 @@ import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.file.PathUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 
-import java.io.FileOutputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Snapshots are written to files like:
- *   recordings/                                                                 Root path
- *     2026-10-13-09/                                                            YYYY-MM-dd-HH when this run began
- *       2026-10-13-09-15-31-672/                                                Full timestamp when this run began
- *         physics.json                                                          Substance properties and other physical details
- *         config.json                                                           Configuration (grid size, initial densities, etc)
- *         snapshots/                                                            Snapshots live here
- *           2026-10-14-10/                                                      YYYY-MM-dd-HH when this snapshot was taken
- *             0000023782371-2026-10-14-10-51-17-186/                            ID-Timestamp of this snapshot
- *               0000023782371-2026-10-14-10-51-17-186.organisms.json.gz         Locations and contents of all organisms
- *               0000023782371-2026-10-14-10-51-17-186.substances.json.gz        Locations and contents of all substances
- *               0000023782371-2026-10-14-10-51-17-186.organism-changes.json.gz  Organism changes that produced this state from the prior state
- *               0000023782371-2026-10-14-10-51-17-186.substance-changes.json.gz Substance changes that produced this state from the prior state
+ * <pre>
+ *  recordings/                                                        Root path
+ *   2026-10-13-09/                                                    YYYY-MM-dd-HH when this run began
+ *    2026-10-13-09-15-31-672/                                         Full timestamp when this run began
+ *     physics.json                                                    Substance properties and other physical details
+ *     config.json                                                     Configuration (grid size, initial densities, etc)
+ *     snapshots/                                                      Snapshots live here
+ *      2026-10-14-10/                                                 YYYY-MM-dd-HH when this snapshot was taken
+ *       0000023782371-2026-10-14-10-51-17-186/                        ID-Timestamp of this snapshot
+ *        000023782371-2026-10-14-10-51-17-186.organisms.json.XX       Locations and contents of all organisms
+ *        0000023782371-2026-10-14-10-51-17-186.substances.json.XX     Locations and contents of all substances
+ *        0000023782371-2026-10-14-10-51-17-186.organism-changes.json  Organism changes that produced this state from the prior state
+ *        0000023782371-2026-10-14-10-51-17-186.substance-changes.json Substance changes that produced this state from the prior state
+ *  </pre>
+ *  where XX is the compression algorithm (see {@link io.eiaun.config.Config#SNAPSHOT_COMPRESSION}).
  */
 @Slf4j
 public class SnapshotFileRecorder implements SnapshotRecorder {
@@ -43,22 +47,23 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private static final SimpleDateFormat FULL_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
     private static final String ID_FORMAT = "%013d"; // pad ids with enough 0's so that a trillion sorts alphabetically
     private static final String ROOT = "recordings";
-    private static final String PHYSICS = "physics.json";
-    private static final String CONFIG = "config.json";
-    private static final String SNAPSHOTS = "snapshots";
-    private static final String ORGANISMS = "organisms";
-    private static final String ORGANISM_CHANGES = "organism-changes";
-    private static final String SUBSTANCES = "substances";
-    private static final String SUBSTANCE_CHANGES = "substances-changes";
-    private static final String DOT_JSON_GZ = ".json.gz";
     private static final String DOT_JSON = ".json";
+    private static final String PHYSICS = "physics" + DOT_JSON;
+    private static final String CONFIG = "config" + DOT_JSON;
+    private static final String SNAPSHOTS = "snapshots";
+    private static final String DOT_JSON_DOT = DOT_JSON + ".";
+    private static final String ORGANISMS_DOT = "organisms" + DOT_JSON_DOT;
+    private static final String ORGANISM_CHANGES = "organism-changes" + DOT_JSON;
+    private static final String SUBSTANCES_DOT = "substances" + DOT_JSON_DOT;
+    private static final String SUBSTANCE_CHANGES = "substance-changes" + DOT_JSON;
 
     private final Path recordingsPath;
     private long snapshotCounter;
     private final Gson gson = new Gson();
     private boolean wrotePreamble = false;
+    private final String snapshotCompression;
 
-    public SnapshotFileRecorder() {
+    public SnapshotFileRecorder(String snapshotCompression) {
         long recordingTimestamp = System.currentTimeMillis();
         this.recordingsPath = Path.of(
                 ROOT,
@@ -70,6 +75,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         }
         log.info("Recording to {}", this.recordingsPath);
         this.snapshotCounter = 0;
+        this.snapshotCompression = snapshotCompression;
     }
 
     @Override
@@ -120,16 +126,16 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Organism[][] organisms,
             Path path
     ) throws IOException {
-        gzWrite(gson.toJson(thingsAsMap(organisms, Function.identity())),
-                path.resolve(ORGANISMS + DOT_JSON_GZ));
+        writeCompressed(gson.toJson(thingsAsMap(organisms, Function.identity())),
+                path.resolve(ORGANISMS_DOT + this.snapshotCompression));
     }
 
     private void writeSubstances(
             Substance[][] substances,
             Path path
     ) throws IOException {
-        gzWrite(gson.toJson(thingsAsMap(substances, Substance::getId)),
-                path.resolve(SUBSTANCES + DOT_JSON_GZ));
+        writeCompressed(gson.toJson(thingsAsMap(substances, Substance::getId)),
+                path.resolve(SUBSTANCES_DOT + this.snapshotCompression));
     }
 
     private static <Thing, Representation> Map<String, Map<String, Representation>> thingsAsMap(
@@ -160,7 +166,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                                 changeOffset,
                                 grid,
                                 organism -> Long.toString(organism.getId()))),
-                path.resolve(ORGANISM_CHANGES + DOT_JSON));
+                path.resolve(ORGANISM_CHANGES));
     }
 
     private void writeSubstanceChanges(
@@ -175,7 +181,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                                 changeOffset,
                                 grid,
                                 Substance::getId)),
-                path.resolve(SUBSTANCE_CHANGES + DOT_JSON));
+                path.resolve(SUBSTANCE_CHANGES));
     }
 
     private <Thing> List<Change<String>> changesAsList(
@@ -200,14 +206,48 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         Files.write(path, payload.getBytes(), StandardOpenOption.CREATE);
     }
 
-    private void gzWrite(String payload, Path path) throws IOException {
+    private void writeCompressed(String payload, Path path) throws IOException {
         Files.createDirectories(path.getParent());
-        try (FileOutputStream fos = new FileOutputStream(path.toFile());
-             GZIPOutputStream gzos = new GZIPOutputStream(fos);
-             WritableByteChannel out = Channels.newChannel(gzos)
+        String format = PathUtils.getExtension(path);
+        try (var r = new StringReader(payload);
+             var in = ReaderInputStream.builder().setReader(r).get();
+             var os = Files.newOutputStream(path);
+             var buf = new BufferedOutputStream(os);
+             var out = new CompressorStreamFactory().createCompressorOutputStream(format, buf)
         ) {
-            out.write(ByteBuffer.wrap(payload.getBytes()));
+            IOUtils.copy(in, out);
         }
     }
+
+    /*
+    // Some garbage throwaway code for running this experiment:
+    // https://docs.google.com/spreadsheets/d/1MlanJPIokGAOB5kAZ0fXQ58LH6g6LBmlZMTjXMT3Z8Y/edit?usp=sharing
+
+    private void writeCompressed(String payload, Path path) throws IOException {
+        long s = System.nanoTime();
+        write(payload, Path.of(path + ".json"));
+        Duration d = Duration.ofNanos(System.nanoTime() - s);
+        log.info("XXXX Compressed {} using NONE in {} milliseconds --> {} KB", PathUtils.getBaseName(path), d.toMillis(),
+                Path.of(path + ".json").toFile().length()/1024d);
+        Files.createDirectories(path.getParent());
+        for (String format: io.eiaun.config.Config.SNAPSHOT_COMPRESSION) {
+            long start = System.nanoTime();
+            Path p = Path.of(path.toString() + "." + format);
+            try (var r = new StringReader(payload);
+                 var in = ReaderInputStream.builder().setReader(r).get();
+                 var os = Files.newOutputStream(p);
+                 var buf = new BufferedOutputStream(os);
+                 var out = new CompressorStreamFactory().createCompressorOutputStream(format, buf)
+            ) {
+                IOUtils.copy(in, out);
+            }
+            Duration duration = Duration.ofNanos(System.nanoTime() - start);
+            log.info("XXXX Compressed {} using {} in {} milliseconds --> {} KB", PathUtils.getBaseName(path), format, duration.toMillis(),
+                    p.toFile().length() / 1024d);
+        }
+    }
+
+    // End of garbage throwaway code.
+    */
 
 }
