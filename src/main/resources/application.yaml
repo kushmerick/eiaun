@@ -6,7 +6,9 @@ eiaun:
   control:
     duration_secs: -1
     processor_fraction: 0.9
-    snapshot_compression: zstd
+    snapshots:
+      compression: zstd
+      dump_interval: 20
   jakku:
     grid: 1000
     organisms:

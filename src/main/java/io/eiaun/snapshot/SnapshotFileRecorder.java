@@ -62,8 +62,12 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private final Gson gson = new Gson();
     private boolean wrotePreamble = false;
     private final String snapshotCompression;
+    private final int snapshotDumpInterval;
 
-    public SnapshotFileRecorder(String snapshotCompression) {
+    public SnapshotFileRecorder(
+            String snapshotCompression,
+            int snapshotDumpInterval
+    ) {
         long recordingTimestamp = System.currentTimeMillis();
         this.recordingsPath = Path.of(
                 ROOT,
@@ -76,6 +80,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         log.info("Recording to {}", this.recordingsPath);
         this.snapshotCounter = 0;
         this.snapshotCompression = snapshotCompression;
+        this.snapshotDumpInterval = snapshotDumpInterval;
     }
 
     @Override
@@ -90,14 +95,19 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             wrotePreamble = true;
         }
         long snapshotId = this.snapshotCounter++;
+        boolean dump = snapshotId % this.snapshotDumpInterval == 0;
         long snapshotTimestamp = System.currentTimeMillis();
         Path snapshotPath = this.recordingsPath.resolve(
                 Path.of(SNAPSHOTS,
                         formatYMDHTimestamp(snapshotTimestamp),
                         formatFullTimestamp(snapshotTimestamp),
                         String.format(ID_FORMAT + "-%s", snapshotId, formatFullTimestamp(snapshotTimestamp))));
-        writeOrganisms(jakku.getOrganisms(), snapshotPath);
-        writeSubstances(jakku.getSubstances(), snapshotPath);
+        if (dump) {
+            writeOrganisms(jakku.getOrganisms(), snapshotPath);
+            writeSubstances(jakku.getSubstances(), snapshotPath);
+        } else {
+            log.trace("Skipping full dump for {}", snapshotPath);
+        }
         int grid = jakku.getGrid();
         writeOrganismChanges(organismChanges, changeOffset, grid, snapshotPath);
         writeSubstanceChanges(substanceChanges, changeOffset, grid, snapshotPath);

@@ -121,7 +121,7 @@ public class Config {
 
     @Bean
     public String snapshotCompression(
-            @Value("${eiaun.control.snapshot_compression:" + ZSTANDARD + "}") String snapshotCompression
+            @Value("${eiaun.control.snapshots.compression:" + ZSTANDARD + "}") String snapshotCompression
     ) {
         if (!SNAPSHOT_COMPRESSION.contains(snapshotCompression)) {
             throw new IllegalArgumentException(String.format("`snapshot_compression` %s must be in %s",
@@ -132,10 +132,19 @@ public class Config {
     }
 
     @Bean
-    public SnapshotRecorder snapshotRecorder(
-            String snapshotCompression
+    public int snapshotDumpInterval(
+            @Value("${eiaun.control.snapshots.dump_interval:10}") @Positive int snapshotDumpInterval
     ) {
-        return new SnapshotFileRecorder(snapshotCompression);
+        log.info("Snapshot dump interval {}", snapshotDumpInterval);
+        return snapshotDumpInterval;
+    }
+
+    @Bean
+    public SnapshotRecorder snapshotRecorder(
+            String snapshotCompression,
+            int snapshotDumpInterval
+    ) {
+        return new SnapshotFileRecorder(snapshotCompression, snapshotDumpInterval);
     }
 
     @Bean
