@@ -50,7 +50,7 @@ class JakkuTest {
     void beforeEach() throws IOException {
         lenient() // most but not all tests actually rely on this behavior
                 .when(this.snapshotRecorder.record(any(Jakku.class), eq(Location.ORIGIN), anyList(), anyList()))
-                .thenReturn(Optional.of("snapshot-id-123"));
+                .thenReturn("snapshot-id-123");
     }
 
     @Test
