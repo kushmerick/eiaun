@@ -173,7 +173,10 @@ public class Jakku {
                                             location,
                                             response.organismChanges(),
                                             response.substanceChanges());
-                                    log.info("Snapshot {}", snapshotId);
+                                    if (snapshotId != null) {
+                                        // null means snapshots are disabled
+                                        log.info("Snapshot {}", snapshotId);
+                                    }
                                 } catch (IOException failure) {
                                     throw new RuntimeException("Failure while writing snapshot", failure);
                                 }

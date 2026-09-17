@@ -132,6 +132,14 @@ public class Config {
     }
 
     @Bean
+    public boolean snapshotsEnabled(
+            @Value("${eiaun.control.snapshots.enabled:true}") boolean snapshotsEnabled
+    ) {
+        log.info("Snapshots enabled {}", snapshotsEnabled);
+        return snapshotsEnabled;
+    }
+
+    @Bean
     public int snapshotDumpInterval(
             @Value("${eiaun.control.snapshots.dump_interval:10}") @Positive int snapshotDumpInterval
     ) {
@@ -141,10 +149,11 @@ public class Config {
 
     @Bean
     public SnapshotRecorder snapshotRecorder(
+            boolean snapshotsEnabled,
             String snapshotCompression,
             int snapshotDumpInterval
     ) {
-        return new SnapshotFileRecorder(snapshotCompression, snapshotDumpInterval);
+        return new SnapshotFileRecorder(snapshotsEnabled, snapshotCompression, snapshotDumpInterval);
     }
 
     @Bean

@@ -7,6 +7,7 @@ eiaun:
     duration_secs: -1
     processor_fraction: 0.9
     snapshots:
+      enabled: true
       compression: zstd
       dump_interval: 20
   jakku:

@@ -58,30 +58,35 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private static final String SUBSTANCES_DOT = "substances" + DOT_JSON_DOT;
     private static final String SUBSTANCE_CHANGES = "substance-changes" + DOT_JSON;
 
+    private final boolean enabled;
     private final Path recordingsPath;
     private long snapshotCounter;
     private final Gson gson = new Gson();
     private boolean wrotePreamble = false;
-    private final String snapshotCompression;
-    private final int snapshotDumpInterval;
+    private final String compression;
+    private final int dumpInterval;
 
     public SnapshotFileRecorder(
-            String snapshotCompression,
-            int snapshotDumpInterval
+            boolean enabled,
+            String compression,
+            int dumpInterval
     ) {
+        this.enabled = enabled;
         long recordingTimestamp = System.currentTimeMillis();
         this.recordingsPath = Path.of(
                 ROOT,
                 formatYMDHTimestamp(recordingTimestamp),
                 formatFullTimestamp(recordingTimestamp));
-        if (this.recordingsPath.toFile().exists()) {
-            // should never happen, but we may lose data if it does, so let's be overly cautious
-            throw new RuntimeException(String.format("Recording timestamp collision: %s", this.recordingsPath));
-        }
-        log.info("Recording to {}", this.recordingsPath);
         this.snapshotCounter = 0;
-        this.snapshotCompression = snapshotCompression;
-        this.snapshotDumpInterval = snapshotDumpInterval;
+        this.compression = compression;
+        this.dumpInterval = dumpInterval;
+        if (this.enabled) {
+            if (this.recordingsPath.toFile().exists()) {
+                // should never happen, but we may lose data if it does, so let's be overly cautious
+                throw new RuntimeException(String.format("Recording timestamp collision: %s", this.recordingsPath));
+            }
+            log.info("Recording to {}", this.recordingsPath);
+        }
     }
 
     @Override
@@ -91,12 +96,16 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             List<Change<Organism>> organismChanges,
             List<Change<Substance>> substanceChanges
     ) throws IOException {
+        if (!enabled) {
+            log.trace("Snapshots disabled");
+            return null;
+        }
         if (!wrotePreamble) {
             writePreamble(jakku, this.recordingsPath);
             wrotePreamble = true;
         }
         long snapshotId = this.snapshotCounter++;
-        boolean dump = snapshotId % this.snapshotDumpInterval == 0;
+        boolean dump = snapshotId % this.dumpInterval == 0;
         long snapshotTimestamp = System.currentTimeMillis();
         Path snapshotPath = this.recordingsPath.resolve(
                 Path.of(SNAPSHOTS,
@@ -138,7 +147,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Path path
     ) throws IOException {
         writeCompressed(gson.toJson(thingsAsMap(organisms, Function.identity())),
-                path.resolve(ORGANISMS_DOT + this.snapshotCompression));
+                path.resolve(ORGANISMS_DOT + this.compression));
     }
 
     private void writeSubstances(
@@ -146,7 +155,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Path path
     ) throws IOException {
         writeCompressed(gson.toJson(thingsAsMap(substances, Substance::getId)),
-                path.resolve(SUBSTANCES_DOT + this.snapshotCompression));
+                path.resolve(SUBSTANCES_DOT + this.compression));
     }
 
     private static <Thing, Representation> Map<String, Map<String, Representation>> thingsAsMap(
