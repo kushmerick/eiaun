@@ -6,6 +6,7 @@ import io.eiaun.physics.Change;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
+import io.eiaun.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.IOUtils;
@@ -133,7 +134,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     }
 
     private void writeOrganisms(
-            Organism[][] organisms,
+            TwoD<Organism> organisms,
             Path path
     ) throws IOException {
         writeCompressed(gson.toJson(thingsAsMap(organisms, Function.identity())),
@@ -141,7 +142,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     }
 
     private void writeSubstances(
-            Substance[][] substances,
+            TwoD<Substance> substances,
             Path path
     ) throws IOException {
         writeCompressed(gson.toJson(thingsAsMap(substances, Substance::getId)),
@@ -149,15 +150,16 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     }
 
     private static <Thing, Representation> Map<String, Map<String, Representation>> thingsAsMap(
-            Thing[][] things,
+            TwoD<Thing> things,
             Function<Thing, Representation> representer
     ) {
         Map<String, Map<String, Representation>> map = new HashMap<>(); // lat -> lon -> representation
-        for (int lat = 0; lat < things.length; lat++) {
-            for (int lon = 0; lon < things[lat].length; lon++) {
-                if (things[lat][lon] != null) {
+        for (int lat: things.firstIndices()) {
+            for (int lon: things.secondIndices(lat)) {
+                Thing thing = things.get(lat, lon);
+                if (thing != null) {
                     map.computeIfAbsent(Integer.toString(lat), _ -> new HashMap<>())
-                            .put(Integer.toString(lon), representer.apply(things[lat][lon]));
+                            .put(Integer.toString(lon), representer.apply(thing));
                 }
             }
         }

@@ -10,6 +10,7 @@ import io.eiaun.organisms.simple.SimpleOrganism;
 import io.eiaun.organisms.simple.SimpleState;
 import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
+import io.eiaun.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,7 +57,7 @@ class JakkuTest {
     @Test
     void canConstruct() {
         Jakku jakku = new Jakku(
-                1234,
+                123,
                 0.1, this::newSimpleOrganism,
                 0.1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
@@ -67,15 +68,25 @@ class JakkuTest {
 
     @Test
     void canLookForNeighbors() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
-                1234,
-                1, this::newSimpleOrganism,
-                1, new FakeSubstanceFactory(),
+                grid,
+                0, this::newSimpleOrganism,
+                0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
                 this.snapshotRecorder);
         jakku.initialize();
+        TwoD<Organism> organisms = new TwoD<>();
+        TwoD<Substance> substances = new TwoD<>();
+        for (int lat = 0; lat < grid; lat++) {
+            for (int lon = 0; lon < grid; lon++) {
+                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                substances.set(lat, lon, jakku.getSubstanceFactory().make());
+            }
+        }
+        jakku.setOrganisms(organisms);
+        jakku.setSubstances(substances);
         int radius = 5;
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -84,15 +95,25 @@ class JakkuTest {
 
     @Test
     void canLookForSubstances() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
-                1234,
-                1, this::newSimpleOrganism,
-                1, new FakeSubstanceFactory(),
+                grid,
+                0, this::newSimpleOrganism,
+                0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
                 this.snapshotRecorder);
         jakku.initialize();
+        TwoD<Organism> organisms = new TwoD<>();
+        TwoD<Substance> substances = new TwoD<>();
+        for (int lat = 0; lat < grid; lat++) {
+            for (int lon = 0; lon < grid; lon++) {
+                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                substances.set(lat, lon, jakku.getSubstanceFactory().make());
+            }
+        }
+        jakku.setOrganisms(organisms);
+        jakku.setSubstances(substances);
         int radius = 5;
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -101,15 +122,25 @@ class JakkuTest {
 
     @Test
     void canLookForEmptiesWhenFull() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
-                1234,
-                1, this::newSimpleOrganism,
-                1, new FakeSubstanceFactory(),
+                grid,
+                0, this::newSimpleOrganism,
+                0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
                 this.snapshotRecorder);
         jakku.initialize();
+        TwoD<Organism> organisms = new TwoD<>();
+        TwoD<Substance> substances = new TwoD<>();
+        for (int lat = 0; lat < grid; lat++) {
+            for (int lon = 0; lon < grid; lon++) {
+                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                substances.set(lat, lon, jakku.getSubstanceFactory().make());
+            }
+        }
+        jakku.setOrganisms(organisms);
+        jakku.setSubstances(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(grid / 2, grid / 2, radius);
         assertTrue(nearbyEmpties.isEmpty());
@@ -117,9 +148,9 @@ class JakkuTest {
 
     @Test
     void canLookForEmptiesWhenEmpty() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
-                1234,
+                grid,
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
@@ -134,9 +165,9 @@ class JakkuTest {
 
     @Test
     void canLookForEmptiesWhenIsolated() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
-                1234,
+                grid,
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
@@ -146,11 +177,11 @@ class JakkuTest {
         int lat = grid / 2;
         int lon = grid / 2;
         // injection a single organism in the middle and a single nearby substance
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = newSimpleOrganism(jakku);
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, newSimpleOrganism(jakku));
         jakku.setOrganisms(organisms);
-        Substance[][] substances = new Substance[grid][grid];
-        substances[lat + 1][lon + 1] = new FakeSubstance();
+        TwoD<Substance> substances = new TwoD<>();
+        substances.set(lat + 1, lon + 1, new FakeSubstance());
         jakku.setSubstances(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
@@ -160,7 +191,7 @@ class JakkuTest {
 
     @Test
     void canGetStuffWithVisionRadius1() {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         // force stepping the organism at (lat, lon)
@@ -168,21 +199,20 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 log::info,
                 this.snapshotRecorder);
         jakku.initialize();
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = newSimpleOrganism(jakku);
-        organisms[lat + 1][lon + 1] = newSimpleOrganism(jakku);
-        organisms[lat - 1][lon - 1] = newSimpleOrganism(jakku);
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, newSimpleOrganism(jakku));
+        organisms.set(lat + 1, lon + 1, newSimpleOrganism(jakku));
+        organisms.set(lat - 1, lon - 1, newSimpleOrganism(jakku));
         jakku.setOrganisms(organisms);
-        Substance[][] substances = new Substance[grid][grid];
-        substances[lat + 1][lon - 1] = new FakeSubstance();
-        substances[lat - 1][lon + 1] = new FakeSubstance();
+        TwoD<Substance> substances = new TwoD<>();
+        substances.set(lat + 1, lon - 1, new FakeSubstance());
+        substances.set(lat - 1, lon + 1, new FakeSubstance());
         jakku.setSubstances(substances);
         double radius = 1;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
@@ -198,28 +228,27 @@ class JakkuTest {
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(lat, lon, radius);
         assertEquals(
                 Map.of(
-                        Location.of(+1, -1), substances[lat + 1][lon - 1],
-                        Location.of(-1, +1), substances[lat - 1][lon + 1]),
+                        Location.of(+1, -1), substances.get(lat + 1, lon - 1),
+                        Location.of(-1, +1), substances.get(lat - 1, lon + 1)),
                 nearbySubstances);
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(lat, lon, radius);
         assertEquals(
                 Map.of(
-                        Location.ORIGIN, organisms[lat][lon],
-                        Location.of(+1, +1), organisms[lat + 1][lon + 1],
-                        Location.of(-1, -1), organisms[lat - 1][lon - 1]),
+                        Location.ORIGIN, organisms.get(lat, lon),
+                        Location.of(+1, +1), organisms.get(lat + 1, lon + 1),
+                        Location.of(-1, -1), organisms.get(lat - 1, lon - 1)),
                 neighbors);
     }
 
     @Test
     void canStep() {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
@@ -230,23 +259,23 @@ class JakkuTest {
         Genome genome = mock(Genome.class);
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = organism;
-        organisms[lat + 1][lon + 1] = newSimpleOrganism(jakku);
-        organisms[lat - 1][lon - 1] = newSimpleOrganism(jakku);
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
+        organisms.set(lat + 1, lon + 1, newSimpleOrganism(jakku));
+        organisms.set(lat - 1, lon - 1, newSimpleOrganism(jakku));
         jakku.setOrganisms(organisms);
-        Substance[][] substances = new Substance[grid][grid];
-        substances[lat + 1][lon - 1] = new FakeSubstance();
-        substances[lat - 1][lon + 1] = new FakeSubstance();
+        TwoD<Substance> substances = new TwoD<>();
+        substances.set(lat + 1, lon - 1, new FakeSubstance());
+        substances.set(lat - 1, lon + 1, new FakeSubstance());
         jakku.setSubstances(substances);
         State newState = new SimpleState();
         Substance replacementSubstance = new FakeSubstance();
         List<Change<Substance>> substanceChanges = List.of(
-                Change.destroy(substances[lat + 1][lon - 1], Location.of(+1, -1)),
-                Change.replace(substances[lat - 1][lon + 1], replacementSubstance, Location.of(-1, +1)));
+                Change.destroy(substances.get(lat + 1, lon - 1), Location.of(+1, -1)),
+                Change.replace(substances.get(lat - 1, lon + 1), replacementSubstance, Location.of(-1, +1)));
         Organism newborn = newSimpleOrganism(jakku);
         List<Change<Organism>> organismChanges = List.of(
-                Change.destroy(organisms[lat + 1][lon + 1], Location.of(+1, +1)),
+                Change.destroy(organisms.get(lat + 1, lon + 1), Location.of(+1, +1)),
                 Change.create(newborn, Location.of(0, -1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         when(organism.respond(
@@ -258,33 +287,32 @@ class JakkuTest {
                         Location.of(-1, 0),
                         Location.of(-1, +1))),
                 eq(Map.of(
-                        Location.of(+1, -1), substances[lat + 1][lon - 1],
-                        Location.of(-1, +1), substances[lat - 1][lon + 1])),
+                        Location.of(+1, -1), substances.get(lat + 1, lon - 1),
+                        Location.of(-1, +1), substances.get(lat - 1, lon + 1))),
                 eq(Map.of(
-                        Location.ORIGIN, organisms[lat][lon],
-                        Location.of(+1, +1), organisms[lat + 1][lon + 1],
-                        Location.of(-1, -1), organisms[lat - 1][lon - 1]))))
+                        Location.ORIGIN, organisms.get(lat, lon),
+                        Location.of(+1, +1), organisms.get(lat + 1, lon + 1),
+                        Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(organism).setState(eq(newState));
-        assertNull(substances[lat + 1][lon - 1]);
-        assertEquals(replacementSubstance, substances[lat - 1][lon + 1]);
-        assertNull(organisms[lat + 1][lon + 1]);
-        assertNotNull(organisms[lat - 1][lon - 1]);
-        assertEquals(newborn, organisms[lat][lon - 1]);
+        assertNull(substances.get(lat + 1, lon - 1));
+        assertEquals(replacementSubstance, substances.get(lat - 1, lon + 1));
+        assertNull(organisms.get(lat + 1, lon + 1));
+        assertNotNull(organisms.get(lat - 1, lon - 1));
+        assertEquals(newborn, organisms.get(lat, lon - 1));
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
     @Test
     void canMove() {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
@@ -300,8 +328,8 @@ class JakkuTest {
         List<Change<Organism>> organismChanges = List.of(
                 Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = organism;
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
                 eq(Set.of(
@@ -315,24 +343,23 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.ORIGIN, organisms[lat][lon]))))
+                        Location.ORIGIN, organisms.get(lat, lon)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
-        assertNull(organisms[lat][lon]);
-        assertEquals(organisms[lat + 1][lon + 1], organism);
+        assertNull(organisms.get(lat, lon));
+        assertEquals(organisms.get(lat + 1, lon + 1), organism);
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
     @Test
     void canSnapshot() throws IOException {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
@@ -348,8 +375,8 @@ class JakkuTest {
         List<Change<Organism>> organismChanges = List.of(
                 Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = organism;
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
                 eq(Set.of(
@@ -363,7 +390,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.ORIGIN, organisms[lat][lon]))))
+                        Location.ORIGIN, organisms.get(lat, lon)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
@@ -372,14 +399,13 @@ class JakkuTest {
 
     @Test
     void invalidOrganismChangesAreRejected() {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
@@ -396,9 +422,9 @@ class JakkuTest {
                 // try to put a child on a neighbor
                 Change.create(organism, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = organism;
-        organisms[lat + 1][lon + 1] = organism;
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
+        organisms.set(lat + 1, lon + 1, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
                 eq(Set.of(
@@ -411,8 +437,8 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.ORIGIN, organisms[lat][lon],
-                        Location.of(+1, +1), organisms[lat + 1][lon + 1]))))
+                        Location.ORIGIN, organisms.get(lat, lon),
+                        Location.of(+1, +1), organisms.get(lat + 1, lon + 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(1)).accept(anyString());
@@ -420,14 +446,13 @@ class JakkuTest {
 
     @Test
     void removingNonExistentSubstanceAndOrganismAreRejected() {
-        int grid = 1234;
+        int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                // note zero densities; substances and organisms are injected below
                 0, this::newSimpleOrganism,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
@@ -446,8 +471,8 @@ class JakkuTest {
                 // eat a non-existent neighbor
                 Change.destroy(newSimpleOrganism(jakku), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
-        Organism[][] organisms = new Organism[grid][grid];
-        organisms[lat][lon] = organism;
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
                 eq(Set.of(
@@ -461,7 +486,7 @@ class JakkuTest {
                         Location.of(-1, -1))),
                 eq(Collections.emptyMap()),
                 eq(Map.of(
-                        Location.ORIGIN, organisms[lat][lon]))))
+                        Location.ORIGIN, organisms.get(lat, lon)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(2)).accept(anyString());
@@ -469,7 +494,7 @@ class JakkuTest {
 
     @Test
     public void testWrap() {
-        int grid = 1234;
+        int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
                 0, this::newSimpleOrganism,
@@ -484,10 +509,10 @@ class JakkuTest {
         assertEquals(1, jakku.wrap(1));
         assertEquals(2, jakku.wrap(2));
         assertEquals(0, jakku.wrap(-grid));
-        assertEquals(0, jakku.wrap(-99*grid));
-        assertEquals(grid - 1, jakku.wrap(-99*grid - 1));
-        assertEquals(grid - 5, jakku.wrap(-99*grid - 5));
-        assertEquals(5, jakku.wrap(-99*grid + 5));
+        assertEquals(0, jakku.wrap(-99 * grid));
+        assertEquals(grid - 1, jakku.wrap(-99 * grid - 1));
+        assertEquals(grid - 5, jakku.wrap(-99 * grid - 5));
+        assertEquals(5, jakku.wrap(-99 * grid + 5));
         assertEquals(grid - 1, jakku.wrap(grid - 1));
         assertEquals(0, jakku.wrap(grid));
         assertEquals(1, jakku.wrap(grid + 1));

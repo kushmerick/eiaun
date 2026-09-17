@@ -1,4 +1,5 @@
 recordings
+*.hprof
 
 oHELP.md
 .gradle

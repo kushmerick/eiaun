@@ -3,6 +3,7 @@ package io.eiaun.physics;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.snapshot.SnapshotRecorder;
+import io.eiaun.util.TwoD;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -31,13 +32,13 @@ public class Jakku {
     private final double substanceDensity;
 
     @Getter
-    private Organism[][] organisms;
+    private TwoD<Organism> organisms;
 
     private final Supplier<Organism> organismCreator;
 
     @Setter
     @Getter
-    private Substance[][] substances;
+    private TwoD<Substance> substances;
 
     @Getter
     private final SubstanceFactory substanceFactory;
@@ -75,54 +76,52 @@ public class Jakku {
     public void initialize() {
         log.info("Initializing");
         // random initial organisms
-        Organism[][] organisms = new Organism[this.grid][this.grid];
+        TwoD<Organism> organisms = new TwoD<>();
         int want = (int) (this.organismDensity * this.grid * this.grid);
         int created = 0;
         while (created < want) {
             int lat = RANDOM.nextInt(this.grid);
             int lon = RANDOM.nextInt(this.grid);
-            if (organisms[lat][lon] == null) {
-                organisms[lat][lon] = this.organismCreator.get();
+            if (!organisms.contains(lat, lon)) {
+                organisms.set(lat, lon, this.organismCreator.get());
                 created++;
             }
         }
         setOrganisms(organisms);
         // random initial substances
-        Substance[][] substances = new Substance[this.grid][this.grid];
+        TwoD<Substance> substances = new TwoD<>();
         want = (int) (this.substanceDensity * this.grid * this.grid);
         created = 0;
         while (created < want) {
             int lat = RANDOM.nextInt(this.grid);
             int lon = RANDOM.nextInt(this.grid);
-            if (substances[lat][lon] == null) {
-                substances[lat][lon] = this.substanceFactory.make();
+            if (!substances.contains(lat, lon)) {
+                substances.set(lat, lon, this.substanceFactory.make());
                 created++;
             }
         }
         setSubstances(substances);
     }
 
-    public Map<String,Set<String>> getAllSubstanceProperties() {
-        Map<String,Set<String>> substanceProperties = new HashMap<>();
-        for (SubstanceSpec spec: this.substanceFactory.getSubstanceSpecs()) {
+    public Map<String, Set<String>> getAllSubstanceProperties() {
+        Map<String, Set<String>> substanceProperties = new HashMap<>();
+        for (SubstanceSpec spec : this.substanceFactory.getSubstanceSpecs()) {
             spec.getProperties().forEach((p, v) ->
                     substanceProperties.computeIfAbsent(p, (_) -> new HashSet<>()).add(v));
         }
         return substanceProperties;
     }
 
-    public void setOrganisms(Organism[][] organisms) {
+    public void setOrganisms(TwoD<Organism> organisms) {
         this.organisms = organisms;
         updateOrganismLocationsIterator();
     }
 
     private void updateOrganismLocationsIterator() {
         List<Location> organismLocations = new ArrayList<>();
-        for (int lat = 0; lat < this.grid; lat++) {
-            for (int lon = 0; lon < this.grid; lon++) {
-                if (this.organisms[lat][lon] != null) {
-                    organismLocations.add(Location.of(lat, lon));
-                }
+        for (int lat : this.organisms.firstIndices()) {
+            for (int lon : this.organisms.secondIndices(lat)) {
+                organismLocations.add(Location.of(lat, lon));
             }
         }
         this.organismLocationsIterator = this.organismLocationsIteratorGenerator.apply(organismLocations);
@@ -151,7 +150,7 @@ public class Jakku {
                                 location = this.organismLocationsIterator.next();
                                 int lat = location.getLat();
                                 int lon = location.getLon();
-                                organism = this.organisms[lat][lon];
+                                organism = this.organisms.get(lat, lon);
                                 double radius = organism.getGenome().getVisionRadius();
                                 empties = lookForEmpties(lat, lon, radius);
                                 substances = lookForSubstances(lat, lon, radius);
@@ -206,7 +205,7 @@ public class Jakku {
             Function<Thing, Object> describer,
             Location location,
             List<Change<Thing>> changes,
-            Thing[][] things,
+            TwoD<Thing> things,
             // a substance can be changed to a different substance,
             // but an organism cannot be changed to a different organism
             boolean mutable
@@ -218,36 +217,36 @@ public class Jakku {
                 Location to = location.add(change.getTo(), this.grid);
                 int lat = to.getLat();
                 int lon = to.getLon();
-                if (things[lat][lon] != null) {
+                if (things.contains(lat, lon)) {
                     // another thing is already at the destination
                     rejected = true;
                 } else {
-                    things[lat][lon] = change.getReplacement();
+                    things.set(lat, lon, change.getReplacement());
                     modified = true;
                 }
             } else if (change.isDestroy()) {
                 Location from = location.add(change.getFrom(), this.grid);
                 int lat = from.getLat();
                 int lon = from.getLon();
-                if (!Objects.equals(things[lat][lon], change.getOriginal())) {
+                if (!Objects.equals(things.get(lat, lon), change.getOriginal())) {
                     // already changed, or no-op (already deleted)
                     rejected = true;
                 } else {
-                    things[lat][lon] = null;
+                    things.remove(lat, lon);
                     modified = true;
                 }
             } else if (change.isReplacement()) {
                 Location from = location.add(change.getFrom(), this.grid);
                 int lat = from.getLat();
                 int lon = from.getLon();
-                if (!Objects.equals(things[lat][lon], change.getOriginal()) ||
-                        Objects.equals(things[lat][lon], change.getReplacement()))
-                {
+                Thing thing = things.get(lat, lon);
+                if (!Objects.equals(thing, change.getOriginal()) ||
+                        Objects.equals(thing, change.getReplacement())) {
                     // original is already gone
                     // no-op (already replaced)
                     rejected = true;
                 } else {
-                    things[lat][lon] = change.getReplacement();
+                    things.set(lat, lon, change.getReplacement());
                     modified = true;
                 }
             } else if (change.isMove()) {
@@ -257,15 +256,14 @@ public class Jakku {
                 Location to = location.add(change.getTo(), this.grid);
                 int tlat = to.getLat();
                 int tlon = to.getLon();
-                if (!Objects.equals(things[flat][flon], change.getOriginal()) ||
-                        things[tlat][tlon] != null)
-                {
+                if (!Objects.equals(things.get(flat, flon), change.getOriginal()) ||
+                        things.contains(tlat, tlon)) {
                     // original object changed or been removed,
                     // or another thing is already at the destination
                     rejected = true;
                 } else {
-                    things[flat][flon] = null;
-                    things[tlat][tlon] = change.getOriginal();
+                    things.remove(flat, flon);
+                    things.set(tlat, tlon, change.getOriginal());
                     modified = true;
                 }
             } else {
@@ -288,7 +286,7 @@ public class Jakku {
     public Set<Location> lookForEmpties(int lat, int lon, double radius) {
         Set<Location> empties = new HashSet<>();
         visit(
-                (i, j) -> this.organisms[i][j],
+                this.organisms,
                 lat,
                 lon,
                 radius,
@@ -309,14 +307,14 @@ public class Jakku {
     }
 
     private <Thing> Map<Location, Thing> getThings(
-            Thing[][] things,
+            TwoD<Thing> things,
             int lat,
             int lon,
             double radius
     ) {
         Map<Location, Thing> neighbors = new HashMap<>();
         visit(
-                (i, j) -> things[i][j],
+                things,
                 lat,
                 lon,
                 radius,
@@ -326,10 +324,6 @@ public class Jakku {
                     }
                 });
         return neighbors;
-    }
-
-    private interface TwoD<Thing> {
-        Thing get(int i, int j);
     }
 
     private <Thing> void visit(
