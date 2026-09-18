@@ -12,6 +12,7 @@ import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
 import io.eiaun.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +52,7 @@ class JakkuTest {
     void beforeEach() throws IOException {
         lenient() // most but not all tests actually rely on this behavior
                 .when(this.snapshotRecorder.record(any(Jakku.class), eq(Location.ORIGIN), anyList(), anyList()))
-                .thenReturn("snapshot-id-123");
+                .thenReturn(Pair.of("snapshot-id-123", () -> {}));
     }
 
     @Test

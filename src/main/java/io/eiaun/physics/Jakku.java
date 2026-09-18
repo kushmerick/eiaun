@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.TriConsumer;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.util.*;
@@ -161,25 +162,29 @@ public class Jakku {
                             Response response = organism.respond(empties, substances, neighbors);
                             log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
                                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
+                            Runnable fileWrites = null;
                             synchronized (this.lock) {
                                 organism.setState(response.newState());
                                 changeSubstances(location, response);
                                 if (changeOrganisms(location, response)) {
                                     updateOrganismLocationsIterator();
                                 }
-                                try {
-                                    String snapshotId = this.snapshotRecorder.record(
-                                            this,
-                                            location,
-                                            response.organismChanges(),
-                                            response.substanceChanges());
-                                    if (snapshotId != null) {
-                                        // null means snapshots are disabled
-                                        log.info("Snapshot {}", snapshotId);
-                                    }
-                                } catch (IOException failure) {
-                                    throw new RuntimeException("Failure while writing snapshot", failure);
+                                Pair<String, Runnable> info = this.snapshotRecorder.record(
+                                        this,
+                                        location,
+                                        response.organismChanges(),
+                                        response.substanceChanges());
+                                if (info != null) {
+                                    // null means snapshots are disabled
+                                    log.info("Snapshot {}", info.getLeft());
+                                    fileWrites = info.getRight();
                                 }
+                            }
+                            if (fileWrites != null) {
+                                // null means snapshots are disabled
+                                fileWrites.run();
+                            }
+                            synchronized (this.lock) {
                                 return !this.organismLocationsIterator.hasNext();
                             }
                         }, executor);
@@ -242,14 +247,16 @@ public class Jakku {
                 Location from = location.add(change.getFrom(), this.grid);
                 int lat = from.getLat();
                 int lon = from.getLon();
-                Thing thing = things.get(lat, lon);
-                if (!Objects.equals(thing, change.getOriginal()) ||
-                        Objects.equals(thing, change.getReplacement())) {
-                    // original is already gone
-                    // no-op (already replaced)
+                Thing current = things.get(lat, lon);
+                Thing original = change.getOriginal();
+                Thing replacement = change.getReplacement();
+                if (!mutable || !Objects.equals(current, original) || Objects.equals(current, replacement)) {
+                    // replace immutable thing,
+                    // or original is already gone,
+                    // or no-op (already replaced)
                     rejected = true;
                 } else {
-                    things.set(lat, lon, change.getReplacement());
+                    things.set(lat, lon, replacement);
                     modified = true;
                 }
             } else if (change.isMove()) {

@@ -12,6 +12,7 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -89,18 +90,23 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         }
     }
 
+    // Taking a snapshot has two phases: preparing the data, then writing the files.
+    // THe first must be synchronized across all steps in flight, while the second
+    // can be parallelized. The Runnable returned by this method encapsulates the
+    // second phase, so that the caller can schedule it asynchronously.
     @Override
-    public String record(
+    public Pair<String, Runnable> record(
             Jakku jakku,
             Location changeOffset,
             List<Change<Organism>> organismChanges,
             List<Change<Substance>> substanceChanges
-    ) throws IOException {
+    ) {
         if (!enabled) {
             log.trace("Snapshots disabled");
             return null;
         }
         if (!wrotePreamble) {
+            // no need to make this small file write asynchronous
             writePreamble(jakku, this.recordingsPath);
             wrotePreamble = true;
         }
@@ -112,16 +118,19 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                         formatYMDHTimestamp(snapshotTimestamp),
                         formatFullTimestamp(snapshotTimestamp),
                         String.format(ID_FORMAT + "-%s", snapshotId, formatFullTimestamp(snapshotTimestamp))));
+        List<Runnable> fileWrites = new ArrayList<>();
         if (dump) {
-            writeOrganisms(jakku.getOrganisms(), snapshotPath);
-            writeSubstances(jakku.getSubstances(), snapshotPath);
+            fileWrites.add(() -> writeOrganisms(jakku.getOrganisms(), snapshotPath));
+            fileWrites.add(() -> writeSubstances(jakku.getSubstances(), snapshotPath));
         } else {
             log.trace("Skipping full dump for {}", snapshotPath);
         }
         int grid = jakku.getGrid();
-        writeOrganismChanges(organismChanges, changeOffset, grid, snapshotPath);
-        writeSubstanceChanges(substanceChanges, changeOffset, grid, snapshotPath);
-        return snapshotPath.toString();
+        fileWrites.add(() -> writeOrganismChanges(organismChanges, changeOffset, grid, snapshotPath));
+        fileWrites.add(() -> writeSubstanceChanges(substanceChanges, changeOffset, grid, snapshotPath));
+        return Pair.of(
+                snapshotPath.toString(),
+                () -> fileWrites.forEach(Runnable::run));
     }
 
     private String formatFullTimestamp(long timestamp) {
@@ -135,7 +144,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private void writePreamble(
             Jakku jakku,
             Path path
-    ) throws IOException {
+    ) {
         write(this.gson.toJson(Physics.from(jakku)),
                 path.resolve(PHYSICS));
         write(this.gson.toJson(Config.from(jakku)),
@@ -145,7 +154,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private void writeOrganisms(
             TwoD<Organism> organisms,
             Path path
-    ) throws IOException {
+    ) {
         writeCompressed(gson.toJson(thingsAsMap(organisms, Function.identity())),
                 path.resolve(ORGANISMS_DOT + this.compression));
     }
@@ -153,7 +162,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private void writeSubstances(
             TwoD<Substance> substances,
             Path path
-    ) throws IOException {
+    ) {
         writeCompressed(gson.toJson(thingsAsMap(substances, Substance::getId)),
                 path.resolve(SUBSTANCES_DOT + this.compression));
     }
@@ -180,7 +189,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Location changeOffset,
             int grid,
             Path path
-    ) throws IOException {
+    ) {
         write(this.gson.toJson(
                         changesAsList(
                                 organismChanges,
@@ -195,7 +204,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Location changeOffset,
             int grid,
             Path path
-    ) throws IOException {
+    ) {
         write(this.gson.toJson(
                         changesAsList(
                                 substanceChanges,
@@ -222,21 +231,29 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                 .toList();
     }
 
-    private void write(String payload, Path path) throws IOException {
-        Files.createDirectories(path.getParent());
-        Files.write(path, payload.getBytes(), StandardOpenOption.CREATE);
+    private void write(String payload, Path path) {
+        try {
+            Files.createDirectories(path.getParent());
+            Files.write(path, payload.getBytes(), StandardOpenOption.CREATE);
+        } catch (IOException failure) {
+            throw new RuntimeException("Failure while writing payload", failure);
+        }
     }
 
-    private void writeCompressed(String payload, Path path) throws IOException {
-        Files.createDirectories(path.getParent());
-        String format = PathUtils.getExtension(path);
-        try (var r = new StringReader(payload);
-             var in = ReaderInputStream.builder().setReader(r).get();
-             var os = Files.newOutputStream(path);
-             var buf = new BufferedOutputStream(os);
-             var out = new CompressorStreamFactory().createCompressorOutputStream(format, buf)
-        ) {
-            IOUtils.copy(in, out);
+    private void writeCompressed(String payload, Path path) {
+        try {
+            Files.createDirectories(path.getParent());
+            String format = PathUtils.getExtension(path);
+            try (var r = new StringReader(payload);
+                 var in = ReaderInputStream.builder().setReader(r).get();
+                 var os = Files.newOutputStream(path);
+                 var buf = new BufferedOutputStream(os);
+                 var out = new CompressorStreamFactory().createCompressorOutputStream(format, buf)
+            ) {
+                IOUtils.copy(in, out);
+            }
+        } catch (IOException failure) {
+            throw new RuntimeException("Failure while writing compressed payload", failure);
         }
     }
 

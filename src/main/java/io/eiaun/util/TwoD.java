@@ -5,20 +5,26 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class TwoD<Thing> {
+
+    // simplify experiments with different backing stores
+    private final Supplier<Map<Integer,Map<Integer, Thing>>> level1 = HashMap::new;
+    private final Function<Integer, Map<Integer, Thing>> level2 = _ -> new HashMap<>();
 
     private final Map<Integer, Map<Integer, Thing>> things;
 
     public TwoD() {
-        things = new HashMap<>();
+        this.things = this.level1.get();
     }
 
     public void set(int i, int j, Thing thing) {
         if (thing == null) {
             remove(i, j);
         } else {
-            this.things.computeIfAbsent(i, _ -> new HashMap<>()).put(j, thing);
+            this.things.computeIfAbsent(i, this.level2).put(j, thing);
         }
     }
 
