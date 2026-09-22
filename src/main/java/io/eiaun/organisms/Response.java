@@ -6,7 +6,9 @@ import io.eiaun.physics.Substance;
 import java.util.List;
 
 public record Response(
+        // an organism is responsible for updating its own state
         State newState,
+        // Jakku is responsible for changing substances & organisms
         List<Change<Substance>> substanceChanges,
         List<Change<Organism>> organismChanges
 ) {

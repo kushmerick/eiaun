@@ -3,13 +3,15 @@ package io.eiaun.organisms.mover;
 import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
-import io.eiaun.organisms.State;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
-import lombok.Data;
+import lombok.Getter;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -20,8 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * eats one of it's preferred substances; an organism dies if it uses up
  * all its energy.
  */
-@Data
-public class Mover implements Organism {
+public class Mover extends Organism {
 
     private static final AtomicLong ID = new AtomicLong();
     private static final Random RANDOM = new Random();
@@ -31,9 +32,9 @@ public class Mover implements Organism {
     public static final String MOVE_ENERGY_PROPERTY = "move_energy";
     public static final String REST_ENERGY_PROPERTY = "rest_energy";
 
-    private final long id;
-    private final Genome genome;
-    private State state;
+    @Getter private final long id;
+    private final MoverGenome genome;
+    private MoverState state;
 
     public Mover(
             Jakku jakku,
@@ -65,12 +66,19 @@ public class Mover implements Organism {
     }
 
     @Override
+    public Genome getGenome() {
+        return this.genome;
+    }
+
+    @Override
     public Response respond(
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location, Organism> neighbors
     ) {
-        return this.genome.respond(this.state, empties, substances, neighbors);
+        Response response = this.genome.respond(this.state, empties, substances, neighbors);
+        this.state = (MoverState) response.newState();
+        return response;
     }
 
 }

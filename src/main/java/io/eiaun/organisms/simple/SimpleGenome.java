@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class SimpleGenome implements Genome {
+public class SimpleGenome extends Genome {
 
     @Getter
     private final double visionRadius;

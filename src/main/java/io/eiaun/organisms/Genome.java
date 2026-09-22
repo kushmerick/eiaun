@@ -6,11 +6,11 @@ import io.eiaun.physics.Substance;
 import java.util.Map;
 import java.util.Set;
 
-public interface Genome {
+public abstract class Genome {
 
-    double getVisionRadius();
+    public abstract double getVisionRadius();
 
-    Response respond(
+    public abstract Response respond(
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,

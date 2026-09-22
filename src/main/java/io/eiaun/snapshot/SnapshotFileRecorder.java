@@ -1,11 +1,11 @@
 package io.eiaun.snapshot;
 
-import com.google.gson.Gson;
 import io.eiaun.organisms.Organism;
 import io.eiaun.physics.Change;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
+import io.eiaun.util.JSON;
 import io.eiaun.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
@@ -62,7 +62,6 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private final boolean enabled;
     private final Path recordingsPath;
     private long snapshotCounter;
-    private final Gson gson = new Gson();
     private boolean wrotePreamble = false;
     private final String compression;
     private final int dumpInterval;
@@ -145,9 +144,9 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Jakku jakku,
             Path path
     ) {
-        write(this.gson.toJson(Physics.from(jakku)),
+        write(JSON.toJson(Physics.from(jakku)),
                 path.resolve(PHYSICS));
-        write(this.gson.toJson(Config.from(jakku)),
+        write(JSON.toJson(Config.from(jakku)),
                 path.resolve(CONFIG));
     }
 
@@ -155,7 +154,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             TwoD<Organism> organisms,
             Path path
     ) {
-        writeCompressed(gson.toJson(thingsAsMap(organisms, Function.identity())),
+        writeCompressed(JSON.toJson(thingsAsMap(organisms, Function.identity())),
                 path.resolve(ORGANISMS_DOT + this.compression));
     }
 
@@ -163,7 +162,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             TwoD<Substance> substances,
             Path path
     ) {
-        writeCompressed(gson.toJson(thingsAsMap(substances, Substance::getId)),
+        writeCompressed(JSON.toJson(thingsAsMap(substances, Substance::getId)),
                 path.resolve(SUBSTANCES_DOT + this.compression));
     }
 
@@ -190,7 +189,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             int grid,
             Path path
     ) {
-        write(this.gson.toJson(
+        write(JSON.toJson(
                         changesAsList(
                                 organismChanges,
                                 changeOffset,
@@ -205,7 +204,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             int grid,
             Path path
     ) {
-        write(this.gson.toJson(
+        write(JSON.toJson(
                         changesAsList(
                                 substanceChanges,
                                 changeOffset,

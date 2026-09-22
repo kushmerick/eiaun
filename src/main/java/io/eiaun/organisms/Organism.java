@@ -6,18 +6,16 @@ import io.eiaun.physics.Substance;
 import java.util.Map;
 import java.util.Set;
 
-public interface Organism {
+abstract public class Organism {
 
-    Response respond(
+    public abstract Response respond(
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
     );
 
-    long getId();
+    public abstract long getId();
 
-    void setState(State state);
-
-    Genome getGenome();
+    public abstract Genome getGenome();
 
 }

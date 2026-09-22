@@ -16,24 +16,24 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class MoverGenome implements Genome {
+public class MoverGenome extends Genome {
 
     private static final Random RANDOM = new Random();
 
-    private final Map<String, String> desireableSubstanceProperties;
+    private final Map<String, String> desirableSubstanceProperties;
     @Getter private final double visionRadius;
     private final double peakEnergy;
     private final double moveEnergy;
     private final double restEnergy;
 
     public MoverGenome(
-            Map<String, String> desireableSubstanceProperties,
+            Map<String, String> desirableSubstanceProperties,
             double visionRadius,
             double peakEnergy,
             double moveEnergy,
             double restEnergy
     ) {
-        this.desireableSubstanceProperties = desireableSubstanceProperties;
+        this.desirableSubstanceProperties = desirableSubstanceProperties;
         this.visionRadius = visionRadius;
         this.peakEnergy = peakEnergy;
         this.moveEnergy = moveEnergy;
@@ -123,23 +123,27 @@ public class MoverGenome implements Genome {
                 organismChanges);
     }
 
-    private void moveTo(List<Change<Organism>> changes, Location location, Organism organism) {
+    private void moveTo(
+            List<Change<Organism>> changes,
+            Location location,
+            Organism organism
+    ) {
         changes.add(Change.move(organism, Location.ORIGIN, location));
     }
 
     private boolean isDesirable(Substance substance) {
-        return this.desireableSubstanceProperties.entrySet().stream()
+        return this.desirableSubstanceProperties.entrySet().stream()
                 .anyMatch(entry ->
                         substance.getProperties().get(entry.getKey()).equals(entry.getValue()));
     }
 
     private String explainDesire(Substance substance) {
         return SetUtils.intersection(
-                    this.desireableSubstanceProperties.keySet(),
+                    this.desirableSubstanceProperties.keySet(),
                     substance.getProperties().keySet())
                 .stream()
                 .map(property -> {
-                    String desiredValue = this.desireableSubstanceProperties.get(property);
+                    String desiredValue = this.desirableSubstanceProperties.get(property);
                     String actualValue = substance.getProperties().get(property);
                     return property +
                             (Objects.equals(desiredValue, actualValue)

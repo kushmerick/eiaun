@@ -7,7 +7,7 @@ import io.eiaun.organisms.State;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
-import lombok.Data;
+import lombok.Getter;
 
 import java.util.Map;
 import java.util.Set;
@@ -16,15 +16,14 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * An utterly trivial organism that doesn't do anything.
  */
-@Data
-public class SimpleOrganism implements Organism {
+public class SimpleOrganism extends Organism {
 
     private static final AtomicLong ID = new AtomicLong();
     public static final String VISION_RADIUS_PROPERTY = "vision_radius";
 
-    private final long id;
-    private final Genome genome;
-    private State state;
+    @Getter private final long id;
+    private final SimpleGenome genome;
+    private SimpleState state;
 
     public SimpleOrganism(
             Jakku ignored,
@@ -36,12 +35,19 @@ public class SimpleOrganism implements Organism {
     }
 
     @Override
+    public Genome getGenome() {
+        return this.genome;
+    }
+
+    @Override
     public Response respond(
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location, Organism> neighbors
     ) {
-        return this.genome.respond(this.state, empties, substances, neighbors);
+        Response response = this.genome.respond(this.state, empties, substances, neighbors);
+        this.state = (SimpleState) response.newState();
+        return response;
     }
 
 }

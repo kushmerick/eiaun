@@ -1,5 +1,6 @@
 package io.eiaun.physics;
 
+import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.snapshot.SnapshotRecorder;
@@ -10,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -164,7 +164,6 @@ public class Jakku {
                                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
                             Runnable fileWrites = null;
                             synchronized (this.lock) {
-                                organism.setState(response.newState());
                                 changeSubstances(location, response);
                                 if (changeOrganisms(location, response)) {
                                     updateOrganismLocationsIterator();
@@ -221,7 +220,7 @@ public class Jakku {
         boolean modified = false;
         for (var change : changes) {
             boolean rejected = false;
-            if (change.isCreation()) {
+            if (change.isCreate()) {
                 Location to = location.add(change.getTo(), this.grid);
                 int lat = to.getLat();
                 int lon = to.getLon();
@@ -243,7 +242,7 @@ public class Jakku {
                     things.remove(lat, lon);
                     modified = true;
                 }
-            } else if (change.isReplacement()) {
+            } else if (change.isReplace()) {
                 Location from = location.add(change.getFrom(), this.grid);
                 int lat = from.getLat();
                 int lon = from.getLon();

@@ -60,7 +60,7 @@ public class Change<Thing> {
     private final Location from;     // destroy, move, replace
     private final Location to;       // create, move, replace
 
-    public boolean isCreation() {
+    public boolean isCreate() {
         return this.from == null && this.to != null &&
                 this.original == null && this.replacement != null;
     }
@@ -75,7 +75,7 @@ public class Change<Thing> {
                 this.original != null && this.replacement != null && this.original == this.replacement;
     }
 
-    public boolean isReplacement() {
+    public boolean isReplace() {
         return this.to != null && this.from != null && this.to == this.from &&
                 this.original != null && this.replacement != null && this.original != this.replacement;
     }

@@ -3,7 +3,7 @@ package io.eiaun.organisms.mover;
 import io.eiaun.organisms.State;
 import lombok.Getter;
 
-public class MoverState implements State {
+public class MoverState extends State {
 
     @Getter public final double energy;
 

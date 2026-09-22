@@ -296,7 +296,6 @@ class JakkuTest {
                         Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
-        verify(organism).setState(eq(newState));
         assertNull(substances.get(lat + 1, lon - 1));
         assertEquals(replacementSubstance, substances.get(lat - 1, lon + 1));
         assertNull(organisms.get(lat + 1, lon + 1));

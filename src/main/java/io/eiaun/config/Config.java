@@ -1,5 +1,6 @@
 package io.eiaun.config;
 
+import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.SubstanceFactory;

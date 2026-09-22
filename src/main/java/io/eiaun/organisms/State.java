@@ -1,4 +1,4 @@
 package io.eiaun.organisms;
 
-public interface State {
+public abstract class State {
 }

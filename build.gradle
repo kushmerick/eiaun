@@ -17,6 +17,7 @@ ext {
 	xzVersion = '1.12'
 	zstdVersion = '1.5.7-16'
 	gsonVersion = '2.14.0'
+	foryJsonVersion = '1.7.3'
 }
 
 java {
@@ -39,6 +40,7 @@ dependencies {
 	implementation "org.tukaani:xz:${xzVersion}"
 	implementation "com.github.luben:zstd-jni:${zstdVersion}"
 	implementation "com.google.code.gson:gson:${gsonVersion}"
+	implementation "org.apache.fory:fory-json:${foryJsonVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	compileOnly "org.projectlombok:lombok:${lombokVersion}"
