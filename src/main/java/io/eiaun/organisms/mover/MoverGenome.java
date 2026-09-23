@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.SetUtils;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -49,7 +50,7 @@ public class MoverGenome extends Genome {
             Map<Location, Organism> organisms
     ) {
         Organism organism = organisms.get(Location.ORIGIN);
-        MoverState moverState = (MoverState) state;
+        MoverState[] moverState = { (MoverState) state };
         List<Change<Organism>> organismChanges = new ArrayList<>();
         List<Change<Substance>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
@@ -58,14 +59,14 @@ public class MoverGenome extends Genome {
         if (desirableSubstances.containsKey(Location.ORIGIN)) {
             Substance substance = desirableSubstances.get(Location.ORIGIN);
             log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
-                    organism.getId(), moverState.getEnergy(), substance.getId(), explainDesire(substance));
+                    organism.getId(), moverState[0].getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
             substanceChanges.add(Change.destroy(substance));
             // replenish energy
-            state = new MoverState(moverState.getEnergy() + this.peakEnergy);
+            moverState[0] = new MoverState(moverState[0].getEnergy() + this.peakEnergy);
         } else {
-            if (moverState.getEnergy() < this.moveEnergy) {
-                log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState.getEnergy());
+            if (moverState[0].getEnergy() < this.moveEnergy) {
+                log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState[0].getEnergy());
                 return Response.of(
                         state,
                         Collections.emptyList(),
@@ -92,16 +93,16 @@ public class MoverGenome extends Genome {
                                     .findFirst()
                                     .ifPresentOrElse(empty -> {
                                         log.info("Motivated: Organism {} with energy {} moving by {} toward substance {} at {} - {}",
-                                                organism.getId(), moverState.getEnergy(), empty, desiredSubstance.getId(), location, explanation);
+                                                organism.getId(), moverState[0].getEnergy(), empty, desiredSubstance.getId(), location, explanation);
                                         moveTo(organismChanges, empty, organism);
                                     }, () -> {
                                         log.info("Stuck: Organism {} with energy {} desires {} at {} but can't move - {}",
-                                                organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location, explanation);
+                                                organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
                                     });
                         } else {
                             // we can move directly to the substance because there is no organism already there
                             log.info("Excited: Organism {} with energy {} moving directly to substance {} at {} - {}",
-                                    organism.getId(), moverState.getEnergy(), desiredSubstance.getId(), location, explanation);
+                                    organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
                             moveTo(organismChanges, location, organism);
                         }
                     }, () -> {
@@ -111,13 +112,13 @@ public class MoverGenome extends Genome {
                             Location empty = asArray[RANDOM.nextInt(asArray.length)];
                             moveTo(organismChanges, empty, organism);
                             log.info("Frustrated: Organism {} with energy {} sees no desirable substances, so moving randomly by {}",
-                                    organism.getId(), moverState.getEnergy(), empty);
+                                    organism.getId(), moverState[0].getEnergy(), empty);
                         }
                     });
         }
         State newState = organismChanges.isEmpty()
-                ? new MoverState(moverState.getEnergy() - this.restEnergy)
-                : new MoverState(moverState.getEnergy() - this.moveEnergy);
+                ? new MoverState(moverState[0].getEnergy() - this.restEnergy)
+                : new MoverState(moverState[0].getEnergy() - this.moveEnergy);
         return Response.of(
                 newState,
                 substanceChanges,
