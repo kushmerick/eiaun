@@ -7,6 +7,7 @@ import io.eiaun.organisms.State;
 import io.eiaun.physics.Change;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.SetUtils;
@@ -20,12 +21,11 @@ public class MoverGenome extends Genome {
 
     private static final Random RANDOM = new Random();
 
-    private final Map<String, String> desirableSubstanceProperties;
-    @Getter
-    private final double visionRadius;
-    private final double peakEnergy;
-    private final double moveEnergy;
-    private final double restEnergy;
+    @Getter(AccessLevel.PACKAGE) private final Map<String, String> desirableSubstanceProperties;
+    @Getter private final double visionRadius;
+    @Getter(AccessLevel.PACKAGE) private final double peakEnergy;
+    @Getter(AccessLevel.PACKAGE) private final double moveEnergy;
+    @Getter(AccessLevel.PACKAGE) private final double restEnergy;
 
     public MoverGenome(
             Map<String, String> desirableSubstanceProperties,

@@ -35,11 +35,12 @@ public class Mover extends Organism {
             Map<String, Double> properties
     ) {
         super();
-        this.state = new MoverState(properties.get(PEAK_ENERGY_PROPERTY));
+        double peakEnergy = properties.get(PEAK_ENERGY_PROPERTY);
+        this.state = new MoverState(peakEnergy);
         this.genome = new MoverGenome(
                 makeDesirableSubstanceProperties(jakku, properties),
                 properties.get(VISION_RADIUS_PROPERTY),
-                properties.get(PEAK_ENERGY_PROPERTY),
+                peakEnergy,
                 properties.get(MOVE_ENERGY_PROPERTY),
                 properties.get(REST_ENERGY_PROPERTY));
     }

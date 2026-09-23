@@ -1,6 +1,9 @@
 package io.eiaun.util;
 
 
+import lombok.AccessLevel;
+import lombok.Getter;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +17,7 @@ public class TwoD<Thing> {
     private final Supplier<Map<Integer,Map<Integer, Thing>>> level1 = HashMap::new;
     private final Function<Integer, Map<Integer, Thing>> level2 = _ -> new HashMap<>();
 
-    private final Map<Integer, Map<Integer, Thing>> things;
+    @Getter(AccessLevel.PACKAGE) private final Map<Integer, Map<Integer, Thing>> things;
 
     public TwoD() {
         this.things = this.level1.get();

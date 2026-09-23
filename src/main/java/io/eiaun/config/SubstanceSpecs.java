@@ -16,8 +16,4 @@ public class SubstanceSpecs {
 
     private final List<SubstanceSpec> specs;
 
-    public Map<String, Map<String, String>> getProperties() {
-        return this.specs.stream().collect(Collectors.toMap(SubstanceSpec::getId, SubstanceSpec::getProperties));
-    }
-
 }
