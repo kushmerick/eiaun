@@ -51,6 +51,48 @@ class MoverTest {
     }
 
     @Test
+    void canPickASingleProperty() {
+        Jakku jakku = mock(Jakku.class);
+        Map<String, Set<String>> substanceProperties = Map.of(
+                "P1", Set.of("V1"),
+                "P2", Set.of("V2"),
+                "P3", Set.of("V3"));
+        Map<String, Double> organismProperties =
+                Map.of(VISION_RADIUS_PROPERTY, 10d,
+                        PEAK_ENERGY_PROPERTY, 20d,
+                        MOVE_ENERGY_PROPERTY, 30d,
+                        REST_ENERGY_PROPERTY, 40d,
+                        DESIRABLE_PROPERTIES_PROPERTY, 1d);
+        when(jakku.getAllSubstanceProperties()).thenReturn(substanceProperties);
+        Mover mover = new Mover(jakku, organismProperties);
+        Set<Map<String, String>> possibilities = substanceProperties.entrySet().stream()
+                .map(e -> Map.of(e.getKey(), e.getValue().iterator().next()))
+                .collect(Collectors.toSet());
+        Map<String, String> selected = mover.getGenome().getDesirableSubstanceProperties();
+        assertTrue(possibilities.contains(selected));
+    }
+
+    @Test
+    void canPickASingleValue() {
+        Jakku jakku = mock(Jakku.class);
+        Map<String, Set<String>> substanceProperties = Map.of(
+                "P1", Set.of("V1", "V2"));
+        Map<String, Double> organismProperties =
+                Map.of(VISION_RADIUS_PROPERTY, 10d,
+                        PEAK_ENERGY_PROPERTY, 20d,
+                        MOVE_ENERGY_PROPERTY, 30d,
+                        REST_ENERGY_PROPERTY, 40d,
+                        DESIRABLE_PROPERTIES_PROPERTY, 1d);
+        when(jakku.getAllSubstanceProperties()).thenReturn(substanceProperties);
+        Mover mover = new Mover(jakku, organismProperties);
+        Set<Map<String, String>> possibilities = Set.of(
+                Map.of("P1", "V1"),
+                Map.of("P1", "V2"));
+        Map<String, String> selected = mover.getGenome().getDesirableSubstanceProperties();
+        assertTrue(possibilities.contains(selected));
+    }
+
+    @Test
     void rejectsTooManyProperties() {
         Jakku jakku = mock(Jakku.class);
         Map<String, Set<String>> substanceProperties = Map.of(
