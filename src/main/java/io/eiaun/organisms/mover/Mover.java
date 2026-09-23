@@ -1,18 +1,14 @@
 package io.eiaun.organisms.mover;
 
-import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
-import io.eiaun.organisms.Response;
+import io.eiaun.organisms.State;
 import io.eiaun.physics.Jakku;
-import io.eiaun.physics.Location;
-import io.eiaun.physics.Substance;
 import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Every mover prefers substances with randomly selected properties.
@@ -24,7 +20,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Mover extends Organism {
 
-    private static final AtomicLong ID = new AtomicLong();
     private static final Random RANDOM = new Random();
     public static final String VISION_RADIUS_PROPERTY = "vision_radius";
     public static final String DESIRABLE_PROPERTIES_PROPERTY = "desirable_properties";
@@ -32,22 +27,34 @@ public class Mover extends Organism {
     public static final String MOVE_ENERGY_PROPERTY = "move_energy";
     public static final String REST_ENERGY_PROPERTY = "rest_energy";
 
-    @Getter private final long id;
-    private final MoverGenome genome;
-    private MoverState state;
+    @Getter private MoverState state;
+    @Getter private final MoverGenome genome;
 
     public Mover(
             Jakku jakku,
             Map<String, Double> properties
     ) {
-        this.id = ID.incrementAndGet();
-        Map<String,String> desirableSubstanceProperties = new HashMap<>();
-        Map<String,Set<String>> allSubstanceProperties = jakku.getAllSubstanceProperties();
+        super();
+        this.state = new MoverState(properties.get(PEAK_ENERGY_PROPERTY));
+        this.genome = new MoverGenome(
+                makeDesirableSubstanceProperties(jakku, properties),
+                properties.get(VISION_RADIUS_PROPERTY),
+                properties.get(PEAK_ENERGY_PROPERTY),
+                properties.get(MOVE_ENERGY_PROPERTY),
+                properties.get(REST_ENERGY_PROPERTY));
+    }
+
+    private static Map<String, String> makeDesirableSubstanceProperties(
+            Jakku jakku,
+            Map<String, Double> properties
+    ) {
+        Map<String, String> desirableSubstanceProperties = new HashMap<>();
+        Map<String, Set<String>> allSubstanceProperties = jakku.getAllSubstanceProperties();
         String[] allSubstancePropertiesKeys = allSubstanceProperties.keySet().toArray(String[]::new);
         int desirablePropertyCount = properties.get(DESIRABLE_PROPERTIES_PROPERTY).intValue();
         if (desirablePropertyCount > allSubstancePropertiesKeys.length) {
             throw new RuntimeException(String.format("%s %s is larger than the number of properties %s",
-                    DESIRABLE_PROPERTIES_PROPERTY, desirablePropertyCount,  allSubstancePropertiesKeys.length));
+                    DESIRABLE_PROPERTIES_PROPERTY, desirablePropertyCount, allSubstancePropertiesKeys.length));
         }
         while (desirableSubstanceProperties.size() < desirablePropertyCount) {
             String property = allSubstancePropertiesKeys[RANDOM.nextInt(allSubstancePropertiesKeys.length)];
@@ -55,30 +62,12 @@ public class Mover extends Organism {
             String value = values[RANDOM.nextInt(values.length)];
             desirableSubstanceProperties.put(property, value);
         }
-        double peakEnergy = properties.get(PEAK_ENERGY_PROPERTY);
-        this.genome = new MoverGenome(
-                desirableSubstanceProperties,
-                properties.get(VISION_RADIUS_PROPERTY),
-                peakEnergy,
-                properties.get(MOVE_ENERGY_PROPERTY),
-                properties.get(REST_ENERGY_PROPERTY));
-        this.state = new MoverState(peakEnergy);
+        return desirableSubstanceProperties;
     }
 
     @Override
-    public Genome getGenome() {
-        return this.genome;
-    }
-
-    @Override
-    public Response respond(
-            Set<Location> empties,
-            Map<Location, Substance> substances,
-            Map<Location, Organism> neighbors
-    ) {
-        Response response = this.genome.respond(this.state, empties, substances, neighbors);
-        this.state = (MoverState) response.newState();
-        return response;
+    public void setState(State state) {
+        this.state = (MoverState) state;
     }
 
 }

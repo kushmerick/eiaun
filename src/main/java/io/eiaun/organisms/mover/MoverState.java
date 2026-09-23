@@ -10,4 +10,5 @@ public class MoverState extends State {
     public MoverState(double energy) {
         this.energy = energy;
     }
+
 }

@@ -1,6 +1,5 @@
 package io.eiaun.physics;
 
-import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.snapshot.SnapshotRecorder;

@@ -2,20 +2,37 @@ package io.eiaun.organisms;
 
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 abstract public class Organism {
 
-    public abstract Response respond(
+    private static final AtomicLong ID = new AtomicLong();
+
+    @Getter private final long id;
+
+    protected Organism() {
+        this.id = ID.getAndIncrement();
+    }
+
+    abstract public void setState(State state);
+
+    abstract public State getState();
+
+    abstract public Genome getGenome();
+
+    public Response respond(
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
-    );
-
-    public abstract long getId();
-
-    public abstract Genome getGenome();
+    ) {
+        Response response = getGenome().respond(getState(), empties, substances, neighbors);
+        setState(response.newState());
+        return response;
+    }
 
 }

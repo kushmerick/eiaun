@@ -21,7 +21,8 @@ public class MoverGenome extends Genome {
     private static final Random RANDOM = new Random();
 
     private final Map<String, String> desirableSubstanceProperties;
-    @Getter private final double visionRadius;
+    @Getter
+    private final double visionRadius;
     private final double peakEnergy;
     private final double moveEnergy;
     private final double restEnergy;
@@ -63,7 +64,7 @@ public class MoverGenome extends Genome {
             // replenish energy
             state = new MoverState(moverState.getEnergy() + this.peakEnergy);
         } else {
-            if (moverState.getEnergy() < moveEnergy) {
+            if (moverState.getEnergy() < this.moveEnergy) {
                 log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState.getEnergy());
                 return Response.of(
                         state,
@@ -115,8 +116,8 @@ public class MoverGenome extends Genome {
                     });
         }
         State newState = organismChanges.isEmpty()
-                ? new MoverState(moverState.getEnergy() - restEnergy)
-                : new MoverState(moverState.getEnergy() - moveEnergy);
+                ? new MoverState(moverState.getEnergy() - this.restEnergy)
+                : new MoverState(moverState.getEnergy() - this.moveEnergy);
         return Response.of(
                 newState,
                 substanceChanges,
@@ -139,8 +140,8 @@ public class MoverGenome extends Genome {
 
     private String explainDesire(Substance substance) {
         return SetUtils.intersection(
-                    this.desirableSubstanceProperties.keySet(),
-                    substance.getProperties().keySet())
+                        this.desirableSubstanceProperties.keySet(),
+                        substance.getProperties().keySet())
                 .stream()
                 .map(property -> {
                     String desiredValue = this.desirableSubstanceProperties.get(property);

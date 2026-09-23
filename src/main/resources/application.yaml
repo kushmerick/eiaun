@@ -9,7 +9,7 @@ eiaun:
     snapshots:
       enabled: true
       compression: zstd
-      dump_interval: 20
+      dump_interval: 100
   jakku:
     grid: 1000
     organisms:

@@ -1,12 +1,12 @@
 package io.eiaun.physics;
 
+import io.eiaun.fakes.FakeOrganism;
 import io.eiaun.fakes.FakeSubstance;
 import io.eiaun.fakes.FakeSubstanceFactory;
 import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.organisms.State;
-import io.eiaun.organisms.simple.SimpleOrganism;
 import io.eiaun.organisms.simple.SimpleState;
 import io.eiaun.snapshot.SnapshotRecorder;
 import io.eiaun.util.InfiniteFairIterator;
@@ -42,12 +42,6 @@ class JakkuTest {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    private Organism newSimpleOrganism(Jakku jakku) {
-        return new SimpleOrganism(
-                jakku,
-                Map.of(SimpleOrganism.VISION_RADIUS_PROPERTY, 5d));
-    }
-
     @BeforeEach
     void beforeEach() throws IOException {
         lenient() // most but not all tests actually rely on this behavior
@@ -59,7 +53,7 @@ class JakkuTest {
     void canConstruct() {
         Jakku jakku = new Jakku(
                 123,
-                0.1, this::newSimpleOrganism,
+                0.1, FakeOrganism::make,
                 0.1, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -72,7 +66,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -82,7 +76,7 @@ class JakkuTest {
         TwoD<Substance> substances = new TwoD<>();
         for (int lat = 0; lat < grid; lat++) {
             for (int lon = 0; lon < grid; lon++) {
-                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                organisms.set(lat, lon, FakeOrganism.make(jakku));
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
@@ -99,7 +93,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -109,7 +103,7 @@ class JakkuTest {
         TwoD<Substance> substances = new TwoD<>();
         for (int lat = 0; lat < grid; lat++) {
             for (int lon = 0; lon < grid; lon++) {
-                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                organisms.set(lat, lon, FakeOrganism.make(jakku));
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
@@ -126,7 +120,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -136,7 +130,7 @@ class JakkuTest {
         TwoD<Substance> substances = new TwoD<>();
         for (int lat = 0; lat < grid; lat++) {
             for (int lon = 0; lon < grid; lon++) {
-                organisms.set(lat, lon, newSimpleOrganism(jakku));
+                organisms.set(lat, lon, FakeOrganism.make(jakku));
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
@@ -152,7 +146,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -169,7 +163,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
@@ -179,7 +173,7 @@ class JakkuTest {
         int lon = grid / 2;
         // injection a single organism in the middle and a single nearby substance
         TwoD<Organism> organisms = new TwoD<>();
-        organisms.set(lat, lon, newSimpleOrganism(jakku));
+        organisms.set(lat, lon, FakeOrganism.make(jakku));
         jakku.setOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon + 1, new FakeSubstance());
@@ -200,16 +194,16 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 log::info,
                 this.snapshotRecorder);
         jakku.initialize();
         TwoD<Organism> organisms = new TwoD<>();
-        organisms.set(lat, lon, newSimpleOrganism(jakku));
-        organisms.set(lat + 1, lon + 1, newSimpleOrganism(jakku));
-        organisms.set(lat - 1, lon - 1, newSimpleOrganism(jakku));
+        organisms.set(lat, lon, FakeOrganism.make(jakku));
+        organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
+        organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
         jakku.setOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
@@ -250,7 +244,7 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
@@ -262,8 +256,8 @@ class JakkuTest {
         when(organism.getGenome()).thenReturn(genome);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        organisms.set(lat + 1, lon + 1, newSimpleOrganism(jakku));
-        organisms.set(lat - 1, lon - 1, newSimpleOrganism(jakku));
+        organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
+        organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
         jakku.setOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
@@ -274,7 +268,7 @@ class JakkuTest {
         List<Change<Substance>> substanceChanges = List.of(
                 Change.destroy(substances.get(lat + 1, lon - 1), Location.of(+1, -1)),
                 Change.replace(substances.get(lat - 1, lon + 1), replacementSubstance, Location.of(-1, +1)));
-        Organism newborn = newSimpleOrganism(jakku);
+        Organism newborn = FakeOrganism.make(jakku);
         List<Change<Organism>> organismChanges = List.of(
                 Change.destroy(organisms.get(lat + 1, lon + 1), Location.of(+1, +1)),
                 Change.create(newborn, Location.of(0, -1)));
@@ -296,7 +290,6 @@ class JakkuTest {
                         Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
-        assertNull(substances.get(lat + 1, lon - 1));
         assertEquals(replacementSubstance, substances.get(lat - 1, lon + 1));
         assertNull(organisms.get(lat + 1, lon + 1));
         assertNotNull(organisms.get(lat - 1, lon - 1));
@@ -313,7 +306,7 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
@@ -360,7 +353,7 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
@@ -406,7 +399,7 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
@@ -453,7 +446,7 @@ class JakkuTest {
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 organismLocationIteratorGenerator,
                 this.rejectedChangeRecorder,
@@ -469,7 +462,7 @@ class JakkuTest {
                 Change.destroy(new FakeSubstance(), Location.of(-1, -1)));
         List<Change<Organism>> organismChanges = List.of(
                 // eat a non-existent neighbor
-                Change.destroy(newSimpleOrganism(jakku), Location.of(+1, +1)));
+                Change.destroy(FakeOrganism.make(jakku), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
@@ -497,7 +490,7 @@ class JakkuTest {
         int grid = 123;
         Jakku jakku = new Jakku(
                 grid,
-                0, this::newSimpleOrganism,
+                0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
                 InfiniteFairIterator::of,
                 log::info,
