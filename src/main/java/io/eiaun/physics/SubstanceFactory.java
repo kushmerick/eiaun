@@ -9,7 +9,9 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SubstanceFactory {
@@ -17,15 +19,16 @@ public class SubstanceFactory {
     private final Random random = new Random();
 
     @Getter
-    private final List<SubstanceSpec> substanceSpecs;
+    private final Map<String, SubstanceSpec> substanceSpecs;
 
     public SubstanceFactory(List<SubstanceSpec> substanceSpecs) {
-        this.substanceSpecs = substanceSpecs;
+        this.substanceSpecs = substanceSpecs.stream()
+                .collect(Collectors.toMap(SubstanceSpec::getId, Function.identity()));
         double sum = 0;
-        for (SubstanceSpec spec: this.substanceSpecs) {
+        for (SubstanceSpec spec: this.substanceSpecs.values()) {
             sum += spec.abundance;
         }
-        for (SubstanceSpec spec: this.substanceSpecs) {
+        for (SubstanceSpec spec: this.substanceSpecs.values()) {
             spec.abundance /= sum;
         }
     }
@@ -33,13 +36,17 @@ public class SubstanceFactory {
     public Substance make() {
         double threshold = this.random.nextDouble();
         double cumulative = 0;
-        for (SubstanceSpec spec: this.substanceSpecs) {
+        for (SubstanceSpec spec: this.substanceSpecs.values()) {
             cumulative += spec.abundance;
             if (threshold < cumulative) {
                 return spec.make();
             }
         }
         throw new RuntimeException("Invalid atom abundance");
+    }
+
+    public Substance make(String id) {
+        return this.substanceSpecs.get(id).make();
     }
 
     // generate random atom specifications.  types follow a zipfian distribution;

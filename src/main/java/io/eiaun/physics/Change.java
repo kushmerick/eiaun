@@ -1,15 +1,15 @@
 package io.eiaun.physics;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NonNull;
 import lombok.ToString;
+import lombok.Value;
 
 import java.util.Objects;
 
 @ToString // just for logging
 @AllArgsConstructor
-@Data
+@Value
 public class Change<Thing> {
 
     public static <Thing> Change<Thing> create(
@@ -54,11 +54,11 @@ public class Change<Thing> {
         return new Change<>(original, replacement, location, location);
     }
 
-    // populated for...
-    private final Thing original;    // destroy, move, replace
-    private final Thing replacement; // create, move, replace
-    private final Location from;     // destroy, move, replace
-    private final Location to;       // create, move, replace
+    //                    populated for...
+    Thing original;    // destroy, move, replace
+    Thing replacement; // create, move, replace
+    Location from;     // destroy, move, replace
+    Location to;       // create, move, replace
 
     public boolean isCreate() {
         return this.from == null && this.to != null &&

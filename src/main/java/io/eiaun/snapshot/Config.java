@@ -2,15 +2,15 @@ package io.eiaun.snapshot;
 
 import io.eiaun.physics.Jakku;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 
-@Data
+@Value
 @AllArgsConstructor
 public class Config {
 
-    private int grid;
-    private double organismDensity;
-    private double substanceDensity;
+    int grid;
+    double organismDensity;
+    double substanceDensity;
 
     public static Config from(Jakku jakku) {
         return new Config(

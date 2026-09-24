@@ -3,22 +3,18 @@ package io.eiaun.snapshot;
 import io.eiaun.physics.Jakku;
 import io.eiaun.physics.SubstanceSpec;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-@Data
+@Value
 @AllArgsConstructor
 public class Physics {
 
-    private Map<String, SubstanceSpec> substanceSpecs;
+    Map<String, SubstanceSpec> substanceSpecs;
 
     public static Physics from(Jakku jakku) {
-        return new Physics(
-                jakku.getSubstanceFactory().getSubstanceSpecs().stream()
-                        .collect(Collectors.toMap(SubstanceSpec::getId, Function.identity())));
+        return new Physics(jakku.getSubstanceFactory().getSubstanceSpecs());
     }
 
 }

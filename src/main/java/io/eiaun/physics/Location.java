@@ -1,16 +1,16 @@
 package io.eiaun.physics;
 
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Value;
 
 @EqualsAndHashCode
-@Data
+@Value
 public class Location {
 
     public static final Location ORIGIN = Location.of(0, 0);
 
-    private final int lat;
-    private final int lon;
+    int lat;
+    int lon;
 
     private Location(int lat, int lon) {
         this.lat = lat;

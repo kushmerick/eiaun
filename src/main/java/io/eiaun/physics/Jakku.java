@@ -105,10 +105,9 @@ public class Jakku {
 
     public Map<String, Set<String>> getAllSubstanceProperties() {
         Map<String, Set<String>> substanceProperties = new HashMap<>();
-        for (SubstanceSpec spec : this.substanceFactory.getSubstanceSpecs()) {
-            spec.getProperties().forEach((p, v) ->
-                    substanceProperties.computeIfAbsent(p, (_) -> new HashSet<>()).add(v));
-        }
+        this.substanceFactory.getSubstanceSpecs().values().forEach(spec ->
+                spec.getProperties().forEach((p, v) ->
+                        substanceProperties.computeIfAbsent(p, (_) -> new HashSet<>()).add(v)));
         return substanceProperties;
     }
 
