@@ -9,9 +9,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class SubstanceSpec {
 
-    public String id;
+    public final String id;
     public double abundance;
-    public Map<String, String> properties;
+    public final Map<String, String> properties;
 
     public Substance make() {
         return new Substance(id, properties);

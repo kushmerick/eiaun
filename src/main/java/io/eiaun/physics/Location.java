@@ -1,9 +1,7 @@
 package io.eiaun.physics;
 
-import lombok.EqualsAndHashCode;
 import lombok.Value;
 
-@EqualsAndHashCode
 @Value
 public class Location {
 

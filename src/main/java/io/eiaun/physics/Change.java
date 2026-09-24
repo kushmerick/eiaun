@@ -1,6 +1,5 @@
 package io.eiaun.physics;
 
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.ToString;
 import lombok.Value;
@@ -8,7 +7,6 @@ import lombok.Value;
 import java.util.Objects;
 
 @ToString // just for logging
-@AllArgsConstructor
 @Value
 public class Change<Thing> {
 
