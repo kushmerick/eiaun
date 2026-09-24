@@ -20,6 +20,8 @@ public class SubstanceFactory {
 
     private final Random random = new Random();
 
+    private final Map<String, Substance> singletons = new HashMap<>();
+
     @Getter
     private final Map<String, SubstanceSpec> substanceSpecs;
 
@@ -41,14 +43,22 @@ public class SubstanceFactory {
         for (SubstanceSpec spec: this.substanceSpecs.values()) {
             cumulative += spec.abundance;
             if (threshold < cumulative) {
-                return spec.make();
+                return singletonMake(spec);
             }
         }
         throw new RuntimeException("Invalid atom abundance");
     }
 
     public Substance make(String id) {
-        return this.substanceSpecs.get(id).make();
+        return singletonMake(this.substanceSpecs.get(id));
+    }
+
+    private Substance singletonMake(SubstanceSpec spec) {
+        // the singleton cache must be synchronized, because during the simulation
+        // organisms may be creating substances concurrently
+        synchronized (this) {
+            return this.singletons.computeIfAbsent(spec.getId(), _ -> spec.make());
+        }
     }
 
     // generate random atom specifications.  types follow a zipfian distribution

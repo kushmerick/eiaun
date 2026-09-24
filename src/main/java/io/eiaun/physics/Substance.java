@@ -1,14 +1,15 @@
 package io.eiaun.physics;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.Map;
 
-@Data
+@AllArgsConstructor
 public class Substance {
 
-    private final String id;
-    private final Map<String, String> properties;
-    private final String child;
+    @Getter private final String id;
+    @Getter private final Map<String, String> properties;
+    @Getter private final String child;
 
 }

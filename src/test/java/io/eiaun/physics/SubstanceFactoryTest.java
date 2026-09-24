@@ -28,6 +28,15 @@ class SubstanceFactoryTest {
     }
 
     @Test
+    void substancesAreSingletons() {
+        SubstanceFactory substanceFactory = new SubstanceFactory(
+                List.of(new SubstanceSpec("id", Map.of("P", "V"), null, 1234)));
+        Substance substance1 = substanceFactory.make("id");
+        Substance substance2 = substanceFactory.make("id");
+        assertSame(substance1, substance2);
+    }
+
+    @Test
     void canRunMain() {
         SubstanceFactory.main(new String[] {});
     }
