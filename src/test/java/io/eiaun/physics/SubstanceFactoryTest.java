@@ -13,7 +13,7 @@ class SubstanceFactoryTest {
     @Test
     void canMake() {
         SubstanceFactory substanceFactory = new SubstanceFactory(
-                List.of(new SubstanceSpec("id", 1234, Collections.emptyMap())));
+                List.of(new SubstanceSpec("id", Collections.emptyMap(), null, 1234)));
         Substance substance = substanceFactory.make();
         assertEquals("id", substance.getId());
     }
@@ -21,7 +21,7 @@ class SubstanceFactoryTest {
     @Test
     void canMakeById() {
         SubstanceFactory substanceFactory = new SubstanceFactory(
-                List.of(new SubstanceSpec("id", 1234, Map.of("P", "V"))));
+                List.of(new SubstanceSpec("id", Map.of("P", "V"), null, 1234)));
         Substance substance = substanceFactory.make("id");
         assertEquals("id", substance.getId());
         assertEquals(Map.of("P", "V"), substance.getProperties());

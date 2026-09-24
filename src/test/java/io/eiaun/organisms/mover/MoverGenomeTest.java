@@ -22,7 +22,8 @@ class MoverGenomeTest {
             Map.of("P1", "V1");
     private static final Substance DESIRABLE_SUBSTANCE = new Substance(
             "S1",
-            DESIRABLE_PROPERTIES
+            DESIRABLE_PROPERTIES,
+            null
     );
     private static final double VISION_RADIUS = 10;
     private static final double PEAK_ENERGY = 20;

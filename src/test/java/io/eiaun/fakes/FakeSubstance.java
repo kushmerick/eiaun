@@ -9,7 +9,7 @@ public class FakeSubstance extends Substance {
     private static int ID = 0;
 
     public FakeSubstance() {
-        super("fake" + ID++, Collections.emptyMap());
+        super("fake" + ID++, Collections.emptyMap(), null);
     }
 
 }

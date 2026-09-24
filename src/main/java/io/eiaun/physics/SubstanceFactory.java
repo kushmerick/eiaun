@@ -5,6 +5,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.nodes.NodeTuple;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
@@ -49,12 +51,36 @@ public class SubstanceFactory {
         return this.substanceSpecs.get(id).make();
     }
 
-    // generate random atom specifications.  types follow a zipfian distribution;
+    // generate random atom specifications.  types follow a zipfian distribution
+
+    private static class SkipNullRepresenter extends Representer {
+
+        public SkipNullRepresenter(DumperOptions options) {
+            super(options);
+        }
+
+        @Override
+        protected NodeTuple representJavaBeanProperty(
+                Object javaBean,
+                Property property,
+                Object propertyValue,
+                Tag customTag
+        ) {
+            if (propertyValue == null) {
+                // omit null properties
+                return null;
+            }
+            return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
+        }
+
+    }
+
     public static void main(String[] args) {
         int nTypes = 30;
         int nProperties = nTypes / 3; // lots more types than properties to encourage collisions
         int nValues = nTypes / 10;    // way more types than values to really encourage collisions
         int labelLen = 4;             // long enough so collisions should never happen
+        double childProb = 0.5;       // half the substances don't decay; half decay to another random substance
         Random random = new Random();
         RandomStringUtils randomStringUtils = RandomStringUtils.secure();
         double abundanceZipfExponent = 1;
@@ -74,23 +100,33 @@ public class SubstanceFactory {
             propertyValues.put(property, values);
         }
         List<SubstanceSpec> specs = new ArrayList<>();
+        Set<String> ids = new HashSet<>();
         for  (int i = 0; i < nTypes; i++) {
             String id = Stream
                     .generate(() -> ATOM_TYPE_IDS[random.nextInt(ATOM_TYPE_IDS.length)])
-                    .filter(id2 -> specs.stream().noneMatch(s -> s.id.equals(id2))) // prevent duplicates
+                    .filter(id2 -> !ids.contains(id2)) // prevent duplicates
                     .findFirst()
                     .orElseThrow();
+            ids.add(id);
+        }
+        for (String id: ids) {
             Map<String,String> properties = new HashMap<>();
             for (var entry: propertyValues.entrySet()) {
                 properties.put(
                         entry.getKey(),
                         entry.getValue().get(random.nextInt(nValues)));
             }
-            specs.add(new SubstanceSpec(id, abundanceZipf.sample() /* ensure positive */ + 1, properties));
+            String child = id;
+            while (Objects.equals(child, id)) {
+                child = random.nextDouble() < childProb
+                        ? ids.toArray(new String[0])[random.nextInt(ids.size())]
+                        : null;
+            }
+            specs.add(new SubstanceSpec(id, properties, child, abundanceZipf.sample() /* ensure positive */ + 1));
         }
         DumperOptions dumperOptions = new DumperOptions();
         dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        Representer representer = new Representer(dumperOptions);
+        Representer representer = new SkipNullRepresenter(dumperOptions);
         representer.addClassTag(SubstanceSpec.class, Tag.MAP);
         Yaml yaml = new Yaml(representer, dumperOptions);
         System.out.println(yaml.dump(specs));
@@ -232,7 +268,7 @@ public class SubstanceFactory {
             "AtomicNumber",
             "RelativeAtomicMass",
             "AutoignitionTemperature",
-            "Boiling-pointElevation",
+            "BoilingPointElevation",
             "ChaotropicAgent",
             "ChemicalComposition",
             "ChemicalPolarity",
@@ -255,7 +291,7 @@ public class SubstanceFactory {
             "EsterValue",
             "FieldEffect",
             "FirePoint",
-            "Freezing-pointDepression",
+            "FreezingPointDepression",
             "Fusibility",
             "GalvanicSeries",
             "GelPoint",
@@ -266,13 +302,13 @@ public class SubstanceFactory {
             "IonicPotential",
             "IonizationEnergy",
             "Kosmotropic",
-            "Kröger–VinkNotation",
+            "KrögerVinkNotation",
             "Lipophobicity",
             "LNAPLTransmissivity",
             "LowerFlammabilityLimit",
             "LyotropicLiquidCrystal",
             "MassNumber",
-            "Mass-fluxFraction",
+            "MassFluxFraction",
             "Metastability",
             "Miscibility",
             "MixingRatio",

@@ -9,6 +9,7 @@ public class JSON {
 
     private static final ForyJson FORY = ForyJson.builder()
             .withFieldMode(true) // disable discovery from `getFoo` and so forth
+            .writeNullFields(false)
             .build();
     private static final ForyJson GSON = ForyJson.builder().build();
 

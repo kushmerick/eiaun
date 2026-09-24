@@ -28,393 +28,412 @@ eiaun:
     substances:
       density: 0.2
       specs:
-      - abundance: 6.0
-        id: Uranium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vdi4B
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VNkzk
-      - abundance: 15.0
-        id: Aluminum
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VCAPH
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 2.0
-        id: Phosphorus
-        properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vdi4B
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VpaWr
-      - abundance: 3.0
-        id: Cobalt
-        properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vacex
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VxBru
-          Miscibility: Vuvyi
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VpaWr
-      - abundance: 2.0
-        id: Copper
-        properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vdi4B
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: V7z98
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VpaWr
-      - abundance: 12.0
-        id: Carbon
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: V9r7n
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VCAPH
-          Miscibility: VSelz
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VO577
-      - abundance: 4.0
-        id: Bohrium
-        properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vacex
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VxBru
-          Miscibility: VSelz
-          Hydrophile: V7z98
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 9.0
-        id: Rubidium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vdi4B
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VxBru
-          Miscibility: Vuvyi
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 5.0
-        id: Sodium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vdi4B
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VxBru
-          Miscibility: Vuvyi
-          Hydrophile: VJHfD
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VO577
-      - abundance: 18.0
-        id: Polonium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vdi4B
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VxBru
-          Miscibility: V8QMO
-          Hydrophile: V7z98
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 6.0
-        id: Technetium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VxBru
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VNkzk
-      - abundance: 3.0
-        id: Bismuth
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VCAPH
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VpaWr
-      - abundance: 16.0
-        id: Francium
-        properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vdi4B
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VYbL0
-          Miscibility: Vuvyi
-          Hydrophile: VdAEk
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VpaWr
-      - abundance: 2.0
-        id: Darmstadtium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: V9r7n
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VCAPH
-          Miscibility: Vuvyi
-          Hydrophile: V7z98
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VpaWr
-      - abundance: 16.0
-        id: Copernicium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VCAPH
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 7.0
-        id: Cerium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vdi4B
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VxBru
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VNkzk
-      - abundance: 3.0
-        id: Terbium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: V9r7n
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VCAPH
-          Miscibility: Vuvyi
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VO577
-      - abundance: 3.0
-        id: Thallium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vdi4B
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: V7z98
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VNkzk
-      - abundance: 2.0
-        id: Promethium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: V9r7n
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VxBru
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VNkzk
-      - abundance: 17.0
-        id: Roentgenium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vdi4B
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VxBru
-          Miscibility: VSelz
-          Hydrophile: VdAEk
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VpaWr
-      - abundance: 2.0
-        id: Boron
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: V9r7n
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VG4Zn
-          FirePoint: VYbL0
-          Miscibility: Vuvyi
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VNkzk
-      - abundance: 9.0
-        id: Lanthanum
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: VybFX
-          AqueousSolution: V9r7n
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: V7z98
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VO577
       - abundance: 8.0
-        id: Krypton
+        id: Berkelium
         properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: VybFX
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: V7z98
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VNkzk
-      - abundance: 2.0
-        id: Dubnium
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vdi4B
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VCAPH
-          Miscibility: VSelz
-          Hydrophile: V7z98
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VO577
-      - abundance: 8.0
-        id: Hydrogen
-        properties:
-          MolecularMass: VXxho
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vdi4B
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VCAPH
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: Vub1Y
-          VanDerWaalsRadius: VO577
-      - abundance: 4.0
-        id: Zinc
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: VybFX
-          AqueousSolution: V9r7n
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VKc9C
-          FirePoint: VxBru
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VNkzk
-      - abundance: 4.0
-        id: Helium
-        properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: VybFX
-          AqueousSolution: V9r7n
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: VdAEk
-          AcidityFunction: VVntM
-          VanDerWaalsRadius: VpaWr
-      - abundance: 2.0
+          Vapor: VFYLq
+          OxidizingAgent: VExVN
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: V3Dit
+          Anhydrous: VHUlg
+          Adhesion: VKbA4
+          Metastability: VBoAM
+      - abundance: 14.0
         id: Arsenic
         properties:
-          MolecularMass: VgXcn
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: V9r7n
-          MolarMass: V7eG7
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VxBru
-          Miscibility: VSelz
-          Hydrophile: VJHfD
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VNkzk
-      - abundance: 13.0
+          Vapor: VdXgM
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VmxVl
+          TrueVaporPressure: VlNxx
+          Anhydrous: VxMI0
+          Adhesion: VqHLK
+          Metastability: VBoAM
+      - abundance: 2.0
+        child: Europium
+        id: Aluminum
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VExVN
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VlNxx
+          Anhydrous: VxMI0
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 10.0
+        id: Hydrogen
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VTyya
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VmxVl
+          TrueVaporPressure: V3Dit
+          Anhydrous: VMBIR
+          Adhesion: VKbA4
+          Metastability: V2JkN
+      - abundance: 3.0
+        id: Technetium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VFk1W
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VmxVl
+          TrueVaporPressure: V3Dit
+          Anhydrous: VxMI0
+          Adhesion: VqHLK
+          Metastability: VKkkR
+      - abundance: 2.0
+        child: Berkelium
+        id: Protactinium
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VTyya
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VNkpj
+          TrueVaporPressure: VlNxx
+          Anhydrous: VMBIR
+          Adhesion: VqHLK
+          Metastability: VKkkR
+      - abundance: 3.0
+        child: Rhodium
+        id: Neon
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: V3Dit
+          Anhydrous: VxMI0
+          Adhesion: VKbA4
+          Metastability: VBoAM
+      - abundance: 6.0
+        id: Platinum
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VlNxx
+          Anhydrous: VxMI0
+          Adhesion: VKbA4
+          Metastability: VBoAM
+      - abundance: 2.0
+        child: Curium
+        id: Hafnium
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VlNxx
+          Anhydrous: VHUlg
+          Adhesion: VKbA4
+          Metastability: VKkkR
+      - abundance: 4.0
+        id: Titanium
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VTyya
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VNkpj
+          TrueVaporPressure: VlNxx
+          Anhydrous: VxMI0
+          Adhesion: VKqlV
+          Metastability: VKkkR
+      - abundance: 2.0
+        id: Americium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VMBIR
+          Adhesion: VKqlV
+          Metastability: V2JkN
+      - abundance: 7.0
+        child: Americium
+        id: Silicon
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VFk1W
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VMBIR
+          Adhesion: VKbA4
+          Metastability: VBoAM
+      - abundance: 3.0
+        id: Curium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VmxVl
+          TrueVaporPressure: VHkuX
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 3.0
+        child: Nitrogen
+        id: Lanthanum
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VTyya
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VNkpj
+          TrueVaporPressure: VlNxx
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 27.0
+        child: Hassium
+        id: Europium
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VTyya
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: V3Dit
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: VBoAM
+      - abundance: 7.0
+        child: Flerovium
+        id: Bohrium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VmxVl
+          TrueVaporPressure: V3Dit
+          Anhydrous: VxMI0
+          Adhesion: VKqlV
+          Metastability: V2JkN
+      - abundance: 3.0
+        child: Arsenic
+        id: Praseodymium
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VExVN
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VmxVl
+          TrueVaporPressure: V3Dit
+          Anhydrous: VxMI0
+          Adhesion: VKqlV
+          Metastability: VKkkR
+      - abundance: 23.0
+        child: Manganese
+        id: Bromine
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VExVN
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VNkpj
+          TrueVaporPressure: V3Dit
+          Anhydrous: VxMI0
+          Adhesion: VKbA4
+          Metastability: VKkkR
+      - abundance: 4.0
+        child: Americium
+        id: Flerovium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: V3Dit
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 17.0
+        child: Potassium
+        id: Oxygen
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VHUlg
+          Adhesion: VKbA4
+          Metastability: VKkkR
+      - abundance: 7.0
+        child: Praseodymium
+        id: Tennessine
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VmxVl
+          TrueVaporPressure: V3Dit
+          Anhydrous: VMBIR
+          Adhesion: VKqlV
+          Metastability: V2JkN
+      - abundance: 3.0
+        child: Zirconium
+        id: Dysprosium
+        properties:
+          Vapor: VdXgM
+          OxidizingAgent: VFk1W
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: VBoAM
+      - abundance: 9.0
+        id: Nitrogen
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VExVN
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VmxVl
+          TrueVaporPressure: VHkuX
+          Anhydrous: VHUlg
+          Adhesion: VKbA4
+          Metastability: V2JkN
+      - abundance: 3.0
+        child: Potassium
+        id: Lutetium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VFk1W
+          Reactivity: Vb8nh
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VmxVl
+          TrueVaporPressure: VHkuX
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: VBoAM
+      - abundance: 4.0
+        child: Hafnium
+        id: Zirconium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VFk1W
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VdU4p
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VNkpj
+          TrueVaporPressure: V3Dit
+          Anhydrous: VHUlg
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 4.0
         id: Rhodium
         properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: Vb7Vg
-          AqueousSolution: Vacex
-          MolarMass: VZHHm
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VCAPH
-          Miscibility: VSelz
-          Hydrophile: VdAEk
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VpaWr
-      - abundance: 2.0
-        id: Rutherfordium
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VMBIR
+          Adhesion: VKqlV
+          Metastability: V2JkN
+      - abundance: 13.0
+        child: Flerovium
+        id: Hassium
         properties:
-          MolecularMass: V2Bcv
-          Freezing-pointDepression: V4BE8
-          AqueousSolution: Vdi4B
-          MolarMass: VkfTU
-          LyotropicLiquidCrystal: VMOk5
-          FirePoint: VYbL0
-          Miscibility: V8QMO
-          Hydrophile: VJHfD
-          AcidityFunction: VuiV6
-          VanDerWaalsRadius: VNkzk
+          Vapor: VFYLq
+          OxidizingAgent: VTyya
+          Reactivity: VXePs
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: Vizh7
+          ElectricCharge: VoGSX
+          TrueVaporPressure: V3Dit
+          Anhydrous: VMBIR
+          Adhesion: VKqlV
+          Metastability: VBoAM
+      - abundance: 12.0
+        id: Einsteinium
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VNkpj
+          TrueVaporPressure: VHkuX
+          Anhydrous: VxMI0
+          Adhesion: VqHLK
+          Metastability: V2JkN
+      - abundance: 3.0
+        child: Hydrogen
+        id: Potassium
+        properties:
+          Vapor: VqIJw
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VDiwE
+          AbsoluteMolarMass: VGDKP
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VHkuX
+          Anhydrous: VMBIR
+          Adhesion: VqHLK
+          Metastability: VKkkR
+      - abundance: 13.0
+        child: Lutetium
+        id: Manganese
+        properties:
+          Vapor: VFYLq
+          OxidizingAgent: VExVN
+          Reactivity: VctHb
+          ColdFilterPluggingPoint: VHSbm
+          AbsoluteMolarMass: VKpTB
+          ElectricCharge: VoGSX
+          TrueVaporPressure: VlNxx
+          Anhydrous: VMBIR
+          Adhesion: VKbA4
+          Metastability: V2JkN

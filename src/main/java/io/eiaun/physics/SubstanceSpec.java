@@ -4,17 +4,19 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Data
 @AllArgsConstructor
 public class SubstanceSpec {
 
     public final String id;
-    public double abundance;
     public final Map<String, String> properties;
+    public final String child;
+    public double abundance;
 
     public Substance make() {
-        return new Substance(id, properties);
+        return new Substance(this.id, this.properties, this.child);
     }
 
 }
