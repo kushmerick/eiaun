@@ -1,6 +1,7 @@
 package io.eiaun.organisms;
 
 import io.eiaun.physics.Location;
+import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Substance;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,11 +27,12 @@ abstract public class Organism {
     abstract public Genome getGenome();
 
     public Response respond(
+            Jakku jakku,
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
     ) {
-        Response response = getGenome().respond(getState(), empties, substances, neighbors);
+        Response response = getGenome().respond(jakku, getState(), empties, substances, neighbors);
         setState(response.newState());
         return response;
     }

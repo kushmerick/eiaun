@@ -30,6 +30,7 @@ public interface FakeOrganism {
                 return new SimpleGenome(5) {
                     @Override
                     public Response respond(
+                            Jakku jakku,
                             State state,
                             Set<Location> empty,
                             Map<Location, Substance> substances,

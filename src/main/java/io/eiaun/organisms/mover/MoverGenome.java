@@ -5,6 +5,7 @@ import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.organisms.State;
 import io.eiaun.physics.Change;
+import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.AccessLevel;
@@ -43,6 +44,7 @@ public class MoverGenome extends Genome {
 
     @Override
     public Response respond(
+            Jakku jakku,
             State state,
             Set<Location> empties,
             Map<Location, Substance> substances,
@@ -61,6 +63,11 @@ public class MoverGenome extends Genome {
                     organism.getId(), moverState[0].getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
             substanceChanges.add(Change.destroy(substance));
+            // possibly excrete child substance
+            if (substance.getChild() != null) {
+                Substance child = jakku.getSubstanceFactory().make(substance.getChild());
+                substanceChanges.add(Change.create(child, Location.ORIGIN));
+            }
             // replenish energy
             moverState[0] = new MoverState(moverState[0].getEnergy() + this.peakEnergy);
         } else {

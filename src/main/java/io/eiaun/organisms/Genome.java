@@ -1,5 +1,6 @@
 package io.eiaun.organisms;
 
+import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 
@@ -11,6 +12,7 @@ public abstract class Genome {
     public abstract double getVisionRadius();
 
     public abstract Response respond(
+            Jakku jakku,
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,

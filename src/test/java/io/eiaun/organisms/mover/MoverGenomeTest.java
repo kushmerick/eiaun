@@ -3,9 +3,7 @@ package io.eiaun.organisms.mover;
 import io.eiaun.fakes.FakeOrganism;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
-import io.eiaun.physics.Change;
-import io.eiaun.physics.Location;
-import io.eiaun.physics.Substance;
+import io.eiaun.physics.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -15,6 +13,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class MoverGenomeTest {
 
@@ -22,6 +23,11 @@ class MoverGenomeTest {
             Map.of("P1", "V1");
     private static final Substance DESIRABLE_SUBSTANCE = new Substance(
             "S1",
+            DESIRABLE_PROPERTIES,
+            "S2"
+    );
+    private static final Substance CHILD_SUBSTANCE = new Substance(
+            "S2",
             DESIRABLE_PROPERTIES,
             null
     );
@@ -42,10 +48,15 @@ class MoverGenomeTest {
 
     @Test
     void canEat() {
+        SubstanceFactory substanceFactory = mock(SubstanceFactory.class);
+        when(substanceFactory.make(eq(DESIRABLE_SUBSTANCE.getChild()))).thenReturn(CHILD_SUBSTANCE);
+        Jakku jakku = mock(Jakku.class);
+        when(jakku.getSubstanceFactory()).thenReturn(substanceFactory);
         MoverGenome genome = make();
         MoverState state = new MoverState(1234);
-        Organism self = FakeOrganism.make(null);
+        Organism self = FakeOrganism.make(jakku);
         Response response = genome.respond(
+                jakku,
                 state,
                 Collections.emptySet(),
                 Map.of(Location.ORIGIN, DESIRABLE_SUBSTANCE),
@@ -55,7 +66,9 @@ class MoverGenomeTest {
                 state.getEnergy() + PEAK_ENERGY - REST_ENERGY,
                 newState.getEnergy());
         assertEquals(
-                List.of(Change.destroy(DESIRABLE_SUBSTANCE)),
+                List.of(
+                        Change.destroy(DESIRABLE_SUBSTANCE),
+                        Change.create(CHILD_SUBSTANCE, Location.ORIGIN)),
                 response.substanceChanges());
         assertTrue(response.organismChanges().isEmpty());
     }
@@ -66,6 +79,7 @@ class MoverGenomeTest {
         MoverState state = new MoverState(MOVE_ENERGY - 1);
         Organism organism = FakeOrganism.make(null);
         Response response = genome.respond(
+                null,
                 state,
                 Collections.emptySet(),
                 Collections.emptyMap(),
@@ -86,6 +100,7 @@ class MoverGenomeTest {
         Location oneOne = Location.of(1, 1);
         Location oneTwo = Location.of(1, 2);
         Response response = genome.respond(
+                null,
                 state,
                 Set.of(oneTwo),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -108,6 +123,7 @@ class MoverGenomeTest {
         Organism neighbor = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Response response = genome.respond(
+                null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -127,6 +143,7 @@ class MoverGenomeTest {
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Response response = genome.respond(
+                null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -148,6 +165,7 @@ class MoverGenomeTest {
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Response response = genome.respond(
+                null,
                 state,
                 Set.of(oneOne),
                 Collections.emptyMap(),

@@ -4,6 +4,7 @@ import io.eiaun.organisms.Genome;
 import io.eiaun.organisms.Organism;
 import io.eiaun.organisms.Response;
 import io.eiaun.organisms.State;
+import io.eiaun.physics.Jakku;
 import io.eiaun.physics.Location;
 import io.eiaun.physics.Substance;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class SimpleGenome extends Genome {
 
     @Override
     public Response respond(
+            Jakku jakku,
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,

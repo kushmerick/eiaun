@@ -157,7 +157,7 @@ public class Jakku {
                             }
                             log.debug("Stepping organism {} at {} with {} neighbors, {} substances, {} empties",
                                     organism.getId(), location, neighbors.size(), substances.size(), empties.size());
-                            Response response = organism.respond(empties, substances, neighbors);
+                            Response response = organism.respond(this, empties, substances, neighbors);
                             log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
                                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
                             Runnable fileWrites = null;

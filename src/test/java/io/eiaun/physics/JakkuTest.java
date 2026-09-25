@@ -274,6 +274,7 @@ class JakkuTest {
                 Change.create(newborn, Location.of(0, -1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         when(organism.respond(
+                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, 0),
                         Location.of(+1, -1),
@@ -325,6 +326,7 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
+                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -372,6 +374,7 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
+                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -420,6 +423,7 @@ class JakkuTest {
         organisms.set(lat + 1, lon + 1, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
+                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, 0),
                         Location.of(+1, -1),
@@ -468,6 +472,7 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.setOrganisms(organisms);
         when(organism.respond(
+                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),

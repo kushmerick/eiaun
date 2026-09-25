@@ -20,6 +20,7 @@ class OrganismTest {
         Organism organism = FakeOrganism.make(null, response);
         assertNotEquals(response.newState(), organism.getState());
         organism.respond(
+                null,
                 Collections.emptySet(),
                 Collections.emptyMap(),
                 Collections.emptyMap());
