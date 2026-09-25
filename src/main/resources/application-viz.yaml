@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: viz
+  main:
+    web-application-type: servlet

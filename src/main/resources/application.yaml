@@ -1,6 +1,8 @@
 spring:
   application:
     name: eiaun
+  main:
+    web-application-type: none
 
 eiaun:
   control:
@@ -14,12 +16,12 @@ eiaun:
     grid: 1000
     organisms:
       density: 0.4
-      # type: io.eiaun.organisms.simple.SimpleOrganism
-      type: io.eiaun.organisms.mover.Mover
+      # type: io.eiaun.shared.organisms.simple.SimpleOrganism
+      type: io.eiaun.shared.organisms.mover.Mover
       properties:
-        "[io.eiaun.organisms.simple.SimpleOrganism]":
+        "[io.eiaun.shared.organisms.simple.SimpleOrganism]":
           vision_radius: 5
-        "[io.eiaun.organisms.mover.Mover]":
+        "[io.eiaun.shared.organisms.mover.Mover]":
           vision_radius: 3
           desirable_properties: 2
           peak_energy: 5
