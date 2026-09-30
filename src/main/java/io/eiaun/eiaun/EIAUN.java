@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @Slf4j
 public class EIAUN implements CommandLineRunner {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(EIAUN.class, args);
     }
 

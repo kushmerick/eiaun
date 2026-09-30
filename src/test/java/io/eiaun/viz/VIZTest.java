@@ -1,16 +1,22 @@
 package io.eiaun.viz;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VIZTest {
 
     @Test
-    void canRunMain() {
-        // TODO: Honestly I am not sure why this tests terminates. Doesn't
-        // TODO: `main` start a web server which presumably runs forever?
-        VIZ.main(new String[] {
-                "--spring.profiles.active=viz,test"
-        });
+    void canRun() {
+        try (ConfigurableApplicationContext ctx = SpringApplication.run(
+                VIZ.class,
+                "--spring.profiles.active=viz,test",
+                "--server.port=0")
+        ) {
+            assertTrue(ctx.isRunning());
+        }
     }
 
 }
