@@ -10,7 +10,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(
-        scanBasePackages = { "io.eiaun.shared", "io.eiaun.eiaun" }
+        scanBasePackages = { "io.eiaun.shared", "io.eiaun.eiaun" },
+        excludeName = "com.vaadin.flow.spring.SpringBootAutoConfiguration"
 )
 @Slf4j
 public class EIAUN implements CommandLineRunner {

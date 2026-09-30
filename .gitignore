@@ -41,3 +41,7 @@ out/
 
 ### emacs ###
 *~
+
+### Vaadin
+src/main/frontend/generated/
+target/
