@@ -72,7 +72,6 @@ public class Control {
                         })
                         .thenRunAsync(() -> log.trace("Task {} finished", id), this.executor)
                         .get();
-
             } catch (InterruptedException interrupted) {
                 log.info("Task {} interrupted", id);
                 return;

@@ -16,7 +16,7 @@ import java.util.Set;
 public class SimpleGenome extends Genome {
 
     @Getter
-    private final double visionRadius;
+    private double visionRadius;
 
     public SimpleGenome(double visionRadius) {
         this.visionRadius = visionRadius;

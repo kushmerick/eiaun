@@ -5,16 +5,24 @@ import lombok.ToString;
 import lombok.Value;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 @ToString // just for logging
 @Value
 public class Change<Thing> {
 
+    public enum Verb {
+        CREATE,
+        MOVE,
+        DESTROY,
+        REPLACE,
+    }
+
     public static <Thing> Change<Thing> create(
             @NonNull Thing thing,
             @NonNull Location location
     ) {
-        return new Change<>(null, thing, null, location);
+        return new Change<>(Verb.CREATE, null, thing, null, location);
     }
 
     public static <Thing> Change<Thing> destroy(
@@ -27,7 +35,7 @@ public class Change<Thing> {
             @NonNull Thing thing,
             @NonNull Location location
     ) {
-        return new Change<>(thing, null, location, null);
+        return new Change<>(Verb.DESTROY, thing, null, location, null);
     }
 
     public static <Thing> Change<Thing> move(
@@ -38,7 +46,7 @@ public class Change<Thing> {
         if (Objects.equals(from, to)) {
             throw new IllegalArgumentException("`from` and `to` can't be equal: " + from);
         }
-        return new Change<>(thing, thing, from, to);
+        return new Change<>(Verb.MOVE, thing, thing, from, to);
     }
 
     public static <Thing> Change<Thing> replace(
@@ -49,33 +57,38 @@ public class Change<Thing> {
         if (Objects.equals(original, replacement)) {
             throw new IllegalArgumentException("`original` and `replacement` can't be equal: " + original);
         }
-        return new Change<>(original, replacement, location, location);
+        return new Change<>(Verb.REPLACE, original, replacement, location, location);
     }
 
-    //                    populated for...
-    Thing original;    // destroy, move, replace
-    Thing replacement; // create, move, replace
-    Location from;     // destroy, move, replace
-    Location to;       // create, move, replace
+    Verb verb;         // expected fields:
+    Thing original;    // DESTROY, MOVE, REPLACE
+    Thing replacement; // CREATE, MOVE, REPLACE
+    Location from;     // DESTROY, MOVE, REPLACE
+    Location to;       // CREATE, MOVE, REPLACE
 
     public boolean isCreate() {
-        return this.from == null && this.to != null &&
-                this.original == null && this.replacement != null;
-    }
-
-    public boolean isDestroy() {
-        return this.from != null && this.to == null &&
-                this.original != null && this.replacement == null;
+        return this.verb == Verb.CREATE;
     }
 
     public boolean isMove() {
-        return this.to != null && this.from != null && this.to != this.from &&
-                this.original != null && this.replacement != null && this.original == this.replacement;
+        return this.verb == Verb.MOVE;
+    }
+
+    public boolean isDestroy() {
+        return this.verb == Verb.DESTROY;
     }
 
     public boolean isReplace() {
-        return this.to != null && this.from != null && this.to == this.from &&
-                this.original != null && this.replacement != null && this.original != this.replacement;
+        return this.verb == Verb.REPLACE;
+    }
+
+    public <Thang> Change<Thang> translate(Function<Thing,Thang> translator) {
+        return new Change<>(
+                this.verb,
+                this.original == null ? null : translator.apply(this.original),
+                this.replacement == null ? null : translator.apply(this.replacement),
+                this.from,
+                this.to);
     }
 
 }

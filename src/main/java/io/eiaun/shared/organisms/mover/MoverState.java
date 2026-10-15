@@ -5,7 +5,7 @@ import lombok.Getter;
 
 public class MoverState extends State {
 
-    @Getter public final double energy;
+    @Getter public double energy;
 
     public MoverState(double energy) {
         this.energy = energy;

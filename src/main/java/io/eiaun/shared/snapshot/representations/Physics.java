@@ -1,12 +1,14 @@
-package io.eiaun.shared.snapshot;
+package io.eiaun.shared.snapshot.representations;
 
 import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.SubstanceSpec;
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.util.Map;
 
-@Value
+@Data
+@AllArgsConstructor
 public class Physics {
 
     Map<String, SubstanceSpec> substanceSpecs;

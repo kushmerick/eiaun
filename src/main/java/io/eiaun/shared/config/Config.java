@@ -3,7 +3,9 @@ package io.eiaun.shared.config;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.SubstanceFactory;
-import io.eiaun.shared.snapshot.SnapshotFileRecorder;
+import io.eiaun.shared.snapshot.FileSnapshotReader;
+import io.eiaun.shared.snapshot.FileSnapshotRecorder;
+import io.eiaun.shared.snapshot.SnapshotReader;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
 import io.eiaun.shared.util.InfiniteFairIterator;
 import io.eiaun.shared.util.JSON;
@@ -162,7 +164,18 @@ public class Config {
             String snapshotCompression,
             int snapshotDumpInterval
     ) {
-        return new SnapshotFileRecorder(snapshotsEnabled, snapshotCompression, snapshotDumpInterval);
+        return new FileSnapshotRecorder(snapshotsEnabled, snapshotCompression, snapshotDumpInterval);
+    }
+
+    @Bean
+    @Profile("viz")
+    public SnapshotReader snapshotReader(
+            ExecutorService executor,
+            String snapshotCompression
+    ) {
+        return new FileSnapshotReader(
+                executor,
+                snapshotCompression);
     }
 
     @Bean

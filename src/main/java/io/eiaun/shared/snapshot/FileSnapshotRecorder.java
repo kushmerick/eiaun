@@ -5,6 +5,9 @@ import io.eiaun.shared.physics.Change;
 import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.physics.Substance;
+import io.eiaun.shared.snapshot.representations.Config;
+import io.eiaun.shared.snapshot.representations.Physics;
+import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.JSON;
 import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
@@ -20,44 +23,13 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
 
-/**
- * Snapshots are written to files like:
- * <pre>
- *  recordings/                                                        Root path
- *   2026-10-13-09/                                                    YYYY-MM-dd-HH when this run began
- *    2026-10-13-09-15-31-672/                                         Full timestamp when this run began
- *     physics.json                                                    Substance properties and other physical details
- *     config.json                                                     Configuration (grid size, initial densities, etc)
- *     snapshots/                                                      Snapshots live here
- *      2026-10-14-10/                                                 YYYY-MM-dd-HH when this snapshot was taken
- *       0000023782371-2026-10-14-10-51-17-186/                        ID-Timestamp of this snapshot
- *        000023782371-2026-10-14-10-51-17-186.organisms.json.XX       Locations and contents of all organisms
- *        0000023782371-2026-10-14-10-51-17-186.substances.json.XX     Locations and contents of all substances
- *        0000023782371-2026-10-14-10-51-17-186.organism-changes.json  Organism changes that produced this state from the prior state
- *        0000023782371-2026-10-14-10-51-17-186.substance-changes.json Substance changes that produced this state from the prior state
- *  </pre>
- *  where XX is the compression algorithm (see {@link io.eiaun.shared.config.Config#SNAPSHOT_COMPRESSION}).
- */
-@Slf4j
-public class SnapshotFileRecorder implements SnapshotRecorder {
 
-    private static final SimpleDateFormat YMDH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH");
-    private static final SimpleDateFormat FULL_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
-    private static final String ID_FORMAT = "%013d"; // pad ids with enough 0's so that a trillion sorts alphabetically
-    private static final String ROOT = "recordings";
-    private static final String DOT_JSON = ".json";
-    private static final String PHYSICS = "physics" + DOT_JSON;
-    private static final String CONFIG = "config" + DOT_JSON;
-    private static final String SNAPSHOTS = "snapshots";
-    private static final String DOT_JSON_DOT = DOT_JSON + ".";
-    private static final String ORGANISMS_DOT = "organisms" + DOT_JSON_DOT;
-    private static final String ORGANISM_CHANGES = "organism-changes" + DOT_JSON;
-    private static final String SUBSTANCES_DOT = "substances" + DOT_JSON_DOT;
-    private static final String SUBSTANCE_CHANGES = "substance-changes" + DOT_JSON;
+@Slf4j
+public class FileSnapshotRecorder extends FileSnapshotManipulator implements SnapshotRecorder {
 
     private final boolean enabled;
     private final Path recordingsPath;
@@ -66,7 +38,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     private final String compression;
     private final int dumpInterval;
 
-    public SnapshotFileRecorder(
+    public FileSnapshotRecorder(
             boolean enabled,
             String compression,
             int dumpInterval
@@ -75,8 +47,9 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         long recordingTimestamp = System.currentTimeMillis();
         this.recordingsPath = Path.of(
                 ROOT,
-                formatYMDHTimestamp(recordingTimestamp),
-                formatFullTimestamp(recordingTimestamp));
+                formatYMDH(recordingTimestamp),
+                formatYMDHM(recordingTimestamp),
+                formatYMDHMSS(recordingTimestamp));
         this.snapshotCounter = 0;
         this.compression = compression;
         this.dumpInterval = dumpInterval;
@@ -99,6 +72,9 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             Location changeOffset,
             List<Change<Organism>> organismChanges,
             List<Change<Substance>> substanceChanges
+            // TODO: This has a huge gap: we do not record the state change of the organism!
+            // eg if a Mover does not move, it may lose energy but will not appear in
+            // organismChanges.
     ) {
         if (!enabled) {
             log.trace("Snapshots disabled");
@@ -114,9 +90,10 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         long snapshotTimestamp = System.currentTimeMillis();
         Path snapshotPath = this.recordingsPath.resolve(
                 Path.of(SNAPSHOTS,
-                        formatYMDHTimestamp(snapshotTimestamp),
-                        formatFullTimestamp(snapshotTimestamp),
-                        String.format(ID_FORMAT + "-%s", snapshotId, formatFullTimestamp(snapshotTimestamp))));
+                        formatYMDH(snapshotTimestamp),
+                        formatYMDHM(snapshotTimestamp),
+                        formatYMDHMSS(snapshotTimestamp),
+                        formatSnapshot(snapshotId, snapshotTimestamp)));
         List<Runnable> fileWrites = new ArrayList<>();
         if (dump) {
             fileWrites.add(() -> writeOrganisms(jakku.getOrganisms(), snapshotPath));
@@ -130,14 +107,6 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
         return Pair.of(
                 snapshotPath.toString(),
                 () -> fileWrites.forEach(Runnable::run));
-    }
-
-    private String formatFullTimestamp(long timestamp) {
-        return FULL_TIMESTAMP_FORMAT.format(new Date(timestamp));
-    }
-
-    private String formatYMDHTimestamp(long timestamp) {
-        return YMDH_TIMESTAMP_FORMAT.format(new Date(timestamp));
     }
 
     private void writePreamble(
@@ -154,7 +123,8 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             TwoD<Organism> organisms,
             Path path
     ) {
-        writeCompressed(JSON.toJson(thingsAsMap(organisms, Function.identity())),
+        writeCompressed(
+                JSON.toJson(thingsAsMap(organisms, o -> Generic.encode(o, Organism.ORGANISM_KINDS))),
                 path.resolve(ORGANISMS_DOT + this.compression));
     }
 
@@ -162,7 +132,8 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             TwoD<Substance> substances,
             Path path
     ) {
-        writeCompressed(JSON.toJson(thingsAsMap(substances, Substance::getId)),
+        writeCompressed(
+                JSON.toJson(thingsAsMap(substances, Substance::getId)),
                 path.resolve(SUBSTANCES_DOT + this.compression));
     }
 
@@ -194,7 +165,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                                 organismChanges,
                                 changeOffset,
                                 grid,
-                                organism -> Long.toString(organism.getId()))),
+                                Organism::getId)),
                 path.resolve(ORGANISM_CHANGES));
     }
 
@@ -213,18 +184,19 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
                 path.resolve(SUBSTANCE_CHANGES));
     }
 
-    private <Thing> List<Change<String>> changesAsList(
+    private <Thing, Representation> List<Change<Representation>> changesAsList(
             List<Change<Thing>> changes,
             Location changeOffset,
             int grid,
-            Function<Thing,String> describer
+            Function<Thing,Representation> representer
     ) {
         Function<Location, Location> offsetter = l -> l.add(changeOffset, grid);
         return changes.stream()
                 .map(change ->
                         new Change<>(
-                                Optional.ofNullable(change.getOriginal()).map(describer).orElse(null),
-                                Optional.ofNullable(change.getReplacement()).map(describer).orElse(null),
+                                change.getVerb(),
+                                Optional.ofNullable(change.getOriginal()).map(representer).orElse(null),
+                                Optional.ofNullable(change.getReplacement()).map(representer).orElse(null),
                                 Optional.ofNullable(change.getFrom()).map(offsetter).orElse(null),
                                 Optional.ofNullable(change.getTo()).map(offsetter).orElse(null)))
                 .toList();
@@ -240,6 +212,7 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
     }
 
     private void writeCompressed(String payload, Path path) {
+        long start = System.nanoTime();
         try {
             Files.createDirectories(path.getParent());
             String format = PathUtils.getExtension(path);
@@ -253,7 +226,27 @@ public class SnapshotFileRecorder implements SnapshotRecorder {
             }
         } catch (IOException failure) {
             throw new RuntimeException("Failure while writing compressed payload", failure);
+        } finally {
+            if (path.getFileName().toString().contains("organisms")) {
+                log.info("XXXX organisms write took {} millis", Duration.ofNanos(System.nanoTime() - start).toMillis());
+            }
         }
+    }
+
+    static String formatYMDH(long timestamp) {
+        return YMDH_TIMESTAMP_FORMAT.format(new Date(timestamp));
+    }
+
+    static String formatYMDHM(long timestamp) {
+        return YMDHM_TIMESTAMP_FORMAT.format(new Date(timestamp));
+    }
+
+    static String formatYMDHMSS(long timestamp) {
+        return YMDHMSS_TIMESTAMP_FORMAT.format(new Date(timestamp));
+    }
+
+    static String formatSnapshot(long snapshotId, long snapshotTimestamp) {
+        return String.format(SNAPSHOT_ID_FORMAT + "-%s", snapshotId, formatYMDHMSS(snapshotTimestamp));
     }
 
     /*

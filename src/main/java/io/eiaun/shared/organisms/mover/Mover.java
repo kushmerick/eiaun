@@ -4,6 +4,8 @@ import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.organisms.State;
 import io.eiaun.shared.physics.Jakku;
 import lombok.Getter;
+import lombok.Setter;
+import org.apache.fory.json.annotation.JsonCreator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class Mover extends Organism {
     public static final String REST_ENERGY_PROPERTY = "rest_energy";
 
     @Getter private MoverState state;
-    @Getter private final MoverGenome genome;
+    @Getter @Setter private MoverGenome genome;
 
     public Mover(
             Jakku jakku,

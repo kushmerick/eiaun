@@ -11,6 +11,7 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -20,12 +21,14 @@ public class SubstanceFactory {
 
     private final Random random = new Random();
 
-    private final Map<String, Substance> singletons = new HashMap<>();
+    // the singleton cache must be synchronized, because during the simulation
+    // organisms may be creating substances concurrently
+    private final Map<String, Substance> singletons = new ConcurrentHashMap<>();
 
     @Getter
     private final Map<String, SubstanceSpec> substanceSpecs;
 
-    public SubstanceFactory(List<SubstanceSpec> substanceSpecs) {
+    public SubstanceFactory(Collection<SubstanceSpec> substanceSpecs) {
         this.substanceSpecs = substanceSpecs.stream()
                 .collect(Collectors.toMap(SubstanceSpec::getId, Function.identity()));
         double sum = 0;
@@ -54,11 +57,7 @@ public class SubstanceFactory {
     }
 
     private Substance singletonMake(SubstanceSpec spec) {
-        // the singleton cache must be synchronized, because during the simulation
-        // organisms may be creating substances concurrently
-        synchronized (this) {
-            return this.singletons.computeIfAbsent(spec.getId(), _ -> spec.make());
-        }
+        return this.singletons.computeIfAbsent(spec.getId(), _ -> spec.make());
     }
 
     // generate random atom specifications.  types follow a zipfian distribution

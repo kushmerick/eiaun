@@ -20,6 +20,7 @@ ext {
 	gsonVersion = '2.14.0'
 	foryJsonVersion = '1.7.3'
 	vaadinVersion = '25.3.0'
+	awaitilityVersion = '4.3.0'
 }
 
 java {
@@ -53,6 +54,7 @@ dependencies {
 	implementation "com.vaadin:vaadin-dev:${vaadinVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation "com.vaadin:browserless-test-spring:${vaadinVersion}"
+	testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
 	testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
 	testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 }

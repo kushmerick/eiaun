@@ -1,9 +1,10 @@
 package io.eiaun.shared.organisms.mover;
 
+import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.organisms.State;
-import io.eiaun.shared.organisms.mover.Mover;
-import io.eiaun.shared.organisms.mover.MoverState;
 import io.eiaun.shared.physics.Jakku;
+import io.eiaun.shared.util.Generic;
+import io.eiaun.shared.util.JSON;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -130,6 +131,45 @@ class MoverTest {
         assertNotEquals(newState, mover.getState());
         mover.setState(newState);
         assertEquals(newState, mover.getState());
+    }
+
+    @Test
+    void canEncodeWithGeneric() {
+        Jakku jakku = mock(Jakku.class);
+        Map<String, Set<String>> substanceProperties = Map.of(
+                "P1", Set.of("V1"),
+                "P2", Set.of("V2"),
+                "P3", Set.of("V3"));
+        Map<String, Double> organismProperties =
+                Map.of(VISION_RADIUS_PROPERTY, 10d,
+                        PEAK_ENERGY_PROPERTY, 20d,
+                        MOVE_ENERGY_PROPERTY, 30d,
+                        REST_ENERGY_PROPERTY, 40d,
+                        DESIRABLE_PROPERTIES_PROPERTY, (double) substanceProperties.size());
+        when(jakku.getAllSubstanceProperties()).thenReturn(substanceProperties);
+        int id = Organism.ID.intValue();
+        Mover mover = new Mover(jakku, organismProperties);
+        Generic generic = Generic.encode(mover, Organism.ORGANISM_KINDS);
+        String encoded = JSON.toJson(generic);
+        assertEquals(
+                """
+                {"k":"M","j":"{\\"id\\":""" + id + """
+                ,\\"state\\":{\\"energy\\":20.0},\\"genome\\":{\\"desirableSubstanceProperties\\":{\\"P1\\":\\"V1\\",\\"P2\\":\\"V2\\",\\"P3\\":\\"V3\\"},\\"visionRadius\\":10.0,\\"peakEnergy\\":20.0,\\"moveEnergy\\":30.0,\\"restEnergy\\":40.0}}"}
+                """.strip(),
+                encoded);
+    }
+
+    @Test
+    void canDecodeWithGeneric() {
+        Generic generic = new Generic(
+                "M",
+                """
+                {"id":123,"state":{"energy":20.0},"genome":{"desirableSubstanceProperties":{"P1":"V1","P2":"V2","P3":"V3"},"visionRadius":10.0,"peakEnergy":20.0,"moveEnergy":30.0,"restEnergy":40.0}}
+                """.strip());
+        Mover mover = generic.decode(Mover.KIND_ORGANISMS);
+        assertEquals(123, mover.getId());
+        assertEquals(20, mover.getState().getEnergy());
+        assertEquals(40, mover.getGenome().getRestEnergy());
     }
 
 }

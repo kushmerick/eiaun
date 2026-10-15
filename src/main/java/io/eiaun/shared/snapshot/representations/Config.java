@@ -1,9 +1,11 @@
-package io.eiaun.shared.snapshot;
+package io.eiaun.shared.snapshot.representations;
 
 import io.eiaun.shared.physics.Jakku;
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-@Value
+@Data
+@AllArgsConstructor
 public class Config {
 
     int grid;

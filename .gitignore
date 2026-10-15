@@ -1,6 +1,4 @@
-recordings
 *.hprof
-
 oHELP.md
 .gradle
 build/
@@ -45,3 +43,9 @@ out/
 ### Vaadin
 src/main/frontend/generated/
 target/
+
+### MacOS
+.DS_Store
+
+### EIAUN
+recordings/

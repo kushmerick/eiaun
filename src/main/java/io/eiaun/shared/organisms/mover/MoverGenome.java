@@ -22,11 +22,11 @@ public class MoverGenome extends Genome {
 
     private static final Random RANDOM = new Random();
 
-    @Getter(AccessLevel.PACKAGE) private final Map<String, String> desirableSubstanceProperties;
-    @Getter private final double visionRadius;
-    @Getter(AccessLevel.PACKAGE) private final double peakEnergy;
-    @Getter(AccessLevel.PACKAGE) private final double moveEnergy;
-    @Getter(AccessLevel.PACKAGE) private final double restEnergy;
+    @Getter(AccessLevel.PACKAGE) private Map<String, String> desirableSubstanceProperties;
+    @Getter private double visionRadius;
+    @Getter(AccessLevel.PACKAGE) private double peakEnergy;
+    @Getter(AccessLevel.PACKAGE) private double moveEnergy;
+    @Getter(AccessLevel.PACKAGE) private double restEnergy;
 
     public MoverGenome(
             Map<String, String> desirableSubstanceProperties,

@@ -80,8 +80,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.setOrganisms(organisms);
-        jakku.setSubstances(substances);
+        jakku.getOrganisms().replace(organisms);
+        jakku.getSubstances().replace(substances);
         int radius = 5;
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -107,8 +107,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.setOrganisms(organisms);
-        jakku.setSubstances(substances);
+        jakku.getOrganisms().replace(organisms);
+        jakku.getSubstances().replace(substances);
         int radius = 5;
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -134,8 +134,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.setOrganisms(organisms);
-        jakku.setSubstances(substances);
+        jakku.getOrganisms().replace(organisms);
+        jakku.getSubstances().replace(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(grid / 2, grid / 2, radius);
         assertTrue(nearbyEmpties.isEmpty());
@@ -174,10 +174,10 @@ class JakkuTest {
         // injection a single organism in the middle and a single nearby substance
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, FakeOrganism.make(jakku));
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon + 1, new FakeSubstance());
-        jakku.setSubstances(substances);
+        jakku.getSubstances().replace(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
         int diameter = 2 * radius + 1;
@@ -204,11 +204,11 @@ class JakkuTest {
         organisms.set(lat, lon, FakeOrganism.make(jakku));
         organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
         organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
         substances.set(lat - 1, lon + 1, new FakeSubstance());
-        jakku.setSubstances(substances);
+        jakku.getSubstances().replace(substances);
         double radius = 1;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
         assertEquals(
@@ -223,15 +223,15 @@ class JakkuTest {
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(lat, lon, radius);
         assertEquals(
                 Map.of(
-                        Location.of(+1, -1), substances.get(lat + 1, lon - 1),
-                        Location.of(-1, +1), substances.get(lat - 1, lon + 1)),
+                        Location.of(+1, -1), jakku.getSubstances().get(lat + 1, lon - 1),
+                        Location.of(-1, +1), jakku.getSubstances().get(lat - 1, lon + 1)),
                 nearbySubstances);
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(lat, lon, radius);
         assertEquals(
                 Map.of(
-                        Location.ORIGIN, organisms.get(lat, lon),
-                        Location.of(+1, +1), organisms.get(lat + 1, lon + 1),
-                        Location.of(-1, -1), organisms.get(lat - 1, lon - 1)),
+                        Location.ORIGIN, jakku.getOrganisms().get(lat, lon),
+                        Location.of(+1, +1), jakku.getOrganisms().get(lat + 1, lon + 1),
+                        Location.of(-1, -1), jakku.getOrganisms().get(lat - 1, lon - 1)),
                 neighbors);
     }
 
@@ -258,11 +258,11 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
         organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
         substances.set(lat - 1, lon + 1, new FakeSubstance());
-        jakku.setSubstances(substances);
+        jakku.getSubstances().replace(substances);
         State newState = new SimpleState();
         Substance replacementSubstance = new FakeSubstance();
         List<Change<Substance>> substanceChanges = List.of(
@@ -291,10 +291,10 @@ class JakkuTest {
                         Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
-        assertEquals(replacementSubstance, substances.get(lat - 1, lon + 1));
-        assertNull(organisms.get(lat + 1, lon + 1));
-        assertNotNull(organisms.get(lat - 1, lon - 1));
-        assertEquals(newborn, organisms.get(lat, lon - 1));
+        assertEquals(replacementSubstance, jakku.getSubstances().get(lat - 1, lon + 1));
+        assertNull(jakku.getOrganisms().get(lat + 1, lon + 1));
+        assertNotNull(jakku.getOrganisms().get(lat - 1, lon - 1));
+        assertEquals(newborn, jakku.getOrganisms().get(lat, lon - 1));
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -324,7 +324,7 @@ class JakkuTest {
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -341,8 +341,8 @@ class JakkuTest {
                         Location.ORIGIN, organisms.get(lat, lon)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
-        assertNull(organisms.get(lat, lon));
-        assertEquals(organisms.get(lat + 1, lon + 1), organism);
+        assertNull(jakku.getOrganisms().get(lat, lon));
+        assertEquals(jakku.getOrganisms().get(lat + 1, lon + 1), organism);
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -372,7 +372,7 @@ class JakkuTest {
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -421,7 +421,7 @@ class JakkuTest {
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         organisms.set(lat + 1, lon + 1, organism);
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -470,7 +470,7 @@ class JakkuTest {
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.setOrganisms(organisms);
+        jakku.getOrganisms().replace(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
