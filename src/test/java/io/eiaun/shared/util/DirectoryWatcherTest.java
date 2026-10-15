@@ -10,6 +10,8 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -59,6 +61,31 @@ class DirectoryWatcherTest {
             Files.delete(a2);
             Files.delete(b2);
             await().untilAsserted(() -> assertEquals(Set.of(a1), paths));
+        }
+    }
+
+    @Test
+    void initialFilesAreAlphabeticallyOrdered(@TempDir Path dir) throws Exception {
+        Path a3 = Files.createFile(dir.resolve("A3"));
+        Path a2 = Files.createFile(dir.resolve("A2"));
+        Path a1 = Files.createFile(dir.resolve("A1"));
+        List<Path> paths = new ArrayList<>();
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+             DirectoryWatcher watcher = new DirectoryWatcher(executor);
+             AutoCloseable _ = watcher.register(
+                     dir,
+                     child -> child.getFileName().toString().startsWith("A"),
+                     (verb, child) -> {
+                         if (verb == DirectoryWatcher.Verb.DELETE) {
+                             paths.remove(child);
+                         } else {
+                             paths.add(child);
+                         }
+                     })
+        ) {
+            assertEquals(List.of(a1, a2, a3), paths);
+            Path a0 = Files.createFile(dir.resolve("A0"));
+            await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3, a0), paths));
         }
     }
 

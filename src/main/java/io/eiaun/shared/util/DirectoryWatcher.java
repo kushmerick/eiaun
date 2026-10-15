@@ -98,20 +98,44 @@ public class DirectoryWatcher implements AutoCloseable {
         });
     }
 
+    /**
+     * Register to receive a notification for every file in a directory that
+     * passes a given test.  Note that the listener is first notified about
+     * existing files, and then notified about subsequent new, deleted or modified
+     * files. Note also that notifications for the initial set of files are sent in
+     * alphabetical order.  As a general-purpose utility, this may not be a very
+     * helpful. But for our EIAUN use-case, this is extremely helpful, because
+     * the filenames in question contain timestamps, so this ordering is
+     * equivalent to a guarantee that notifications are ordered from oldest
+     * to newest file.
+     * @param path The directory to monitor.
+     * @param filter A filter for which the subset of files about which to be notified.
+     * @param listener A method that will be invoked for each file in the directory.
+     *                 Listeners are encouraged to be idempotent, but we guarantee
+     *                 that they will be invoked exactly once with a CREATE (DELETE)
+     *                 notification for each file that is created (deleted); note that
+     *                 multiple MODIFY notification may be sent for a given (sequence of)
+     *                 file change(s), depending on the details of the underlying filesystem.
+     * @return An AutoCloseable that must be invoked when the client no longer wants
+     * to monitor this directory.
+     * @throws IOException If `path` does not exist or is not a directory, and so forth.
+     */
     public AutoCloseable register(Path path, Predicate<Path> filter, Listener listener) throws IOException {
-        // end of sanity check
         // Listeners are encouraged to be idempotent.  But to make life easier on the caller, we
-        // notify about each child creation and deletion exactly once. (But note that we send
-        // a notification for every modification.) But see the "TO DO" now [{**}] above about
-        // OVERFLOW events.
+        // guarantee to notify about each child creation and deletion exactly once. (But note that
+        // we send a notification for every modification.)  See also the "TO DO" now [{**}] above
+        // about OVERFLOW events.
         Set<Path> children = ConcurrentHashMap.newKeySet();
         // first, record this registration
         this.registrations.put(path, new Registration(children, filter, listener));
         // second, hallucinate CREATE for all existing children
         try (Stream<Path> paths = Files.list(path)) {
-            paths.filter(filter).forEach(child -> {
-                children.add(child);
-                notify(path, listener, Verb.CREATE, child);
+            paths
+                .filter(filter)
+                .sorted()
+                .forEachOrdered(child -> {
+                    children.add(child);
+                    notify(path, listener, Verb.CREATE, child);
             });
         }
         // third, start watching for changes
