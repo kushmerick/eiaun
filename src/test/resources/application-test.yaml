@@ -2,6 +2,8 @@ eiaun:
   control:
     duration_secs: 1
     processor_fraction: 0.1
+    snapshots:
+      enabled: false
   jakku:
     organisms:
       type: io.eiaun.shared.organisms.simple.SimpleOrganism

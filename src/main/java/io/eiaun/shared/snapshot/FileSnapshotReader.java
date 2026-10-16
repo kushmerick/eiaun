@@ -472,34 +472,65 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         return parseSnapshot(path).isPresent();
     }
 
+    /**
+     * A not-very-exciting sample application that watches for new recordings, and then watches for every snapshot
+     * of each such recording.  The trick is that at most one recording can be watched at a time, so we abandon
+     * the previous recording when a new recording is encountered.  Real applications will do something more
+     * interesting -- eg coming soon, VIZ allows the user to select a recording in which they are interested from
+     * a dynamically updated list of all recordings.
+     * @param ignored Ignored command-line args.
+     * @throws Exception If something goes wrong.
+     */
     static void main(String[] ignored) throws Exception {
-        String compression = "zstd";
-        Queue<AutoCloseable> closeables = new ConcurrentLinkedQueue<>();
+        final String COMPRESSION = "zstd"; // let's assume this application.yaml property is not altered between recordings
         MutableInt nrecordings = new MutableInt(0);
         MutableInt nsnapshots = new MutableInt(0);
+        BlockingQueue<Path> recordings = new LinkedBlockingQueue<>();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            FileSnapshotReader reader = new FileSnapshotReader(executor, compression);
-            closeables.add(reader.watchRecordings(
-                    (_, recording) -> {
-                        log.info("Recording {}: {}", nrecordings.incrementAndGet(), recording);
-                        log.info("Config - Organism density {}", reader.getConfig(recording).getOrganismDensity());
-                        log.info("Physics - Substances {}", reader.getPhysics(recording).getSubstanceSpecs().size());
-                        closeables.add(reader.watchSnapshots(
-                                recording,
-                                (_, snapshot) -> {
-                                    log.info("Snapshot {}: {}", nsnapshots.incrementAndGet(), snapshot);
-                                    log.info("Has {} organism changes and {} substance changes",
-                                            reader.getOrganismChanges(snapshot).size(),
-                                            reader.getSubstanceChanges(snapshot).size());
-                                    log.info("Organisms: {}; Substances: {}",
-                                            reader.getOrganisms().firstIndices().size(),
-                                            reader.getSubstances().firstIndices().size());
-                                }));
-                    }));
+            FileSnapshotReader reader = new FileSnapshotReader(executor, COMPRESSION);
+            Future<Void> snapshotsWatcher = null;
             try {
-                new CountDownLatch(1).await();
+                 snapshotsWatcher = executor.submit(() -> {
+                    AutoCloseable previousSnapshot = null;
+                    try {
+                        while (true) {
+                            Path recording = recordings.take();
+                            if (previousSnapshot != null) {
+                                previousSnapshot.close();
+                            }
+                            previousSnapshot = reader.watchSnapshots(
+                                    recording,
+                                    (_, snapshot) -> {
+                                        log.info("Snapshot {}: {}", nsnapshots.incrementAndGet(), snapshot);
+                                        // the following is not intended to be meaningful, it just shows
+                                        // some functionality
+                                        log.info("Has {} organisms ({} changes) and {} substances ({} changes)",
+                                                reader.getOrganisms().firstIndices().size(),
+                                                reader.getOrganismChanges(snapshot).size(),
+                                                reader.getSubstances().firstIndices().size(),
+                                                reader.getSubstanceChanges(snapshot).size());
+                                    });
+                        }
+                    } catch (InterruptedException _) {
+                        throw new RuntimeException("Interrupted");
+                    } catch (Exception failure) {
+                        throw new RuntimeException("Oops", failure);
+                    }
+                });
+                try (var _ = reader.watchRecordings(
+                        (_, recording) -> {
+                            log.info("Recording {}: {}", nrecordings.incrementAndGet(), recording);
+                            log.info("Config - Organism density {}", reader.getConfig(recording).getOrganismDensity());
+                            log.info("Physics - Substances {}", reader.getPhysics(recording).getSubstanceSpecs().size());
+                            recordings.offer(recording);
+                        })
+                ) {
+                    new CountDownLatch(1).await();
+                }
             } finally {
-                reader.makeCloseable("main", closeables).close();
+                if (snapshotsWatcher != null) {
+                    snapshotsWatcher.cancel(true);
+                }
             }
         }
     }
