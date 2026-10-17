@@ -13,7 +13,6 @@ import io.eiaun.shared.util.JSON;
 import io.eiaun.shared.util.TwoD;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fory.reflect.TypeRef;
@@ -68,7 +67,8 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      **/
     public FileSnapshotReader(
             ExecutorService executor,
-            String compression) {
+            String compression
+    ) {
         this.executor = executor;
         this.compression = compression;
     }
@@ -85,7 +85,9 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      * decision if it isn't working out.
      **/
     @Override
-    public AutoCloseable watchRecordings(DirectoryWatcher.Listener listener) throws IOException {
+    public AutoCloseable watchRecordings(
+            DirectoryWatcher.Listener listener
+    ) throws IOException {
         // negative of expiration timestamp -> paths expiring at that timestamp
         SortedMap<Long, Path> expirationPaths = new ConcurrentSkipListMap<>();
         // path -> DW.register closeable for that path
@@ -96,7 +98,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 () -> watcher.register(
                         root,
                         this::isYMDH,
-                        ifCreate(ymdh -> {
+                        DirectoryWatcher.Listener.ifCreate(ymdh -> {
                             tidy(expirationPaths, pathCloseables);
                             expirationPaths.put(
                                     -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
@@ -105,7 +107,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                     () -> watcher.register(
                                             ymdh,
                                             this::isYMDHM,
-                                            ifCreate(ymdhm -> {
+                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
                                                 tidy(expirationPaths, pathCloseables);
                                                 expirationPaths.put(
                                                         -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
@@ -133,7 +135,10 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      * it anyway.  But let's revisit this decision if it isn't working out.
      */
     @Override
-    public AutoCloseable watchSnapshots(Path recording, DirectoryWatcher.Listener listener) throws IOException {
+    public AutoCloseable watchSnapshots(
+            Path recording,
+            DirectoryWatcher.Listener listener
+    ) throws IOException {
         if (this.watchingSnapshot) {
             throw new IllegalStateException("Already watching a snapshot");
         }
@@ -160,7 +165,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 () -> watcher.register(
                         snapshots,
                         this::isYMDH,
-                        ifCreate(ymdh -> {
+                        DirectoryWatcher.Listener.ifCreate(ymdh -> {
                             tidy(expirationPaths, pathCloseables);
                             expirationPaths.put(
                                     -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
@@ -169,7 +174,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                     () -> watcher.register(
                                             ymdh,
                                             this::isYMDHM,
-                                            ifCreate(ymdhm -> {
+                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
                                                 tidy(expirationPaths, pathCloseables);
                                                 expirationPaths.put(
                                                         -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
@@ -178,7 +183,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                         () -> watcher.register(
                                                                 ymdhm,
                                                                 this::isYMDHMSS,
-                                                                ifCreate(ymdhmss -> {
+                                                                DirectoryWatcher.Listener.ifCreate(ymdhmss -> {
                                                                     tidy(expirationPaths, pathCloseables);
                                                                     expirationPaths.put(
                                                                             -getExpiration(ymdhmss, YMDHMSS, YMDHMSS_EXPIRATION),
@@ -346,14 +351,6 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 .toList();
     }
 
-    private DirectoryWatcher.Listener ifCreate(FailableConsumer<Path, Exception> listener) {
-        return (verb, path) -> {
-            if (verb == DirectoryWatcher.Verb.CREATE) {
-                listener.accept(path);
-            }
-        };
-    }
-
     Optional<Pair<Long, Long>> parseSnapshot(Path path) {
         // sample:
         // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815/snapshots/2026-10-08-21/2026-10-08-21-35/2026-10-08-21-35-05-848/0000000001129-2026-10-08-21-35-05-848
@@ -434,7 +431,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                             }
                             previous = reader.watchSnapshots(
                                     recording,
-                                    (_, snapshot) -> {
+                                    DirectoryWatcher.Listener.ifCreate(snapshot -> {
                                         log.info("Snapshot {}: {}", nsnapshots.incrementAndGet(), snapshot);
                                         // the following is not intended to be meaningful, it just shows
                                         // some functionality
@@ -443,7 +440,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                 reader.getOrganismChanges(snapshot).size(),
                                                 reader.getSubstances().firstIndices().size(),
                                                 reader.getSubstanceChanges(snapshot).size());
-                                    });
+                                    }));
                         }
                     } catch (InterruptedException _) {
                         throw new RuntimeException("Interrupted");
@@ -457,7 +454,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 });
                 // second, enqueue recordings as they are discovered, for consumption by the above thread.
                 try (var _ = reader.watchRecordings(
-                        reader.ifCreate(recording -> {
+                        DirectoryWatcher.Listener.ifCreate(recording -> {
                             log.info("Recording {}: {}", nrecordings.incrementAndGet(), recording);
                             log.info("Config - Organism density {}", reader.getConfig(recording).getOrganismDensity());
                             log.info("Physics - Substances {}", reader.getPhysics(recording).getSubstanceSpecs().size());

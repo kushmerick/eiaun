@@ -1,6 +1,7 @@
 package io.eiaun.shared.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.Predicates;
 
 import java.io.IOException;
@@ -25,6 +26,13 @@ public class DirectoryWatcher implements AutoCloseable {
     public interface Listener {
         void notify(Verb verb, Path child)
                 throws Exception; // Listeners may throw exceptions, but we log them and continue
+        static Listener ifCreate(FailableConsumer<Path, Exception> listener) {
+            return (verb, path) -> {
+                if (verb == DirectoryWatcher.Verb.CREATE) {
+                    listener.accept(path);
+                }
+            };
+        }
     }
 
     private static final Map<WatchEvent.Kind<Path>, Verb> VERBS = Map.of(

@@ -37,18 +37,15 @@ public class FullDumpReader {
     public Optional<TwoD<Organism>> maybeGetOrganisms(Path snapshot) {
         return maybeGetThings(
                 snapshot.resolve(FileSnapshotReader.ORGANISMS_DOT + this.compression),
-                (Generic generic) -> generic.decode(Organism.KIND_ORGANISMS),
-                new TypeRef<Map<String, Map<String, Generic>>>() {
-                }
-        );
+                generic -> generic.decode(Organism.KIND_ORGANISMS),
+                new TypeRef<Map<String, Map<String, Generic>>>() {});
     }
 
     public Optional<TwoD<Substance>> maybeGetSubstances(Path snapshot) {
         return maybeGetThings(
                 snapshot.resolve(FileSnapshotReader.SUBSTANCES_DOT + this.compression),
                 this.substanceFactory::make,
-                new TypeRef<Map<String, Map<String, String>>>() {
-                });
+                new TypeRef<Map<String, Map<String, String>>>() {});
     }
 
     private <Thing, Representation> Optional<TwoD<Thing>> maybeGetThings(
