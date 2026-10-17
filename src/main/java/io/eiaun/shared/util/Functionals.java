@@ -3,12 +3,10 @@ package io.eiaun.shared.util;
 import com.vaadin.copilot.shaded.commons.lang3.function.FailableSupplier;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.function.Failable;
 import org.apache.commons.lang3.function.FailableCallable;
 import org.apache.commons.lang3.function.FailableRunnable;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
 
 @UtilityClass
 @Slf4j

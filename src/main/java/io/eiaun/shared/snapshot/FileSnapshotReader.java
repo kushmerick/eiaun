@@ -96,31 +96,37 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
         Path root = Path.of(ROOT);
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
-        pathCloseables.put(root, Functionals.get("Adding a recordings watcher for root: " + ROOT,
-                () -> watcher.register(
-                        root,
-                        this::isYMDH,
-                        DirectoryWatcher.Listener.ifCreate(ymdh -> {
-                            tidy(expirationPaths, pathCloseables);
-                            expirationPaths.put(
-                                    -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
-                                    ymdh);
-                            pathCloseables.put(ymdh, Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
-                                    () -> watcher.register(
+        pathCloseables.put(
+                root,
+                Functionals.get("Adding a recordings watcher for root: " + ROOT,
+                        () -> watcher.register(
+                                root,
+                                this::isYMDH,
+                                DirectoryWatcher.Listener.ifCreate(ymdh -> {
+                                    tidy(expirationPaths, pathCloseables);
+                                    expirationPaths.put(
+                                            -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
+                                            ymdh);
+                                    pathCloseables.put(
                                             ymdh,
-                                            this::isYMDHM,
-                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
-                                                tidy(expirationPaths, pathCloseables);
-                                                expirationPaths.put(
-                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
-                                                        ymdhm);
-                                                pathCloseables.put(ymdhm, Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
-                                                        () -> watcher.register(
-                                                                ymdhm,
-                                                                this::isYMDHMSS,
-                                                                listener)));
-                                            }))));
-                        }))));
+                                            Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
+                                                    () -> watcher.register(
+                                                            ymdh,
+                                                            this::isYMDHM,
+                                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
+                                                                tidy(expirationPaths, pathCloseables);
+                                                                expirationPaths.put(
+                                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
+                                                                        ymdhm);
+                                                                pathCloseables.put(
+                                                                        ymdhm,
+                                                                        Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
+                                                                                () -> watcher.register(
+                                                                                        ymdhm,
+                                                                                        this::isYMDHMSS,
+                                                                                        listener)));
+                                                            }))));
+                                }))));
         List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
         closeables.add(watcher);
         return makeCloseable("watching recordings", closeables);
@@ -169,44 +175,52 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
         Path snapshots = recording.resolve(SNAPSHOTS);
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
-        pathCloseables.put(snapshots, Functionals.get("Adding a snapshots watcher for snapshots: " + snapshots,
-                () -> watcher.register(
-                        snapshots,
-                        this::isYMDH,
-                        DirectoryWatcher.Listener.ifCreate(ymdh -> {
-                            tidy(expirationPaths, pathCloseables);
-                            expirationPaths.put(
-                                    -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
-                                    ymdh);
-                            pathCloseables.put(ymdh, Functionals.get("Adding a snapshots watcher for YMDH: " + ymdh,
-                                    () -> watcher.register(
+        pathCloseables.put(
+                snapshots,
+                Functionals.get("Adding a snapshots watcher for snapshots: " + snapshots,
+                        () -> watcher.register(
+                                snapshots,
+                                this::isYMDH,
+                                DirectoryWatcher.Listener.ifCreate(ymdh -> {
+                                    tidy(expirationPaths, pathCloseables);
+                                    expirationPaths.put(
+                                            -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
+                                            ymdh);
+                                    pathCloseables.put(
                                             ymdh,
-                                            this::isYMDHM,
-                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
-                                                tidy(expirationPaths, pathCloseables);
-                                                expirationPaths.put(
-                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
-                                                        ymdhm);
-                                                pathCloseables.put(ymdhm, Functionals.get("Adding a snapshots watcher for YMDHM: " + ymdhm,
-                                                        () -> watcher.register(
-                                                                ymdhm,
-                                                                this::isYMDHMSS,
-                                                                DirectoryWatcher.Listener.ifCreate(ymdhmss -> {
-                                                                    tidy(expirationPaths, pathCloseables);
-                                                                    expirationPaths.put(
-                                                                            -getExpiration(ymdhmss, YMDHMSS, YMDHMSS_EXPIRATION),
-                                                                            ymdhmss);
-                                                                    pathCloseables.put(ymdhmss, Functionals.get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
-                                                                            () -> watcher.register(
-                                                                                    ymdhmss,
-                                                                                    this::isSnapshot,
-                                                                                    (verb, snapshot) -> {
-                                                                                        updateOrganismsAndSubstances(snapshot);
-                                                                                        listener.notify(verb, snapshot);
-                                                                                    })));
-                                                                }))));
-                                            }))));
-                        }))));
+                                            Functionals.get("Adding a snapshots watcher for YMDH: " + ymdh,
+                                                    () -> watcher.register(
+                                                            ymdh,
+                                                            this::isYMDHM,
+                                                            DirectoryWatcher.Listener.ifCreate(ymdhm -> {
+                                                                tidy(expirationPaths, pathCloseables);
+                                                                expirationPaths.put(
+                                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
+                                                                        ymdhm);
+                                                                pathCloseables.put(
+                                                                        ymdhm,
+                                                                        Functionals.get("Adding a snapshots watcher for YMDHM: " + ymdhm,
+                                                                                () -> watcher.register(
+                                                                                        ymdhm,
+                                                                                        this::isYMDHMSS,
+                                                                                        DirectoryWatcher.Listener.ifCreate(ymdhmss -> {
+                                                                                            tidy(expirationPaths, pathCloseables);
+                                                                                            expirationPaths.put(
+                                                                                                    -getExpiration(ymdhmss, YMDHMSS, YMDHMSS_EXPIRATION),
+                                                                                                    ymdhmss);
+                                                                                            pathCloseables.put(
+                                                                                                    ymdhmss,
+                                                                                                    Functionals.get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
+                                                                                                            () -> watcher.register(
+                                                                                                                    ymdhmss,
+                                                                                                                    this::isSnapshot,
+                                                                                                                    (verb, snapshot) -> {
+                                                                                                                        updateOrganismsAndSubstances(snapshot);
+                                                                                                                        listener.notify(verb, snapshot);
+                                                                                                                    })));
+                                                                                        }))));
+                                                            }))));
+                                }))));
         List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
         closeables.add(watcher);
         closeables.add(() -> this.watchingSnapshot = false);
