@@ -7,21 +7,21 @@ import java.time.format.DateTimeFormatter;
 /**
  * Snapshots are written to files like:
  * <pre>
- *  recordings/                                                              Root path
- *   2026-10-13-09/                                                          YYYY-MM-dd-HH when this run began
- *    2026-10-13-09-15/                                                      YYYY-MM-dd-HH-mm when this run began
- *      2026-10-13-09-15-31-672/                                             Full timestamp when this run began
- *       physics.json                                                        Substance properties and other physical details
- *       config.json                                                         Configuration (grid size, initial densities, etc)
- *       snapshots/                                                          Snapshots live here
- *        2026-10-14-10/                                                     YYYY-MM-dd-HH when this snapshot was taken
- *          2026-10-14-10-51/                                                YYYY-MM-dd-HH-mm when this snapshot was taken
- *            2026-10-14-10-51-17-186/                                       Full timestamp when this snapshot was taken
- *              0000023782371-2026-10-14-10-51-17-186/                       ID & full Timestamp of this snapshot
- *              0000023782371-2026-10-14-10-51-17-186.organisms.json.XX      Locations and contents of all organisms
- *              0000023782371-2026-10-14-10-51-17-186.substances.json.XX     Locations and contents of all substances
- *              0000023782371-2026-10-14-10-51-17-186.organism-changes.json  Organism changes that produced this state from the prior state
- *              0000023782371-2026-10-14-10-51-17-186.substance-changes.json Substance changes that produced this state from the prior state
+ *  recordings/                                                                Root path
+ *   2026-10-13-09/                                                            YYYY-MM-dd-HH when this run began
+ *    2026-10-13-09-15/                                                        YYYY-MM-dd-HH-mm when this run began
+ *      2026-10-13-09-15-31-672/                                               Full timestamp when this run began
+ *       physics.json                                                          Substance properties and other physical details
+ *       config.json                                                           Configuration (grid size, initial densities, etc)
+ *       snapshots/                                                            Snapshots live here
+ *        2026-10-14-10/                                                       YYYY-MM-dd-HH when this snapshot was taken
+ *          2026-10-14-10-51/                                                  YYYY-MM-dd-HH-mm when this snapshot was taken
+ *            2026-10-14-10-51-17-186/                                         Full timestamp when this snapshot was taken
+ *              0000023782371-2026-10-14-10-51-17-186/                         ID & full Timestamp of this snapshot
+ *                0000023782371-2026-10-14-10-51-17-186.organisms.json.XX      Locations and contents of all organisms
+ *                0000023782371-2026-10-14-10-51-17-186.substances.json.XX     Locations and contents of all substances
+ *                0000023782371-2026-10-14-10-51-17-186.organism-changes.json  Organism changes that produced this state from the prior state
+ *                0000023782371-2026-10-14-10-51-17-186.substance-changes.json Substance changes that produced this state from the prior state
  *  </pre>
  *  where XX is the compression algorithm (see {@link io.eiaun.shared.config.Config#SNAPSHOT_COMPRESSION}).
  */
