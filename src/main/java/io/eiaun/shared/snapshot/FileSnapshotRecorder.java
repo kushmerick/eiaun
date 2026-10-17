@@ -237,15 +237,15 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     static String formatYMDH(long timestamp) {
-        return YMDH_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
+        return YMDH.format(getDateTime(timestamp));
     }
 
     static String formatYMDHM(long timestamp) {
-        return YMDHM_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
+        return YMDHM.format(getDateTime(timestamp));
     }
 
     static String formatYMDHMSS(long timestamp) {
-        return YMDHMSS_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
+        return YMDHMSS.format(getDateTime(timestamp));
     }
 
     private static LocalDateTime getDateTime(long timestamp) {

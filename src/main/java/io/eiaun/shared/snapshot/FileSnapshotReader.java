@@ -99,7 +99,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                         ifCreate(ymdh -> {
                             tidy(expirationPaths, pathCloseables);
                             expirationPaths.put(
-                                    -getExpiration(ymdh, YMDH_TIMESTAMP_FORMAT, YMDH_EXPIRATION),
+                                    -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
                                     ymdh);
                             pathCloseables.put(ymdh, Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
                                     () -> watcher.register(
@@ -108,7 +108,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                             ifCreate(ymdhm -> {
                                                 tidy(expirationPaths, pathCloseables);
                                                 expirationPaths.put(
-                                                        -getExpiration(ymdhm, YMDHM_TIMESTAMP_FORMAT, YMDHM_EXPIRATION),
+                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
                                                         ymdhm);
                                                 pathCloseables.put(ymdhm, Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
                                                         () -> watcher.register(
@@ -163,7 +163,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                         ifCreate(ymdh -> {
                             tidy(expirationPaths, pathCloseables);
                             expirationPaths.put(
-                                    -getExpiration(ymdh, YMDH_TIMESTAMP_FORMAT, YMDH_EXPIRATION),
+                                    -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
                                     ymdh);
                             pathCloseables.put(ymdh, Functionals.get("Adding a snapshots watcher for YMDH: " + ymdh,
                                     () -> watcher.register(
@@ -172,7 +172,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                             ifCreate(ymdhm -> {
                                                 tidy(expirationPaths, pathCloseables);
                                                 expirationPaths.put(
-                                                        -getExpiration(ymdhm, YMDHM_TIMESTAMP_FORMAT, YMDHM_EXPIRATION),
+                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
                                                         ymdhm);
                                                 pathCloseables.put(ymdhm, Functionals.get("Adding a snapshots watcher for YMDHM: " + ymdhm,
                                                         () -> watcher.register(
@@ -181,7 +181,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                 ifCreate(ymdhmss -> {
                                                                     tidy(expirationPaths, pathCloseables);
                                                                     expirationPaths.put(
-                                                                            -getExpiration(ymdhmss, YMDHMSS_TIMESTAMP_FORMAT, YMDHMSS_EXPIRATION),
+                                                                            -getExpiration(ymdhmss, YMDHMSS, YMDHMSS_EXPIRATION),
                                                                             ymdhmss);
                                                                     pathCloseables.put(ymdhmss, Functionals.get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
                                                                             () -> watcher.register(
@@ -362,7 +362,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         if (dash == SNAPSHOT_ID_WIDTH) {
             long id = Long.parseLong(name.substring(0, dash));
             name = name.substring(dash + 1);
-            Optional<Long> timestamp = parse(Path.of(name), YMDHMSS_TIMESTAMP_FORMAT);
+            Optional<Long> timestamp = parse(Path.of(name), YMDHMSS);
             return timestamp.map(t -> Pair.of(id, t));
         }
         return Optional.empty();
@@ -389,15 +389,15 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
     }
 
     private boolean isYMDH(Path path) {
-        return parse(path, YMDH_TIMESTAMP_FORMAT).isPresent();
+        return parse(path, YMDH).isPresent();
     }
 
     private boolean isYMDHM(Path path) {
-        return parse(path, YMDHM_TIMESTAMP_FORMAT).isPresent();
+        return parse(path, YMDHM).isPresent();
     }
 
     private boolean isYMDHMSS(Path path) {
-        return parse(path, YMDHMSS_TIMESTAMP_FORMAT).isPresent();
+        return parse(path, YMDHMSS).isPresent();
     }
 
     boolean isSnapshot(Path path) {

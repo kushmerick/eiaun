@@ -10,7 +10,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOT_ID_FORMAT;
-import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS_TIMESTAMP_FORMAT;
+import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FileSnapshotReaderTest {
@@ -24,7 +24,7 @@ class FileSnapshotReaderTest {
         Optional<Pair<Long, Long>> parsed = reader.parseSnapshot(Path.of(path));
         assertTrue(parsed.isPresent());
         assertEquals(id, parsed.get().getLeft());
-        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS_TIMESTAMP_FORMAT)
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
                 .atZone(ZoneOffset.UTC)
                 .toInstant()
                 .toEpochMilli();

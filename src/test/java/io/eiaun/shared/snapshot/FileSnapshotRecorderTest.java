@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOT_ID_FORMAT;
-import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS_TIMESTAMP_FORMAT;
+import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileSnapshotRecorderTest {
@@ -14,7 +14,7 @@ public class FileSnapshotRecorderTest {
     @Test
     void canFormatFullTimestamp() {
         String formattedTimestamp = "2026-01-02-03-04-05-678";
-        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS_TIMESTAMP_FORMAT)
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
                 .atZone(ZoneOffset.UTC)
                 .toInstant()
                 .toEpochMilli();
@@ -24,7 +24,7 @@ public class FileSnapshotRecorderTest {
     @Test
     void canFormatYMDHTimestamp() {
         String formattedTimestamp = "2026-01-02-03-04-05-678";
-        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS_TIMESTAMP_FORMAT)
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
                 .atZone(ZoneOffset.UTC)
                 .toInstant()
                 .toEpochMilli();
@@ -34,7 +34,7 @@ public class FileSnapshotRecorderTest {
     @Test
     void canFormatSnapshotPath() {
         String formattedTimestamp = "2026-01-02-03-04-05-678";
-        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS_TIMESTAMP_FORMAT)
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
                 .atZone(ZoneOffset.UTC)
                 .toInstant()
                 .toEpochMilli();

@@ -28,9 +28,9 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 public class FileSnapshotManipulator {
 
-    protected static final DateTimeFormatter YMDH_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH");
-    protected static final DateTimeFormatter YMDHM_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm");
-    protected static final DateTimeFormatter YMDHMSS_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm-ss-SSS");
+    protected static final DateTimeFormatter YMDH = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH");
+    protected static final DateTimeFormatter YMDHM = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm");
+    protected static final DateTimeFormatter YMDHMSS = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm-ss-SSS");
     protected static final int SNAPSHOT_ID_WIDTH = 13; // pad ids with enough 0's so that a trillion sorts alphabetically
     protected static final String SNAPSHOT_ID_FORMAT = "%0" + SNAPSHOT_ID_WIDTH + "d";
     protected static final String ROOT = "recordings";
