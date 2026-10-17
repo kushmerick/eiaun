@@ -157,8 +157,8 @@ public class DirectoryWatcher implements AutoCloseable {
     @Override
     public void close() throws IOException {
         this.registrations.clear();
-        this.watcher.close();
         this.future.cancel(true);
+        this.watcher.close();
     }
 
     private void notify(Path path, Listener listener, Verb verb, Path child) {

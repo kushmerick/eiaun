@@ -8,6 +8,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.eiaun.shared.snapshot.SnapshotReader;
+import io.eiaun.shared.util.Functionals;
 import io.eiaun.viz.VIZ;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class HomeView extends VerticalLayout {
         Span recordingsSpan = new Span();
         add(recordingsSpan);
         Set<Path> recordings = new HashSet<>();
-        UI ui =  UI.getCurrent();
+        UI ui = UI.getCurrent();
         AutoCloseable recordingsCloser = snapshotReader.watchRecordings(
                 ((verb, child) -> {
                     switch (verb) {
@@ -45,13 +46,8 @@ public class HomeView extends VerticalLayout {
                     ui.access(() -> recordingsSpan.setText(sequence.toString()));
                 })
         );
-        this.addDetachListener(event -> {
-            try {
-                recordingsCloser.close();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        this.addDetachListener(_ ->
+                Functionals.run(recordingsCloser::close));
     }
 
 }

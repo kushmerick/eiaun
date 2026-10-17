@@ -77,6 +77,8 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      * Receive a callback for every recording, which will be a path like
      * recordings/ymdh/ymdhm/ymdhmss.
      * @param listener Listener
+     * @return An AutoCloseable that must be invoked when the caller no longer
+     * wants to listen for recordings.
      * @throws RuntimeException Any number of things might go wrong (recording gets
      * deleted, random filesystem errors, and so forth). These exceptions are not
      * throw, rather they are logged and generally cause the watch process to stop
@@ -119,15 +121,21 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                 listener)));
                                             }))));
                         }))));
-        return makeCloseable("watching recordings", pathCloseables.values());
+        List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
+        closeables.add(watcher);
+        return makeCloseable("watching recordings", closeables);
     }
 
     /**
      * Receive a callback for every snapshot in the given recording, which
-     * will be a path like recordings/ymdh/ymdhm/ymdhmss/snapshots/ymdh/ymdhm/ymdhmss/00123-ymdhmss
-     * Important Note: At most one snapshot can be watched at a time!
+     * will be a path like recordings/ymdh/ymdhm/ymdhmss/snapshots/ymdh/ymdhm/ymdhmss/00123-ymdhmss.
+     * Important Note: At most one snapshot can be watched at a time!  The caller
+     * must invoke the AutoCloseable returned by this method before call this method
+     * again.
      * @param recording Recording path
      * @param listener Listener
+     * @return An AutoCloseable that must be invoked when the caller no longer
+     * wants to listen for this recording's snapshots.
      * @throws RuntimeException Any number of things might go wrong (recording gets
      * deleted, random filesystem errors, and so forth). These exceptions are logged
      * and generally cause the watch process to stop (listener is not invoked anymore).
@@ -199,11 +207,10 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                 }))));
                                             }))));
                         }))));
-        pathCloseables.put(
-                // ten thousand apologies for this hack, but it works
-                Path.of("¡PLACEHOLDER!"),
-                () -> this.watchingSnapshot = false);
-        return makeCloseable("watching snapshots", pathCloseables.values());
+        List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
+        closeables.add(watcher);
+        closeables.add(() -> this.watchingSnapshot = false);
+        return makeCloseable("watching snapshots", closeables);
     }
 
     private void updateOrganismsAndSubstances(Path snapshot) {
