@@ -85,7 +85,7 @@ public class DirectoryWatcher implements AutoCloseable {
                                 if (notify) {
                                     notify(path, listener, verb, child);
                                 } else {
-                                    log.info("Swallowing {} {}", verb, child);
+                                    log.trace("Swallowing {} {}", verb, child);
                                 }
                             }
                         } else {
@@ -111,8 +111,8 @@ public class DirectoryWatcher implements AutoCloseable {
      * passes a given test.  Note that the listener is first notified about
      * existing files, and then notified about subsequent new, deleted or modified
      * files. Note also that notifications for the initial set of files are sent in
-     * alphabetical order.  As a general-purpose utility, this may not be a very
-     * helpful. But for our EIAUN use-case, this is extremely helpful, because
+     * alphabetical order.  As a general-purpose utility, this may not seem
+     * significant. But for our EIAUN use-case, this is extremely helpful, because
      * the filenames in question contain timestamps, so this ordering is
      * equivalent to a guarantee that notifications are ordered from oldest
      * to newest file.
