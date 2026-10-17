@@ -24,6 +24,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Function;
 
@@ -234,15 +237,19 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     static String formatYMDH(long timestamp) {
-        return YMDH_TIMESTAMP_FORMAT.format(new Date(timestamp));
+        return YMDH_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
     }
 
     static String formatYMDHM(long timestamp) {
-        return YMDHM_TIMESTAMP_FORMAT.format(new Date(timestamp));
+        return YMDHM_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
     }
 
     static String formatYMDHMSS(long timestamp) {
-        return YMDHMSS_TIMESTAMP_FORMAT.format(new Date(timestamp));
+        return YMDHMSS_TIMESTAMP_FORMAT.format(getDateTime(timestamp));
+    }
+
+    private static LocalDateTime getDateTime(long timestamp) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneOffset.UTC);
     }
 
     static String formatSnapshot(long snapshotId, long snapshotTimestamp) {

@@ -1,6 +1,5 @@
 package io.eiaun.shared.snapshot;
 
-import com.vaadin.copilot.shaded.commons.lang3.function.FailableSupplier;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.physics.Change;
 import io.eiaun.shared.physics.ChangeApplier;
@@ -9,32 +8,30 @@ import io.eiaun.shared.physics.SubstanceFactory;
 import io.eiaun.shared.snapshot.representations.Config;
 import io.eiaun.shared.snapshot.representations.Physics;
 import io.eiaun.shared.util.DirectoryWatcher;
-import io.eiaun.shared.util.Generic;
+import io.eiaun.shared.util.Functionals;
 import io.eiaun.shared.util.JSON;
 import io.eiaun.shared.util.TwoD;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.file.PathUtils;
-import org.apache.commons.lang3.function.FailableCallable;
 import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fory.reflect.TypeRef;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static org.apache.commons.compress.compressors.CompressorStreamFactory.ZSTANDARD;
 
 @Slf4j
 public class FileSnapshotReader extends FileSnapshotManipulator implements SnapshotReader {
@@ -58,6 +55,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
     @Getter private final TwoD<Organism> organisms = new TwoD<>();
     @Getter private final TwoD<Substance> substances = new TwoD<>();
     private ChangeApplier changeApplier;
+    private FullDumpReader fullDumpReader;
     private SubstanceFactory substanceFactory;
 
     /**
@@ -94,7 +92,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
         Path root = Path.of(ROOT);
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
-        pathCloseables.put(root, get("Adding a recordings watcher for root: " + ROOT,
+        pathCloseables.put(root, Functionals.get("Adding a recordings watcher for root: " + ROOT,
                 () -> watcher.register(
                         root,
                         this::isYMDH,
@@ -103,7 +101,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                             expirationPaths.put(
                                     -getExpiration(ymdh, YMDH_TIMESTAMP_FORMAT, YMDH_EXPIRATION),
                                     ymdh);
-                            pathCloseables.put(ymdh, get("Adding a recordings watcher for YMDH: " + ymdh,
+                            pathCloseables.put(ymdh, Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
                                     () -> watcher.register(
                                             ymdh,
                                             this::isYMDHM,
@@ -112,7 +110,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                 expirationPaths.put(
                                                         -getExpiration(ymdhm, YMDHM_TIMESTAMP_FORMAT, YMDHM_EXPIRATION),
                                                         ymdhm);
-                                                pathCloseables.put(ymdhm, get("Adding a recordings watcher for YMDHM: " + ymdhm,
+                                                pathCloseables.put(ymdhm, Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
                                                         () -> watcher.register(
                                                                 ymdhm,
                                                                 this::isYMDHMSS,
@@ -149,13 +147,16 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 this.substances,
                 getConfig(recording).getGrid(),
                 log::info);
+        this.fullDumpReader = new FullDumpReader(
+                this.compression,
+                this.substanceFactory);
         // negative expiration timestamp -> paths for that timestamp
         SortedMap<Long, Path> expirationPaths = new ConcurrentSkipListMap<>();
         // path -> directory-watcher closeable for that path
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
         Path snapshots = recording.resolve(SNAPSHOTS);
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
-        pathCloseables.put(snapshots, get("Adding a snapshots watcher for snapshots: " + snapshots,
+        pathCloseables.put(snapshots, Functionals.get("Adding a snapshots watcher for snapshots: " + snapshots,
                 () -> watcher.register(
                         snapshots,
                         this::isYMDH,
@@ -164,7 +165,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                             expirationPaths.put(
                                     -getExpiration(ymdh, YMDH_TIMESTAMP_FORMAT, YMDH_EXPIRATION),
                                     ymdh);
-                            pathCloseables.put(ymdh, get("Adding a snapshots watcher for YMDH: " + ymdh,
+                            pathCloseables.put(ymdh, Functionals.get("Adding a snapshots watcher for YMDH: " + ymdh,
                                     () -> watcher.register(
                                             ymdh,
                                             this::isYMDHM,
@@ -173,7 +174,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                 expirationPaths.put(
                                                         -getExpiration(ymdhm, YMDHM_TIMESTAMP_FORMAT, YMDHM_EXPIRATION),
                                                         ymdhm);
-                                                pathCloseables.put(ymdhm, get("Adding a snapshots watcher for YMDHM: " + ymdhm,
+                                                pathCloseables.put(ymdhm, Functionals.get("Adding a snapshots watcher for YMDHM: " + ymdhm,
                                                         () -> watcher.register(
                                                                 ymdhm,
                                                                 this::isYMDHMSS,
@@ -182,7 +183,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                     expirationPaths.put(
                                                                             -getExpiration(ymdhmss, YMDHMSS_TIMESTAMP_FORMAT, YMDHMSS_EXPIRATION),
                                                                             ymdhmss);
-                                                                    pathCloseables.put(ymdhmss, get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
+                                                                    pathCloseables.put(ymdhmss, Functionals.get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
                                                                             () -> watcher.register(
                                                                                     ymdhmss,
                                                                                     this::isSnapshot,
@@ -204,19 +205,23 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         if (this.organisms.isEmpty()) {
             // presumably this is our first snapshot, so we expect to see a full dump
             // of the organisms and snapshots.
-            getFullDump(snapshot, this::maybeGetOrganisms, this.organisms::replace, "organisms");
-            getFullDump(snapshot, this::maybeGetSubstances, this.substances::replace, "substances");
+            try {
+                processFullDump(snapshot, this.fullDumpReader::maybeGetOrganisms, this.organisms::replace, "organisms");
+                processFullDump(snapshot, this.fullDumpReader::maybeGetSubstances, this.substances::replace, "substances");
+            } catch (RuntimeException e) {
+                log.warn("Missing full dump(s) for {}", snapshot, e);
+            }
         } else {
             this.changeApplier.changeOrganisms(getOrganismChanges(snapshot));
             this.changeApplier.changeSubstances(getSubstanceChanges(snapshot));
             // Sanity check
-            maybeGetOrganisms(snapshot).ifPresent(organisms -> {
+            fullDumpReader.maybeGetOrganisms(snapshot).ifPresent(organisms -> {
                 if (!this.organisms.equals(organisms, Organism::getId)) {
                     this.organisms.replace(organisms);
                     log.warn("Organisms mismatch!");
                 }
             });
-            maybeGetSubstances(snapshot).ifPresent(substances -> {
+            fullDumpReader.maybeGetSubstances(snapshot).ifPresent(substances -> {
                 if (!this.substances.equals(substances, Substance::getId)) {
                     this.substances.replace(substances);
                     log.warn("Substances mismatch!");
@@ -239,14 +244,14 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         return index;
     }
 
-    private <Thing> void getFullDump(
+    private <Thing> void processFullDump(
             Path snapshot,
             Function<Path, Optional<TwoD<Thing>>> fullDumpGetter,
-            Consumer<TwoD<Thing>> replacer,
+            Consumer<TwoD<Thing>> processor,
             String label
     ) {
             fullDumpGetter.apply(snapshot).ifPresentOrElse(
-                    replacer,
+                    processor,
                     () -> { throw new RuntimeException(String.format("Missing %s full dump", label)); });
     }
 
@@ -306,13 +311,13 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
     }
 
     public Config getConfig(Path recording) {
-        return get(() -> JSON.fromJson(
+        return Functionals.get(() -> JSON.fromJson(
                 Files.readString(recording.resolve(CONFIG)),
                 Config.class));
     }
 
     public Physics getPhysics(Path recording) {
-        return get(() -> JSON.fromJson(
+        return Functionals.get(() -> JSON.fromJson(
                 Files.readString(recording.resolve(PHYSICS)),
                 Physics.class));
     }
@@ -320,7 +325,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
     public List<Change<Substance>> getSubstanceChanges(Path snapshot) {
         // TODO: Generate index once and keep them updated, rather than regenerating
         Map<String, Substance> substanceIndex = makeIndex(this.substances, Substance::getId);
-        return get(() -> JSON.fromJson(
+        return Functionals.get(() -> JSON.fromJson(
                 Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
                 SUBSTANCE_CHANGES_TYPE))
                 .stream()
@@ -332,61 +337,13 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
     public List<Change<Organism>> getOrganismChanges(Path snapshot) {
         // TODO: Generate index once and keep them updated, rather than regenerating
         Map<Long, Organism> organismIndex = makeIndex(this.organisms, Organism::getId);
-        return get(() -> JSON.fromJson(
+        return Functionals.get(() -> JSON.fromJson(
                 Files.readString(snapshot.resolve(ORGANISM_CHANGES)),
                 ORGANISM_CHANGES_TYPE))
                 .stream()
                 .map(change ->
                         change.translate(organismIndex::get))
                 .toList();
-    }
-
-    private Optional<TwoD<Organism>> maybeGetOrganisms(Path snapshot) {
-        return maybeGetThings(
-                snapshot.resolve(ORGANISMS_DOT + this.compression),
-                (Generic generic) -> generic.decode(Organism.KIND_ORGANISMS));
-    }
-
-    private Optional<TwoD<Substance>> maybeGetSubstances(Path snapshot) {
-        return maybeGetThings(
-                snapshot.resolve(SUBSTANCES_DOT + this.compression),
-                (String id) -> this.substanceFactory.make(id));
-    }
-
-    private <Thing, Representation> Optional<TwoD<Thing>> maybeGetThings(
-            Path thingsPath,
-            Function<Representation, Thing> transformer
-    ) {
-        if (Files.exists(thingsPath)) {
-            Map<String, Map<String, Representation>> map = get(() -> JSON.fromJson(
-                    readCompressed(thingsPath),
-                    new TypeRef<>() {}));
-            TwoD<Thing> twod  = new TwoD<>();
-            for (var outer : map.entrySet()) {
-                int lat = Integer.parseInt(outer.getKey());
-                for (var inner : outer.getValue().entrySet()) {
-                    int lon = Integer.parseInt(inner.getKey());
-                    twod.set(lat, lon, transformer.apply(inner.getValue()));
-                }
-            }
-            return Optional.of(twod);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    private String readCompressed(Path path) {
-        try {
-            String format = PathUtils.getExtension(path);
-            try (var compressed = Files.newInputStream(path);
-                 var buffered = new BufferedInputStream(compressed);
-                 var uncompressed = new CompressorStreamFactory().createCompressorInputStream(format, buffered)
-            ) {
-                return IOUtils.toString(uncompressed, StandardCharsets.UTF_8);
-            }
-        } catch (IOException failure) {
-            throw new RuntimeException("Failure while reading compressed payload", failure);
-        }
     }
 
     private DirectoryWatcher.Listener ifCreate(FailableConsumer<Path, Exception> listener) {
@@ -397,30 +354,6 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         };
     }
 
-    private static <Thing> Thing get(
-            FailableSupplier<Thing, Exception> getter
-    ) {
-        try {
-            return getter.get();
-        } catch (Exception failure) {
-            // propagate exceptions, but checked exceptions maker lambdas etc messy
-            throw new RuntimeException(failure);
-        }
-    }
-
-    private AutoCloseable get(
-            String message,
-            FailableCallable<AutoCloseable, IOException> runnable
-    ) {
-        log.trace(message);
-        try {
-            return runnable.call();
-        } catch (IOException failure) {
-            log.warn("Failure while {}", message, failure);
-            return () -> {};
-        }
-    }
-
     Optional<Pair<Long, Long>> parseSnapshot(Path path) {
         // sample:
         // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815/snapshots/2026-10-08-21/2026-10-08-21-35/2026-10-08-21-35-05-848/0000000001129-2026-10-08-21-35-05-848
@@ -429,28 +362,27 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         if (dash == SNAPSHOT_ID_WIDTH) {
             long id = Long.parseLong(name.substring(0, dash));
             name = name.substring(dash + 1);
-            try {
-                long timestamp = YMDHMSS_TIMESTAMP_FORMAT.parse(name).getTime();
-                return Optional.of(Pair.of(id, timestamp));
-            } catch (ParseException failure) {
-                log.warn("Failure while parsing `{}` as a snapshot", path, failure);
-            }
+            Optional<Long> timestamp = parse(Path.of(name), YMDHMSS_TIMESTAMP_FORMAT);
+            return timestamp.map(t -> Pair.of(id, t));
         }
         return Optional.empty();
     }
 
-    private Optional<Long> parse(Path path, SimpleDateFormat format) {
+    private Optional<Long> parse(Path path, DateTimeFormatter format) {
         String name = path.getFileName().toString();
         try {
-            long timestamp = format.parse(name).getTime();
+            long timestamp = LocalDateTime.parse(name, format)
+                            .atZone(ZoneOffset.UTC)
+                            .toInstant()
+                            .toEpochMilli();
             return Optional.of(timestamp);
-        } catch (ParseException failure) {
-            log.warn("Failure while parsing `{}` with `{}`", path, format.toPattern(), failure);
+        } catch (DateTimeParseException failure) {
+            log.warn("Failure while parsing `{}` with `{}`", path, format, failure);
         }
         return Optional.empty();
     }
 
-    private long getExpiration(Path path, SimpleDateFormat format, long expirationMillis) {
+    private long getExpiration(Path path, DateTimeFormatter format, long expirationMillis) {
         return parse(path, format)
                 .map(timestamp -> timestamp + expirationMillis)
                 .orElseThrow();
@@ -482,7 +414,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      * @throws Exception If something goes wrong.
      */
     static void main(String[] ignored) throws Exception {
-        final String COMPRESSION = "zstd"; // let's assume this application.yaml property is not altered between recordings
+        final String COMPRESSION = ZSTANDARD; // let's assume this application.yaml property is not altered between recordings
         MutableInt nrecordings = new MutableInt(0);
         MutableInt nsnapshots = new MutableInt(0);
         BlockingQueue<Path> recordings = new LinkedBlockingQueue<>();

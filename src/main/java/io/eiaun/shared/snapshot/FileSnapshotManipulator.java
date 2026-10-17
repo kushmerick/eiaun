@@ -2,7 +2,7 @@ package io.eiaun.shared.snapshot;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Snapshots are written to files like:
@@ -28,9 +28,9 @@ import java.text.SimpleDateFormat;
 @Slf4j
 public class FileSnapshotManipulator {
 
-    protected static final SimpleDateFormat YMDH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH");
-    protected static final SimpleDateFormat YMDHM_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
-    protected static final SimpleDateFormat YMDHMSS_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS");
+    protected static final DateTimeFormatter YMDH_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH");
+    protected static final DateTimeFormatter YMDHM_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm");
+    protected static final DateTimeFormatter YMDHMSS_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm-ss-SSS");
     protected static final int SNAPSHOT_ID_WIDTH = 13; // pad ids with enough 0's so that a trillion sorts alphabetically
     protected static final String SNAPSHOT_ID_FORMAT = "%0" + SNAPSHOT_ID_WIDTH + "d";
     protected static final String ROOT = "recordings";

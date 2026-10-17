@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOT_ID_FORMAT;
@@ -22,7 +24,10 @@ class FileSnapshotReaderTest {
         Optional<Pair<Long, Long>> parsed = reader.parseSnapshot(Path.of(path));
         assertTrue(parsed.isPresent());
         assertEquals(id, parsed.get().getLeft());
-        long timestamp = YMDHMSS_TIMESTAMP_FORMAT.parse(formattedTimestamp).getTime();
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS_TIMESTAMP_FORMAT)
+                .atZone(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli();
         assertEquals(timestamp, parsed.get().getRight());
     }
 
