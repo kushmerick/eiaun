@@ -420,17 +420,19 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         BlockingQueue<Path> recordings = new LinkedBlockingQueue<>();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             FileSnapshotReader reader = new FileSnapshotReader(executor, COMPRESSION);
+            // first, start a thread to loop forever, waiting for the next recording, abandoning
+            // the previous one, and watching its snapshots.
             Future<Void> snapshotsWatcher = null;
             try {
-                 snapshotsWatcher = executor.submit(() -> {
-                    AutoCloseable previousSnapshot = null;
+                snapshotsWatcher = executor.submit(() -> {
+                    AutoCloseable previous = null;
                     try {
                         while (true) {
                             Path recording = recordings.take();
-                            if (previousSnapshot != null) {
-                                previousSnapshot.close();
+                            if (previous != null) {
+                                Functionals.run(previous::close);
                             }
-                            previousSnapshot = reader.watchSnapshots(
+                            previous = reader.watchSnapshots(
                                     recording,
                                     (_, snapshot) -> {
                                         log.info("Snapshot {}: {}", nsnapshots.incrementAndGet(), snapshot);
@@ -447,16 +449,22 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                         throw new RuntimeException("Interrupted");
                     } catch (Exception failure) {
                         throw new RuntimeException("Oops", failure);
+                    } finally {
+                        if (previous != null) {
+                            Functionals.run(previous::close);
+                        }
                     }
                 });
+                // second, enqueue recordings as they are discovered, for consumption by the above thread.
                 try (var _ = reader.watchRecordings(
-                        (_, recording) -> {
+                        reader.ifCreate(recording -> {
                             log.info("Recording {}: {}", nrecordings.incrementAndGet(), recording);
                             log.info("Config - Organism density {}", reader.getConfig(recording).getOrganismDensity());
                             log.info("Physics - Substances {}", reader.getPhysics(recording).getSubstanceSpecs().size());
                             recordings.offer(recording);
-                        })
+                        }))
                 ) {
+                    // wait until the process is interrupted
                     new CountDownLatch(1).await();
                 }
             } finally {

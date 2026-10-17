@@ -1,14 +1,13 @@
 package io.eiaun.shared.physics;
 
-import lombok.NonNull;
-import lombok.ToString;
-import lombok.Value;
+import lombok.*;
 
 import java.util.Objects;
 import java.util.function.Function;
 
 @ToString // just for logging
-@Value
+@Data
+@AllArgsConstructor
 public class Change<Thing> {
 
     public enum Verb {
