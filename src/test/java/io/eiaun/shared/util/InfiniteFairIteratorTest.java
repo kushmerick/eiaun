@@ -1,6 +1,5 @@
 package io.eiaun.shared.util;
 
-import io.eiaun.shared.util.InfiniteFairIterator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 

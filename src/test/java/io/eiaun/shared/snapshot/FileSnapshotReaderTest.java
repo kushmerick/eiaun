@@ -62,18 +62,21 @@ class FileSnapshotReaderTest {
 
     @Test
     void canWatchRecordings() throws Exception {
+        String testRecordings = "src/test/resources/test-recordings";
         List<Path> recordings = new CopyOnWriteArrayList<>();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             FileSnapshotReader reader = new FileSnapshotReader(
                     executor,
                     ZSTANDARD,
-                    Path.of("src/test/resources/test-recordings"));
+                    Path.of(testRecordings));
             try (var _ = reader.watchRecordings(
                     DirectoryWatcher.Listener.ifCreate(recordings::add))
             ) {
+                Path recording = Path.of(testRecordings).resolve("2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647");
                 await().untilAsserted(() -> assertEquals(
-                        List.of(Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647")),
+                        List.of(recording),
                         recordings));
+                assertEquals(1000, reader.getConfig(recording).getGrid());
             }
         }
     }
@@ -95,6 +98,7 @@ class FileSnapshotReaderTest {
                                 Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000000-2026-10-12-07-16-02-788"),
                                 Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000001-2026-10-12-07-16-02-788")),
                         snapshots));
+                assertEquals(372050, reader.getOrganisms().get(0, 907).getId());
             }
         }
     }

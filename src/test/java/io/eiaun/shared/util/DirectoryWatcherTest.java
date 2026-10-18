@@ -13,10 +13,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,6 +83,15 @@ class DirectoryWatcherTest {
             assertEquals(List.of(a1, a2, a3), paths);
             Path a0 = Files.createFile(dir.resolve("A0"));
             await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3, a0), paths));
+        }
+    }
+
+    @Test
+    void canRunMain() throws InterruptedException {
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<?> future = executor.submit(() -> Functionals.run(() -> DirectoryWatcher.main(null)));
+            Thread.sleep(Duration.ofSeconds(1)); // ugh, yuck
+            future.cancel(true);
         }
     }
 
