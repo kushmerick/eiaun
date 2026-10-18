@@ -1,16 +1,25 @@
 package io.eiaun.shared.snapshot;
 
+import io.eiaun.shared.util.DirectoryWatcher;
+import io.eiaun.shared.util.Functionals;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.*;
 
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOT_ID_FORMAT;
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS;
+import static org.apache.commons.compress.compressors.CompressorStreamFactory.ZSTANDARD;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FileSnapshotReaderTest {
@@ -49,6 +58,45 @@ class FileSnapshotReaderTest {
         assertFalse(reader.isSnapshot(Path.of(path)));
         path = id + "-" + formattedTimestamp;
         assertFalse(reader.isSnapshot(Path.of(path)));
+    }
+
+    @Test
+    void canWatchRecordings() throws Exception {
+        List<Path> recordings = new CopyOnWriteArrayList<>();
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            FileSnapshotReader reader = new FileSnapshotReader(
+                    executor,
+                    ZSTANDARD,
+                    Path.of("src/test/resources/test-recordings"));
+            try (var _ = reader.watchRecordings(
+                    DirectoryWatcher.Listener.ifCreate(recordings::add))
+            ) {
+                await().untilAsserted(() -> assertEquals(
+                        List.of(Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647")),
+                        recordings));
+            }
+        }
+    }
+
+    @Test
+    void canWatchSnapshots() throws Exception {
+        List<Path> snapshots = new CopyOnWriteArrayList<>();
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            FileSnapshotReader reader = new FileSnapshotReader(
+                    executor,
+                    ZSTANDARD,
+                    Path.of("src/test/resources/test-recordings"));
+            try (var _ = reader.watchSnapshots(
+                    Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647"),
+                    DirectoryWatcher.Listener.ifCreate(snapshots::add))
+            ) {
+                await().untilAsserted(() -> assertEquals(
+                        List.of(
+                                Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000000-2026-10-12-07-16-02-788"),
+                                Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000001-2026-10-12-07-16-02-788")),
+                        snapshots));
+            }
+        }
     }
 
 }

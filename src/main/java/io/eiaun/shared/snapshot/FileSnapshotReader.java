@@ -44,6 +44,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
 
     private final ExecutorService executor;
     private final String compression;
+    private final Path root;
 
     // These fields encapsulate the state used to track organisms & substances
     // across snapshots.  (Remember that for performance reasons,
@@ -64,13 +65,31 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      *                         hence could vary by recording. That seems implausible
      *                         since the default `zstd` is so good. But if it were ever
      *                         changed, then snapshot-watching would fail!
+     * @param root             The directory containing the recordings.
+     **/
+    public FileSnapshotReader(
+            ExecutorService executor,
+            String compression,
+            Path root
+    ) {
+        this.executor = executor;
+        this.compression = compression;
+        this.root = root;
+    }
+
+    /**
+     * @param executor         An ExecutorService on which monitoring tasks will run.
+     * @param compression      Extension used for compressing various snapshot files.
+     *                         Note that this value is configured from application.yaml
+     *                         hence could vary by recording. That seems implausible
+     *                         since the default `zstd` is so good. But if it were ever
+     *                         changed, then snapshot-watching would fail!
      **/
     public FileSnapshotReader(
             ExecutorService executor,
             String compression
     ) {
-        this.executor = executor;
-        this.compression = compression;
+        this(executor, compression, Path.of(ROOT));
     }
 
     /**
@@ -94,13 +113,12 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         SortedMap<Long, Path> expirationPaths = new ConcurrentSkipListMap<>();
         // path -> DW.register closeable for that path
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
-        Path root = Path.of(ROOT);
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
         pathCloseables.put(
-                root,
+                this.root,
                 Functionals.get("Adding a recordings watcher for root: " + ROOT,
                         () -> watcher.register(
-                                root,
+                                this.root,
                                 this::isYMDH,
                                 DirectoryWatcher.Listener.ifCreate(ymdh -> {
                                     tidy(expirationPaths, pathCloseables);
