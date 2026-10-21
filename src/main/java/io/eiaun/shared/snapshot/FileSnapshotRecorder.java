@@ -1,5 +1,6 @@
 package io.eiaun.shared.snapshot;
 
+import com.vaadin.copilot.shaded.guava.base.Functions;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.physics.Change;
 import io.eiaun.shared.physics.Jakku;
@@ -23,7 +24,6 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -73,8 +73,8 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     public Pair<String, Runnable> record(
             Jakku jakku,
             Location changeOffset,
-            List<Change<Organism>> organismChanges,
-            List<Change<Substance>> substanceChanges
+            List<Change<Long>> organismChanges,
+            List<Change<String>> substanceChanges
             // TODO: This has a huge gap: we do not record the state change of the organism!
             // eg if a Mover does not move, it may lose energy but will not appear in
             // organismChanges.
@@ -158,7 +158,7 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     private void writeOrganismChanges(
-            List<Change<Organism>> organismChanges,
+            List<Change<Long>> organismChanges,
             Location changeOffset,
             int grid,
             Path path
@@ -168,12 +168,12 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
                                 organismChanges,
                                 changeOffset,
                                 grid,
-                                Organism::getId)),
+                                Functions.identity())),
                 path.resolve(ORGANISM_CHANGES));
     }
 
     private void writeSubstanceChanges(
-            List<Change<Substance>> substanceChanges,
+            List<Change<String>> substanceChanges,
             Location changeOffset,
             int grid,
             Path path
@@ -183,7 +183,7 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
                                 substanceChanges,
                                 changeOffset,
                                 grid,
-                                Substance::getId)),
+                                Functions.identity())),
                 path.resolve(SUBSTANCE_CHANGES));
     }
 
@@ -215,7 +215,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     private void writeCompressed(String payload, Path path) {
-        long start = System.nanoTime();
         try {
             Files.createDirectories(path.getParent());
             String format = PathUtils.getExtension(path);
@@ -229,10 +228,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             }
         } catch (IOException failure) {
             throw new RuntimeException("Failure while writing compressed payload", failure);
-        } finally {
-            if (path.getFileName().toString().contains("organisms")) {
-                log.info("XXXX organisms write took {} millis", Duration.ofNanos(System.nanoTime() - start).toMillis());
-            }
         }
     }
 

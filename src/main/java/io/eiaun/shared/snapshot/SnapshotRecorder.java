@@ -27,8 +27,8 @@ public interface SnapshotRecorder {
     Pair<String, Runnable> record(
             Jakku jakku,
             Location changeOffset,
-            List<Change<Organism>> organismChanges,
-            List<Change<Substance>> substanceChanges
+            List<Change<Long>> organismChanges,
+            List<Change<String>> substanceChanges
     );
 
 }

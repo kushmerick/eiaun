@@ -1,8 +1,14 @@
 package io.eiaun.shared.snapshot;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
 
 /**
  * Snapshots are written to files like:
@@ -43,5 +49,35 @@ public class FileSnapshotManipulator {
     protected static final String ORGANISM_CHANGES = "organism-changes" + DOT_JSON;
     protected static final String SUBSTANCES_DOT = "substances" + DOT_JSON_DOT;
     protected static final String SUBSTANCE_CHANGES = "substance-changes" + DOT_JSON;
+
+    protected static Optional<Pair<Long, Long>> parseSnapshot(Path path) {
+        // sample:
+        // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815/snapshots/2026-10-08-21/2026-10-08-21-35/2026-10-08-21-35-05-848/0000000001129-2026-10-08-21-35-05-848
+        String name = path.getFileName().toString();
+        int dash = name.indexOf('-');
+        if (dash == SNAPSHOT_ID_WIDTH) {
+            long id = Long.parseLong(name.substring(0, dash));
+            name = name.substring(dash + 1);
+            Optional<Long> timestamp = parse(Path.of(name), YMDHMSS);
+            return timestamp.map(t -> Pair.of(id, t));
+        }
+        return Optional.empty();
+    }
+
+    protected static Optional<Long> parse(Path path, DateTimeFormatter format) {
+        // sample:
+        // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815
+        String name = path.getFileName().toString();
+        try {
+            long timestamp = LocalDateTime.parse(name, format)
+                    .atZone(ZoneOffset.UTC)
+                    .toInstant()
+                    .toEpochMilli();
+            return Optional.of(timestamp);
+        } catch (DateTimeParseException failure) {
+            log.warn("Failure while parsing `{}` with `{}`", path, format, failure);
+        }
+        return Optional.empty();
+    }
 
 }

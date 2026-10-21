@@ -7,6 +7,7 @@ import org.apache.commons.lang3.function.FailableCallable;
 import org.apache.commons.lang3.function.FailableRunnable;
 
 import java.io.IOException;
+import java.util.function.Consumer;
 
 @UtilityClass
 @Slf4j
@@ -36,15 +37,19 @@ public class Functionals {
 
     public static AutoCloseable get(
             String message,
-            FailableCallable<AutoCloseable, IOException> callable
+            FailableCallable<AutoCloseable, Exception> callable
     ) {
         log.trace(message);
         try {
             return callable.call();
-        } catch (IOException failure) {
+        } catch (Exception failure) {
             log.warn("Failure while {}", message, failure);
             return () -> {};
         }
+    }
+
+    public static <Thing> Consumer<Thing> noop() {
+        return thing -> {};
     }
 
 }

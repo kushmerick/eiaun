@@ -1,4 +1,8 @@
-vaadin-list-box.home-recordings-menu {
+vaadin-list-box.home-recordings {
+  border-style:solid;
+  border-width:1px;
+}
+vaadin-list-box.home-snapshots {
   border-style:solid;
   border-width:1px;
 }

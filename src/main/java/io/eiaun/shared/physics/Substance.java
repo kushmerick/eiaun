@@ -10,6 +10,6 @@ public class Substance {
 
     @Getter private final String id;
     @Getter private final Map<String, String> properties;
-    @Getter private final String child;
+    @Getter private final String metabolite;
 
 }

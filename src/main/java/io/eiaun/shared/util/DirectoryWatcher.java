@@ -1,8 +1,11 @@
 package io.eiaun.shared.util;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.FailableConsumer;
+import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.function.Predicates;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -15,9 +18,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class DirectoryWatcher implements AutoCloseable {
 
-    private final WatchService watcher;
-
     public enum Verb {
+        MONITORING, // a special verb indicating we're done enumerating existing children
         CREATE,
         DELETE,
         MODIFY,
@@ -28,9 +30,30 @@ public class DirectoryWatcher implements AutoCloseable {
                 throws Exception; // Listeners may throw exceptions, but we log them and continue
         static Listener ifCreate(FailableConsumer<Path, Exception> listener) {
             return (verb, path) -> {
-                if (verb == DirectoryWatcher.Verb.CREATE) {
+                if (verb == Verb.CREATE) {
                     listener.accept(path);
                 }
+            };
+        }
+        static Listener ifMonitoring(
+                FailableRunnable<Exception> monitoringListener,
+                Listener listener
+        ) {
+            return (verb, path) -> {
+                if (verb == Verb.MONITORING) {
+                    monitoringListener.run();
+                } else {
+                    listener.notify(verb, path);
+                }
+            };
+        }
+        static Listener before(
+                FailableRunnable<Exception> before,
+                Listener listener
+        ) {
+            return (verb, path) -> {
+                before.run();
+                listener.notify(verb, path);
             };
         }
     }
@@ -41,21 +64,50 @@ public class DirectoryWatcher implements AutoCloseable {
             StandardWatchEventKinds.ENTRY_MODIFY, Verb.MODIFY
     );
 
-    private record Registration(
-            Set<Path> children,
-            Predicate<Path> filter,
-            Listener listener
-    ) {}
-
     @SuppressWarnings("unchecked")
     private static final WatchEvent.Kind<Path>[] KINDS = VERBS.keySet().toArray(new WatchEvent.Kind[0]);
 
-    private final Future<?> future;
+    @Data
+    private static class Registration {
+
+        private final Future<?> initializer;
+        private final Set<Path> children;
+        private final Predicate<Path> filter;
+        private final Listener listener;
+        private WatchKey key; // set after initialize is complete
+
+        public Registration(
+                Future<?> initializer,
+                Set<Path> children,
+                Predicate<Path> filter,
+                Listener listener
+        ) {
+            this.initializer = initializer;
+            this.children = children;
+            this.filter = filter;
+            this.listener = listener;
+        }
+
+        public void close() {
+            if (this.initializer != null) {
+                this.initializer.cancel(true);
+            }
+            if (this.key != null) {
+                this.key.cancel();
+            }
+        }
+    }
+
+    private final ExecutorService executor;
+    private final WatchService watcher;
+    private final Future<?> loop;
     private final Map<Path, Registration> registrations = new ConcurrentHashMap<>();
 
+    @SuppressWarnings("unchecked")
     public DirectoryWatcher(ExecutorService executor) throws IOException {
+        this.executor = executor;
         this.watcher = FileSystems.getDefault().newWatchService();
-        this.future = executor.submit(() -> {
+        this.loop = executor.submit(() -> {
             try {
                 while (true) {
                     WatchKey key = this.watcher.take();
@@ -67,35 +119,42 @@ public class DirectoryWatcher implements AutoCloseable {
                         key.reset();
                         continue;
                     }
-                    Set<Path> children = registration.children();
-                    Predicate<Path> filter = registration.filter();
-                    Listener listener = registration.listener();
-                    key.pollEvents().forEach(e -> {
-                        @SuppressWarnings("unchecked") WatchEvent<Path> event = (WatchEvent<Path>) e;
-                        Path child = path.resolve(event.context());
-                        WatchEvent.Kind<Path> kind = event.kind();
-                        Verb verb = VERBS.get(kind);
-                        if (verb != null) {
-                            if (filter.test(child)) {
+                    if (!registration.initializer.isDone()) {
+                        log.info("Postponing event for path {}", path);
+                        // TODO: Does this lose events?
+                        // TODO: Does this cause a busy-loop?
+                        key.reset();
+                        continue;
+                    }
+                    key.pollEvents().stream()
+                            .map(event -> (WatchEvent<Path>) event)
+                            .map(event -> Pair.of(
+                                    VERBS.get(event.kind()),
+                                    path.resolve(event.context())))
+                            // discard events with a Kind that we don't recognize
+                            // TODO: [{**}] Probably we got OVERFLOW, in which case we should
+                            // TODO: do a full rescan, but that's a lot of work, especially
+                            // TODO: if we want to preserve our guarantee about notifying
+                            // TODO: exactly once for CREATE & DELETE.
+                            .filter(pair -> pair.getLeft() != null)
+                            // discard events for uninteresting children
+                            .filter(pair -> registration.getFilter().test(pair.getRight()))
+                            .forEach(pair -> {
+                                Verb verb = pair.getLeft();
+                                Path child = pair.getRight();
+                                Set<Path> children = registration.getChildren();
                                 boolean notify = switch (verb) {
+                                    case MONITORING -> false; // this can never happen
                                     case CREATE -> children.add(child);
                                     case MODIFY -> { children.add(child); yield true; }
                                     case DELETE -> children.remove(child);
                                 };
                                 if (notify) {
-                                    notify(path, listener, verb, child);
+                                    notify(path, registration.getListener(), verb, child);
                                 } else {
                                     log.trace("Swallowing {} {}", verb, child);
                                 }
-                            }
-                        } else {
-                            // TODO: [{**}] Probably we got OVERFLOW, in which case we should
-                            // TODO: do a full rescan, but that's a lot of work, especially
-                            // TODO: if we want to preserve our guarantee about notifying
-                            // TODO: exactly once for CREATE & DELETE.
-                            log.warn("Unknown kind: {}", kind);
-                        }
-                    });
+                            });
                     key.reset();
                 }
             } catch (InterruptedException _) {
@@ -110,13 +169,9 @@ public class DirectoryWatcher implements AutoCloseable {
      * Register to receive a notification for every file in a directory that
      * passes a given test.  Note that the listener is first notified about
      * existing files, and then notified about subsequent new, deleted or modified
-     * files. Note also that notifications for the initial set of files are sent in
-     * alphabetical order.  As a general-purpose utility, this may not seem
-     * significant. But for our EIAUN use-case, this is extremely helpful, because
-     * the filenames in question contain timestamps, so this ordering is
-     * equivalent to a guarantee that notifications are ordered from oldest
-     * to newest file.
-     * @param path The directory to monitor.
+     * files.
+     * @param path The directory to monitor. Do not register a directory again without
+     *             invoking the AutoCloseable returned by the previous registration.
      * @param filter A filter for which the subset of files about which to be notified.
      * @param listener A method that will be invoked for each file in the directory.
      *                 Listeners are encouraged to be idempotent, but we guarantee
@@ -127,41 +182,69 @@ public class DirectoryWatcher implements AutoCloseable {
      * @return An AutoCloseable that must be invoked when the client no longer wants
      * to monitor this directory.
      * @throws IOException If `path` does not exist or is not a directory, and so forth.
+     * @throws InterruptedException The initial enumeration of children may be very slow
+     * because it involves IO but more importantly the invoked listeners may be very slow,
+     * so this method explicitly checks whether it has been interrupted.
      */
-    public AutoCloseable register(Path path, Predicate<Path> filter, Listener listener) throws IOException {
+    public AutoCloseable register(
+            Path path,
+            Predicate<Path> filter,
+            Listener listener
+    ) throws InterruptedException, IOException {
         // Listeners are encouraged to be idempotent.  But to make life easier on the caller, we
         // guarantee to notify about each child creation and deletion exactly once. (But note that
         // we send a notification for every modification.)  See also the "TO DO" now [{**}] above
         // about OVERFLOW events.
         Set<Path> children = ConcurrentHashMap.newKeySet();
-        // first, record this registration
-        this.registrations.put(path, new Registration(children, filter, listener));
-        // second, hallucinate CREATE for all existing children
-        try (Stream<Path> paths = Files.list(path)) {
-            paths
-                .filter(filter)
-                .sorted()
-                .forEachOrdered(child -> {
+        // first, start an initialization thread that hallucinates CREATE for all existing children,
+        // and then registers the path to listen for future changes.
+        CountDownLatch storedRegistration = new CountDownLatch(1);
+        Future<?> initializer = this.executor.submit(() -> {
+            try (Stream<Path> paths = Files.list(path)) {
+                paths.filter(filter).forEach(child -> {
                     children.add(child);
                     notify(path, listener, Verb.CREATE, child);
-            });
-        }
-        // third, start watching for changes
-        WatchKey key = path.register(this.watcher, KINDS);
+                });
+            } catch (IOException failure) {
+                log.warn("Failure while enumerating children of {}", path, failure);
+                return;
+            }
+            // inform caller that we are done enumerating children
+            notify(path, listener, Verb.MONITORING, null);
+            // register for future events
+            try {
+                // we need the registration stored so we can update it with the WatchService registrationn key,
+                // but we can't store the registration until this thread has started because the registration
+                // contain this thread's Future.  hence this latch avoids a race condition by pausing until
+                // the registration has been stored.
+                storedRegistration.await();
+                this.registrations.get(path)
+                        .setKey(path.register(this.watcher, KINDS));
+            } catch (InterruptedException _) {
+                log.info("Interrupted while watcher-registering {}", path);
+            } catch (IOException failure) {
+                log.warn("Failure while watcher-registering {}", path, failure);
+            }
+        });
+        Registration registration = new Registration(initializer, children, filter, listener);
+        this.registrations.put(path, registration);
+        storedRegistration.countDown();
         return () -> {
-            key.cancel();
+            registration.close();
             this.registrations.remove(path);
         };
     }
 
     @Override
     public void close() throws IOException {
+        this.registrations.values().forEach(
+                registration -> registration.initializer.cancel(true));
         this.registrations.clear();
-        this.future.cancel(true);
+        this.loop.cancel(true);
         this.watcher.close();
     }
 
-    private void notify(Path path, Listener listener, Verb verb, Path child) {
+    private static void notify(Path path, Listener listener, Verb verb, Path child) {
         try {
             listener.notify(verb, child);
         } catch (Exception failure) {

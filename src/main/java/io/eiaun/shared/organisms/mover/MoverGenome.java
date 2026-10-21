@@ -52,8 +52,8 @@ public class MoverGenome extends Genome {
     ) {
         Organism organism = organisms.get(Location.ORIGIN);
         MoverState[] moverState = { (MoverState) state };
-        List<Change<Organism>> organismChanges = new ArrayList<>();
-        List<Change<Substance>> substanceChanges = new ArrayList<>();
+        List<Change<Long>> organismChanges = new ArrayList<>();
+        List<Change<String>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
                 .filter(entry -> isDesirable(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -62,11 +62,10 @@ public class MoverGenome extends Genome {
             log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
                     organism.getId(), moverState[0].getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
-            substanceChanges.add(Change.destroy(substance));
-            // possibly excrete child substance
-            if (substance.getChild() != null) {
-                Substance child = jakku.getSubstanceFactory().make(substance.getChild());
-                substanceChanges.add(Change.create(child, Location.ORIGIN));
+            substanceChanges.add(Change.destroy(substance.getId()));
+            // possibly excrete a metabolite
+            if (substance.getMetabolite() != null) {
+                substanceChanges.add(Change.create(substance.getMetabolite(), Location.ORIGIN));
             }
             // replenish energy
             moverState[0] = new MoverState(moverState[0].getEnergy() + this.peakEnergy);
@@ -76,7 +75,7 @@ public class MoverGenome extends Genome {
                 return Response.of(
                         state,
                         Collections.emptyList(),
-                        List.of(Change.destroy(organism)));
+                        List.of(Change.destroy(organism.getId())));
             }
             desirableSubstances.keySet().stream()
                     // calculate distance to each desirable substance
@@ -132,11 +131,11 @@ public class MoverGenome extends Genome {
     }
 
     private void moveTo(
-            List<Change<Organism>> changes,
+            List<Change<Long>> changes,
             Location location,
             Organism organism
     ) {
-        changes.add(Change.move(organism, Location.ORIGIN, location));
+        changes.add(Change.move(organism.getId(), Location.ORIGIN, location));
     }
 
     private boolean isDesirable(Substance substance) {

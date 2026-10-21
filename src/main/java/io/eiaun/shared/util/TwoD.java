@@ -4,16 +4,19 @@ package io.eiaun.shared.util;
 import lombok.AccessLevel;
 import lombok.Getter;
 
-import java.util.*;
-import java.util.function.BiPredicate;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TwoD<Thing> {
 
     // simplify experiments with different backing stores
-    private final Supplier<Map<Integer,Map<Integer, Thing>>> level1 = HashMap::new;
-    private final Function<Integer, Map<Integer, Thing>> level2 = _ -> new HashMap<>();
+    private final Supplier<Map<Integer,Map<Integer, Thing>>> level1 = ConcurrentHashMap::new;
+    private final Function<Integer, Map<Integer, Thing>> level2 = _ -> new ConcurrentHashMap<>();
 
     @Getter(AccessLevel.PACKAGE) private final Map<Integer, Map<Integer, Thing>> things;
 

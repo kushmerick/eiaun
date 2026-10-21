@@ -13,7 +13,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,15 +20,11 @@ class MoverGenomeTest {
 
     private static final Map<String, String> DESIRABLE_PROPERTIES =
             Map.of("P1", "V1");
+    private static final String METABOLITE = "S2";
     private static final Substance DESIRABLE_SUBSTANCE = new Substance(
             "S1",
             DESIRABLE_PROPERTIES,
-            "S2"
-    );
-    private static final Substance CHILD_SUBSTANCE = new Substance(
-            "S2",
-            DESIRABLE_PROPERTIES,
-            null
+            METABOLITE
     );
     private static final double VISION_RADIUS = 10;
     private static final double PEAK_ENERGY = 20;
@@ -49,7 +44,6 @@ class MoverGenomeTest {
     @Test
     void canEat() {
         SubstanceFactory substanceFactory = mock(SubstanceFactory.class);
-        when(substanceFactory.make(eq(DESIRABLE_SUBSTANCE.getChild()))).thenReturn(CHILD_SUBSTANCE);
         Jakku jakku = mock(Jakku.class);
         when(jakku.getSubstanceFactory()).thenReturn(substanceFactory);
         MoverGenome genome = make();
@@ -67,8 +61,8 @@ class MoverGenomeTest {
                 newState.getEnergy());
         assertEquals(
                 List.of(
-                        Change.destroy(DESIRABLE_SUBSTANCE),
-                        Change.create(CHILD_SUBSTANCE, Location.ORIGIN)),
+                        Change.destroy(DESIRABLE_SUBSTANCE.getId()),
+                        Change.create(METABOLITE, Location.ORIGIN)),
                 response.substanceChanges());
         assertTrue(response.organismChanges().isEmpty());
     }
@@ -87,7 +81,7 @@ class MoverGenomeTest {
         assertEquals(state, response.newState());
         assertTrue(response.substanceChanges().isEmpty());
         assertEquals(
-                List.of(Change.destroy(organism)),
+                List.of(Change.destroy(organism.getId())),
                 response.organismChanges());
     }
 
@@ -111,7 +105,7 @@ class MoverGenomeTest {
                 newState.getEnergy());
         assertTrue(response.substanceChanges().isEmpty());
         assertEquals(
-                List.of(Change.move(self, Location.ORIGIN, oneTwo)),
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneTwo)),
                 response.organismChanges());
     }
 
@@ -154,7 +148,7 @@ class MoverGenomeTest {
                 newState.getEnergy());
         assertTrue(response.substanceChanges().isEmpty());
         assertEquals(
-                List.of(Change.move(self, Location.ORIGIN, oneOne)),
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne)),
                 response.organismChanges());
     }
 
@@ -176,7 +170,7 @@ class MoverGenomeTest {
                 newState.getEnergy());
         assertTrue(response.substanceChanges().isEmpty());
         assertEquals(
-                List.of(Change.move(self, Location.ORIGIN, oneOne)),
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne)),
                 response.organismChanges());
     }
 

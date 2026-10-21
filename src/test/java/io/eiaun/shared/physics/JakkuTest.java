@@ -265,13 +265,13 @@ class JakkuTest {
         jakku.getSubstances().replace(substances);
         State newState = new SimpleState();
         Substance replacementSubstance = new FakeSubstance();
-        List<Change<Substance>> substanceChanges = List.of(
-                Change.destroy(substances.get(lat + 1, lon - 1), Location.of(+1, -1)),
-                Change.replace(substances.get(lat - 1, lon + 1), replacementSubstance, Location.of(-1, +1)));
+        List<Change<String>> substanceChanges = List.of(
+                Change.destroy(substances.get(lat + 1, lon - 1).getId(), Location.of(+1, -1)),
+                Change.replace(substances.get(lat - 1, lon + 1).getId(), replacementSubstance.getId(), Location.of(-1, +1)));
         Organism newborn = FakeOrganism.make(jakku);
-        List<Change<Organism>> organismChanges = List.of(
-                Change.destroy(organisms.get(lat + 1, lon + 1), Location.of(+1, +1)),
-                Change.create(newborn, Location.of(0, -1)));
+        List<Change<Long>> organismChanges = List.of(
+                Change.destroy(organisms.get(lat + 1, lon + 1).getId(), Location.of(+1, +1)),
+                Change.create(newborn.getId(), Location.of(0, -1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         when(organism.respond(
                 eq(jakku),
@@ -318,9 +318,9 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<Substance>> substanceChanges = Collections.emptyList();
-        List<Change<Organism>> organismChanges = List.of(
-                Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
+        List<Change<String>> substanceChanges = Collections.emptyList();
+        List<Change<Long>> organismChanges = List.of(
+                Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
@@ -366,9 +366,9 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<Substance>> substanceChanges = Collections.emptyList();
-        List<Change<Organism>> organismChanges = List.of(
-                Change.move(organism, Location.ORIGIN, Location.of(+1, +1)));
+        List<Change<String>> substanceChanges = Collections.emptyList();
+        List<Change<Long>> organismChanges = List.of(
+                Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
@@ -413,10 +413,10 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<Substance>> substanceChanges = Collections.emptyList();
-        List<Change<Organism>> organismChanges = List.of(
+        List<Change<String>> substanceChanges = Collections.emptyList();
+        List<Change<Long>> organismChanges = List.of(
                 // try to put a child on a neighbor
-                Change.create(organism, Location.of(+1, +1)));
+                Change.create(organism.getId(), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
@@ -461,12 +461,12 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<Substance>> substanceChanges = List.of(
+        List<Change<String>> substanceChanges = List.of(
                 // consume a non-existent substance
-                Change.destroy(new FakeSubstance(), Location.of(-1, -1)));
-        List<Change<Organism>> organismChanges = List.of(
+                Change.destroy(new FakeSubstance().getId(), Location.of(-1, -1)));
+        List<Change<Long>> organismChanges = List.of(
                 // eat a non-existent neighbor
-                Change.destroy(FakeOrganism.make(jakku), Location.of(+1, +1)));
+                Change.destroy(FakeOrganism.make(jakku).getId(), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);

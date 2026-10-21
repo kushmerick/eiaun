@@ -170,12 +170,9 @@ public class Config {
     @Bean
     @Profile("viz")
     public SnapshotReader snapshotReader(
-            ExecutorService executor,
-            String snapshotCompression
+            ExecutorService executor
     ) {
-        return new FileSnapshotReader(
-                executor,
-                snapshotCompression);
+        return new FileSnapshotReader(executor);
     }
 
     @Bean

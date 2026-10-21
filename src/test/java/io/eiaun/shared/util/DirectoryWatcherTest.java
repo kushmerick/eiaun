@@ -51,7 +51,7 @@ class DirectoryWatcherTest {
                         }
                     })
         ) {
-            assertEquals(Set.of(a1), paths);
+            await().untilAsserted(() -> assertEquals(Set.of(a1), paths));
             Path a2 = Files.createFile(dir.resolve("A2"));
             Path b2 = Files.createFile(dir.resolve("B2"));
             await().untilAsserted(() -> assertEquals(Set.of(a1, a2), paths));
@@ -80,7 +80,7 @@ class DirectoryWatcherTest {
                          }
                      })
         ) {
-            assertEquals(List.of(a1, a2, a3), paths);
+            await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3), paths));
             Path a0 = Files.createFile(dir.resolve("A0"));
             await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3, a0), paths));
         }

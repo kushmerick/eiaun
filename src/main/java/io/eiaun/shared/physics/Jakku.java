@@ -30,6 +30,7 @@ public class Jakku {
     private final ChangeApplier changeApplier;
 
     @Getter private final TwoD<Organism> organisms;
+    private final Map<Long, Organism> organismIndex;
 
     private final Supplier<Organism> organismCreator;
 
@@ -58,6 +59,7 @@ public class Jakku {
             SnapshotRecorder snapshotRecorder
     ) {
         this.organisms = new TwoD<>();
+        this.organismIndex = new HashMap<>();
         this.substances = new TwoD<>();
         this.grid = grid;
         this.organismDensity = organismDensity;
@@ -67,10 +69,9 @@ public class Jakku {
         this.organismLocationsIteratorGenerator = organismLocationsIteratorGenerator;
         this.rejectedChangeRecorder = rejectedChangeRecorder;
         this.changeApplier = new ChangeApplier(
-                this.organisms,
-                this.substances,
                 this.grid,
-                this.rejectedChangeRecorder);
+                this.rejectedChangeRecorder,
+                this.substanceFactory);
         this.snapshotRecorder = snapshotRecorder;
     }
 
@@ -78,13 +79,16 @@ public class Jakku {
         log.info("Initializing");
         // random initial organisms
         this.organisms.clear();
+        this.organismIndex.clear();
         int want = (int) (this.organismDensity * this.grid * this.grid);
         int created = 0;
         while (created < want) {
             int lat = RANDOM.nextInt(this.grid);
             int lon = RANDOM.nextInt(this.grid);
-            if (!organisms.contains(lat, lon)) {
-                organisms.set(lat, lon, this.organismCreator.get());
+            if (!this.organisms.contains(lat, lon)) {
+                Organism organism = this.organismCreator.get();
+                this.organisms.set(lat, lon, organism);
+                this.organismIndex.put(organism.getId(), organism);
                 created++;
             }
         }
@@ -112,7 +116,7 @@ public class Jakku {
     }
 
     private void updateOrganismLocationsIterator() {
-        List<Location> organismLocations = new ArrayList<>();
+        List<Location> organismLocations = new ArrayList<>(this.organismIndex.size());
         for (int lat : this.organisms.firstIndices()) {
             for (int lon : this.organisms.secondIndices(lat)) {
                 organismLocations.add(Location.of(lat, lon));
@@ -157,8 +161,8 @@ public class Jakku {
                                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
                             Runnable fileWrites = null;
                             synchronized (this.lock) {
-                                this.changeApplier.changeSubstances(location, response.substanceChanges());
-                                if (this.changeApplier.changeOrganisms(location, response.organismChanges())) {
+                                this.changeApplier.changeSubstances(this.substances, location, response.substanceChanges());
+                                if (this.changeApplier.changeOrganisms(this.organisms, location, response.organismChanges(), this.organismIndex)) {
                                     updateOrganismLocationsIterator();
                                 }
                                 Pair<String, Runnable> info = this.snapshotRecorder.record(
