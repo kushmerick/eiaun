@@ -1,13 +1,16 @@
 package io.eiaun.shared.physics;
 
 import io.eiaun.shared.organisms.Organism;
+import io.eiaun.shared.organisms.State;
 import io.eiaun.shared.util.Functionals;
+import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -40,7 +43,8 @@ public class ChangeApplier {
                 true,
                 this.substanceFactory::make,
                 Functionals.noop(),
-                Functionals.noop());
+                Functionals.noop(),
+                null);
     }
 
     public boolean changeOrganisms(
@@ -56,7 +60,8 @@ public class ChangeApplier {
                 false,
                 index::get,
                 organism -> index.put(organism.getId(), organism),
-                organism -> index.remove(organism.getId()));
+                organism -> index.remove(organism.getId()),
+                (organism, state) -> organism.setState(state.decode(State.KIND_STATES)));
     }
 
     private <Thing, Id> boolean changeThings(
@@ -64,13 +69,15 @@ public class ChangeApplier {
             Location location,
             List<Change<Id,Thing>> changes,
             TwoD<Thing> things,
-            // a substance can be changed to a different substance,
-            // but an organism cannot be changed to a different organism
+            // A Substance can be changed to a different substance,
+            // but an Organism cannot be changed to a different organism
             boolean mutable,
             // three methods related to mapping Id to Thing (and updating the backing index for organisms)
             Function<Id, Thing> resolver,
             Consumer<Thing> indexer,
-            Consumer<Thing> unindexer
+            Consumer<Thing> unindexer,
+            // Just for Organisms: state updating function
+            BiConsumer<Thing, Generic> stateUpdater
     ) {
         boolean modified = false;
         for (var change : changes) {
@@ -119,6 +126,17 @@ public class ChangeApplier {
                     // just a move so no need to invoke indexer or unindexer
                     modified = true;
                 }
+            } else if (change.isUpdate()) {
+                Location to = location.add(change.getTo(), this.grid);
+                int lat = to.getLat();
+                int lon = to.getLon();
+                Thing thing = things.get(lat, lon);
+                if (thing == null || stateUpdater == null) {
+                    // updated thing does not exist, or does not have updatable state
+                    rejected = true;
+                } else {
+                    stateUpdater.accept(thing, change.getState());
+                }
             } else {
                 log.warn(String.format("Gibberish change: %s", change));
                 rejected = true;
@@ -135,14 +153,15 @@ public class ChangeApplier {
                 // should be identical to what it would have been during the actual simulation.  As long as we
                 // replay all changes in the same order, and the snapshot index mechanism guarantees that we do so.
                 this.rejectedChangeRecorder.accept(String.format(
-                        "Rejecting %s %s change: %s -> %s; %s -> %s; %s",
+                        "Rejecting %s %s change: %s -> %s; %s -> %s; %s; %s",
                         change.getVerb(),
                         label,
                         change.getOriginal(),
                         change.getReplacement(),
                         change.getFrom(),
                         change.getTo(),
-                        change.getBaby()));
+                        change.getBaby(),
+                        change.getState()));
             }
         }
         return modified;

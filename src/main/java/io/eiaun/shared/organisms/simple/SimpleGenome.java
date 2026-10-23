@@ -1,8 +1,8 @@
 package io.eiaun.shared.organisms.simple;
 
+import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.organisms.Genome;
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.organisms.State;
 import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.Location;
@@ -23,15 +23,14 @@ public class SimpleGenome extends Genome {
     }
 
     @Override
-    public Response respond(
+    public Changes respond(
             Jakku jakku,
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,
             Map<Location, Organism> organisms
     ) {
-        return Response.of(
-                state,
+        return Changes.of(
                 Collections.emptyList(),
                 Collections.emptyList());
     }

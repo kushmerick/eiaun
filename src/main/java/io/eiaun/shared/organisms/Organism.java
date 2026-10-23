@@ -2,6 +2,7 @@ package io.eiaun.shared.organisms;
 
 import io.eiaun.shared.organisms.mover.Mover;
 import io.eiaun.shared.organisms.simple.SimpleOrganism;
+import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.physics.Substance;
@@ -37,15 +38,13 @@ abstract public class Organism {
 
     abstract public Genome getGenome();
 
-    public Response respond(
+    public Changes respond(
             Jakku jakku,
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
     ) {
-        Response response = getGenome().respond(jakku, getState(), empties, substances, neighbors);
-        setState(response.newState());
-        return response;
+        return getGenome().respond(jakku, getState(), empties, substances, neighbors);
     }
 
     @Override public String toString() {

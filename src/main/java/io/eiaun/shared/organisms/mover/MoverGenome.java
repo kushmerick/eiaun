@@ -2,12 +2,9 @@ package io.eiaun.shared.organisms.mover;
 
 import io.eiaun.shared.organisms.Genome;
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.organisms.State;
-import io.eiaun.shared.physics.Change;
-import io.eiaun.shared.physics.Jakku;
-import io.eiaun.shared.physics.Location;
-import io.eiaun.shared.physics.Substance;
+import io.eiaun.shared.physics.*;
+import io.eiaun.shared.util.Generic;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +41,7 @@ public class MoverGenome extends Genome {
     }
 
     @Override
-    public Response respond(
+    public Changes respond(
             Jakku jakku,
             State state,
             Set<Location> empties,
@@ -52,12 +49,13 @@ public class MoverGenome extends Genome {
             Map<Location, Organism> organisms
     ) {
         Organism organism = organisms.get(Location.ORIGIN);
-        MoverState[] moverState = { (MoverState) state };
-        List<Change<Long,Organism>> organismChanges = new ArrayList<>();
-        List<Change<String,Substance>> substanceChanges = new ArrayList<>();
+        MoverState[] moverState = {(MoverState) state};
+        List<Change<Long, Organism>> organismChanges = new ArrayList<>();
+        List<Change<String, Substance>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
                 .filter(entry -> isDesirable(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Location[] newLocation = {Location.ORIGIN};
         if (desirableSubstances.containsKey(Location.ORIGIN)) {
             Substance substance = desirableSubstances.get(Location.ORIGIN);
             log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
@@ -73,8 +71,7 @@ public class MoverGenome extends Genome {
         } else {
             if (moverState[0].getEnergy() < this.moveEnergy) {
                 log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState[0].getEnergy());
-                return Response.of(
-                        state,
+                return Changes.of(
                         Collections.emptyList(),
                         List.of(Change.destroy(organism.getId())));
             }
@@ -101,6 +98,7 @@ public class MoverGenome extends Genome {
                                         log.info("Motivated: Organism {} with energy {} moving by {} toward substance {} at {} - {}",
                                                 organism.getId(), moverState[0].getEnergy(), empty, desiredSubstance.getId(), location, explanation);
                                         moveTo(organismChanges, empty, organism);
+                                        newLocation[0] = empty;
                                     }, () -> {
                                         log.info("Stuck: Organism {} with energy {} desires {} at {} but can't move - {}",
                                                 organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
@@ -110,6 +108,7 @@ public class MoverGenome extends Genome {
                             log.info("Excited: Organism {} with energy {} moving directly to substance {} at {} - {}",
                                     organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
                             moveTo(organismChanges, location, organism);
+                            newLocation[0] = location;
                         }
                     }, () -> {
                         // there is no nearby desirable substance, so move to a random empty location
@@ -117,16 +116,19 @@ public class MoverGenome extends Genome {
                             Location[] asArray = empties.toArray(Location[]::new);
                             Location empty = asArray[RANDOM.nextInt(asArray.length)];
                             moveTo(organismChanges, empty, organism);
+                            newLocation[0] = empty;
                             log.info("Frustrated: Organism {} with energy {} sees no desirable substances, so moving randomly by {}",
                                     organism.getId(), moverState[0].getEnergy(), empty);
                         }
                     });
         }
-        State newState = organismChanges.isEmpty()
-                ? new MoverState(moverState[0].getEnergy() - this.restEnergy)
-                : new MoverState(moverState[0].getEnergy() - this.moveEnergy);
-        return Response.of(
-                newState,
+        double spent = newLocation[0] == Location.ORIGIN ? this.restEnergy : this.moveEnergy;
+        double newEnergy = moverState[0].getEnergy() - spent;
+        organismChanges.add(
+                Change.update(
+                        newLocation[0],
+                        Generic.encode(new MoverState(newEnergy), State.STATE_KINDS)));
+        return Changes.of(
                 substanceChanges,
                 organismChanges);
     }

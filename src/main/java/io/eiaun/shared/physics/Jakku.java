@@ -1,7 +1,6 @@
 package io.eiaun.shared.physics;
 
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
 import io.eiaun.shared.util.TwoD;
 import lombok.AccessLevel;
@@ -157,19 +156,19 @@ public class Jakku {
                             }
                             log.debug("Stepping organism {} at {} with {} neighbors, {} substances, {} empties",
                                     organism.getId(), location, neighbors.size(), substances.size(), empties.size());
-                            Response response = organism.respond(this, empties, substances, neighbors);
+                            Changes changes = organism.respond(this, empties, substances, neighbors);
                             log.debug("Updating for organism {}'s response with {} substance changes and {} organism changes",
-                                    organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
+                                    organism.getId(), changes.substanceChanges().size(), changes.organismChanges().size());
                             Runnable fileWrites = null;
                             synchronized (this.lock) {
                                 this.changeApplier.changeSubstances(
                                         this.substances,
                                         location,
-                                        response.substanceChanges());
+                                        changes.substanceChanges());
                                 if (this.changeApplier.changeOrganisms(
                                         this.organisms,
                                         location,
-                                        response.organismChanges(),
+                                        changes.organismChanges(),
                                         this.organismIndex)
                                 ) {
                                     updateOrganismLocationsIterator();
@@ -177,8 +176,8 @@ public class Jakku {
                                 Pair<String, Runnable> info = this.snapshotRecorder.record(
                                         this,
                                         location,
-                                        response.organismChanges(),
-                                        response.substanceChanges());
+                                        changes.organismChanges(),
+                                        changes.substanceChanges());
                                 if (info != null) { // null just means that snapshots are disabled
                                     log.info("Snapshot {}", info.getLeft());
                                     fileWrites = info.getRight();

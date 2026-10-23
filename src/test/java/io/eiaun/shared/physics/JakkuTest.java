@@ -5,10 +5,10 @@ import io.eiaun.shared.fakes.FakeSubstance;
 import io.eiaun.shared.fakes.FakeSubstanceFactory;
 import io.eiaun.shared.organisms.Genome;
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.organisms.State;
 import io.eiaun.shared.organisms.simple.SimpleState;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
+import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.InfiniteFairIterator;
 import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
@@ -320,8 +320,9 @@ class JakkuTest {
         Organism baby = FakeOrganism.make(jakku);
         List<Change<Long,Organism>> organismChanges = List.of(
                 Change.destroy(organisms.get(lat + 1, lon + 1).getId(), Location.of(+1, +1)),
-                Change.create(baby, Location.of(0, -1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+                Change.create(baby, Location.of(0, -1)),
+                Change.update(Location.ORIGIN, Generic.encode(newState, State.STATE_KINDS)));
+        Changes changes = new Changes(substanceChanges, organismChanges);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -338,8 +339,9 @@ class JakkuTest {
                         Location.ORIGIN, organisms.get(lat, lon),
                         Location.of(+1, +1), organisms.get(lat + 1, lon + 1),
                         Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
+        verify(organism).setState(any(SimpleState.class));
         assertNull(jakku.getSubstances().get(lat + 1, lon - 1));
         assertNull(jakku.getOrganisms().get(lat + 1, lon + 1));
         assertEquals(organisms.get(lat - 1, lon - 1), jakku.getOrganisms().get(lat - 1, lon - 1));
@@ -368,9 +370,11 @@ class JakkuTest {
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
         List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        Location oneOne = Location.of(+1, +1);
         List<Change<Long,Organism>> organismChanges = List.of(
-                Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+                Change.move(organism.getId(), Location.ORIGIN, oneOne),
+                Change.update(oneOne, Generic.encode(newState, State.STATE_KINDS)));
+        Changes changes = new Changes(substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
@@ -388,10 +392,11 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Map.of(
                         Location.ORIGIN, organisms.get(lat, lon)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
         assertNull(jakku.getOrganisms().get(lat, lon));
         assertEquals(jakku.getOrganisms().get(lat + 1, lon + 1), organism);
+        verify(organism).setState(any(SimpleState.class)); // SimpleStates are indistinguishable, so we can't check for newState
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -419,8 +424,9 @@ class JakkuTest {
         List<Change<String,Substance>> substanceChanges = Collections.emptyList();
         Organism baby = FakeOrganism.make(jakku);
         List<Change<Long,Organism>> organismChanges = List.of(
-                Change.create(baby, Location.of(+1, +1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+                Change.create(baby, Location.of(+1, +1)),
+                Change.update(Location.ORIGIN, Generic.encode(newState, State.STATE_KINDS)));
+        Changes changes = new Changes(substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
@@ -438,10 +444,60 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Map.of(
                         Location.ORIGIN, organisms.get(lat, lon)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
         assertEquals(organism, jakku.getOrganisms().get(lat, lon));
+        verify(organism).setState(any(SimpleState.class)); // SimpleStates are indistinguishable, so we can't check for newState
         assertEquals(baby, jakku.getOrganisms().get(lat + 1, lon + 1));
+        verifyNoInteractions(this.rejectedChangeRecorder);
+    }
+
+    @Test
+    void canUpdate() {
+        int grid = 123;
+        int lat = grid / 2;
+        int lon = grid / 2;
+        Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
+                InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
+                grid,
+                0, FakeOrganism::make,
+                0, new FakeSubstanceFactory(),
+                organismLocationIteratorGenerator,
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
+        jakku.initialize();
+        Organism organism = mock(Organism.class);
+        when(organism.getId()).thenReturn(1234L);
+        Genome genome = mock(Genome.class);
+        when(genome.getVisionRadius()).thenReturn(1d);
+        when(organism.getGenome()).thenReturn(genome);
+        State newState = new SimpleState();
+        List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Long,Organism>> organismChanges = List.of(
+                Change.update(Location.ORIGIN, Generic.encode(newState, State.STATE_KINDS)));
+        Changes changes = new Changes(substanceChanges, organismChanges);
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
+        jakku.resetOrganisms(organisms);
+        when(organism.respond(
+                eq(jakku),
+                eq(Set.of(
+                        Location.of(+1, +1),
+                        Location.of(+1, 0),
+                        Location.of(+1, -1),
+                        Location.of(0, +1),
+                        Location.of(0, -1),
+                        Location.of(-1, +1),
+                        Location.of(-1, 0),
+                        Location.of(-1, -1))),
+                eq(Collections.emptyMap()),
+                eq(Map.of(
+                        Location.ORIGIN, organisms.get(lat, lon)))))
+                .thenReturn(changes);
+        jakku.step(this.executor).join();
+        assertEquals(organism, jakku.getOrganisms().get(lat, lon));
+        verify(organism).setState(any(SimpleState.class));
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -467,8 +523,9 @@ class JakkuTest {
         State newState = new SimpleState();
         List<Change<String,Substance>> substanceChanges = Collections.emptyList();
         List<Change<Long,Organism>> organismChanges = List.of(
-                Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+                Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)),
+                Change.update(Location.ORIGIN, Generic.encode(newState, State.STATE_KINDS)));
+        Changes changes = new Changes(substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
@@ -486,7 +543,7 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Map.of(
                         Location.ORIGIN, organisms.get(lat, lon)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
         verify(this.snapshotRecorder, times(1))
                 .record(eq(jakku), eq(Location.of(lat, lon)), eq(organismChanges), eq(substanceChanges));
@@ -511,12 +568,11 @@ class JakkuTest {
         Genome genome = mock(Genome.class);
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
-        State newState = new SimpleState();
         List<Change<String,Substance>> substanceChanges = Collections.emptyList();
         List<Change<Long,Organism>> organismChanges = List.of(
                 // try to put a child on a neighbor
                 Change.create(organism, Location.of(+1, +1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+        Changes changes = new Changes(substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         organisms.set(lat + 1, lon + 1, organism);
@@ -535,7 +591,7 @@ class JakkuTest {
                 eq(Map.of(
                         Location.ORIGIN, organisms.get(lat, lon),
                         Location.of(+1, +1), organisms.get(lat + 1, lon + 1)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(1)).accept(anyString());
     }
@@ -566,7 +622,7 @@ class JakkuTest {
         List<Change<Long,Organism>> organismChanges = List.of(
                 // eat a non-existent neighbor
                 Change.destroy(FakeOrganism.make(jakku).getId(), Location.of(+1, +1)));
-        Response response = new Response(newState, substanceChanges, organismChanges);
+        Changes changes = new Changes(substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
@@ -584,7 +640,7 @@ class JakkuTest {
                 eq(Collections.emptyMap()),
                 eq(Map.of(
                         Location.ORIGIN, organisms.get(lat, lon)))))
-                .thenReturn(response);
+                .thenReturn(changes);
         jakku.step(this.executor).join();
         verify(this.rejectedChangeRecorder, times(2)).accept(anyString());
     }

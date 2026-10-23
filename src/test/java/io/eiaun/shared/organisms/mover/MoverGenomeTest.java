@@ -2,9 +2,10 @@ package io.eiaun.shared.organisms.mover;
 
 import io.eiaun.shared.fakes.FakeOrganism;
 import io.eiaun.shared.fakes.FakeSubstanceFactory;
+import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.physics.*;
+import io.eiaun.shared.util.Generic;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -32,7 +33,7 @@ class MoverGenomeTest {
     private static final double MOVE_ENERGY = 30;
     private static final double REST_ENERGY = 40;
 
-    MoverGenome make() {
+    private static MoverGenome make() {
         return new MoverGenome(
                 DESIRABLE_PROPERTIES,
                 VISION_RADIUS,
@@ -40,6 +41,10 @@ class MoverGenomeTest {
                 MOVE_ENERGY,
                 REST_ENERGY
         );
+    }
+
+    private static Generic makeState(double energy) {
+        return Generic.encode(new MoverState(energy), MoverState.STATE_KINDS);
     }
 
     @Test
@@ -51,22 +56,21 @@ class MoverGenomeTest {
         genome.setSubstanceFactory(substanceFactory);
         MoverState state = new MoverState(1234);
         Organism self = FakeOrganism.make(jakku);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 jakku,
                 state,
                 Collections.emptySet(),
                 Map.of(Location.ORIGIN, DESIRABLE_SUBSTANCE),
                 Map.of(Location.ORIGIN, self));
-        MoverState newState = (MoverState) response.newState();
-        assertEquals(
-                state.getEnergy() + PEAK_ENERGY - REST_ENERGY,
-                newState.getEnergy());
+        double newEnergy = state.getEnergy() + PEAK_ENERGY - REST_ENERGY;
         assertEquals(
                 List.of(
                         Change.destroy(DESIRABLE_SUBSTANCE.getId()),
                         Change.create(substanceFactory.make(METABOLITE), Location.ORIGIN)),
-                response.substanceChanges());
-        assertTrue(response.organismChanges().isEmpty());
+                changes.substanceChanges());
+        assertEquals(
+                List.of(Change.update(Location.ORIGIN, makeState(newEnergy))),
+                changes.organismChanges());
     }
 
     @Test
@@ -74,17 +78,16 @@ class MoverGenomeTest {
         MoverGenome genome = make();
         MoverState state = new MoverState(MOVE_ENERGY - 1);
         Organism organism = FakeOrganism.make(null);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 null,
                 state,
                 Collections.emptySet(),
                 Collections.emptyMap(),
                 Map.of(Location.ORIGIN, organism));
-        assertEquals(state, response.newState());
-        assertTrue(response.substanceChanges().isEmpty());
+        assertTrue(changes.substanceChanges().isEmpty());
         assertEquals(
                 List.of(Change.destroy(organism.getId())),
-                response.organismChanges());
+                changes.organismChanges());
     }
 
     @Test
@@ -95,20 +98,18 @@ class MoverGenomeTest {
         Organism neighbor = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Location oneTwo = Location.of(1, 2);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 null,
                 state,
                 Set.of(oneTwo),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
                 Map.of(Location.ORIGIN, self, oneOne, neighbor));
-        MoverState newState = (MoverState) response.newState();
+        assertTrue(changes.substanceChanges().isEmpty());
+        double newEnergy = state.getEnergy() - MOVE_ENERGY;
         assertEquals(
-                state.getEnergy() - MOVE_ENERGY,
-                newState.getEnergy());
-        assertTrue(response.substanceChanges().isEmpty());
-        assertEquals(
-                List.of(Change.move(self.getId(), Location.ORIGIN, oneTwo)),
-                response.organismChanges());
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneTwo),
+                        Change.update(oneTwo, makeState(newEnergy))),
+                changes.organismChanges());
     }
 
     @Test
@@ -118,18 +119,17 @@ class MoverGenomeTest {
         Organism self = FakeOrganism.make(null);
         Organism neighbor = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
                 Map.of(Location.ORIGIN, self, oneOne, neighbor));
-        MoverState newState = (MoverState) response.newState();
+        assertTrue(changes.substanceChanges().isEmpty());
+        double newEnergy = state.getEnergy() - REST_ENERGY;
         assertEquals(
-                state.getEnergy() - REST_ENERGY,
-                newState.getEnergy());
-        assertTrue(response.substanceChanges().isEmpty());
-        assertTrue(response.organismChanges().isEmpty());
+                List.of(Change.update(Location.ORIGIN, makeState(newEnergy))),
+                changes.organismChanges());
     }
 
     @Test
@@ -138,20 +138,18 @@ class MoverGenomeTest {
         MoverState state = new MoverState(1234);
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
                 Map.of(Location.ORIGIN, self));
-        MoverState newState = (MoverState) response.newState();
+        assertTrue(changes.substanceChanges().isEmpty());
+        double newEnergy = state.getEnergy() - MOVE_ENERGY;
         assertEquals(
-                state.getEnergy() - MOVE_ENERGY,
-                newState.getEnergy());
-        assertTrue(response.substanceChanges().isEmpty());
-        assertEquals(
-                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne)),
-                response.organismChanges());
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne),
+                        Change.update(oneOne, makeState(newEnergy))),
+                changes.organismChanges());
     }
 
     @Test
@@ -160,20 +158,18 @@ class MoverGenomeTest {
         MoverState state = new MoverState(1234);
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
-        Response response = genome.respond(
+        Changes changes = genome.respond(
                 null,
                 state,
                 Set.of(oneOne),
                 Collections.emptyMap(),
                 Map.of(Location.ORIGIN, self));
-        MoverState newState = (MoverState) response.newState();
+        assertTrue(changes.substanceChanges().isEmpty());
+        double newEnergy = state.getEnergy() - MOVE_ENERGY;
         assertEquals(
-                state.getEnergy() - MOVE_ENERGY,
-                newState.getEnergy());
-        assertTrue(response.substanceChanges().isEmpty());
-        assertEquals(
-                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne)),
-                response.organismChanges());
+                List.of(Change.move(self.getId(), Location.ORIGIN, oneOne),
+                        Change.update(oneOne, makeState(newEnergy))),
+                changes.organismChanges());
     }
 
 }
