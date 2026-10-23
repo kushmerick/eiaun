@@ -231,7 +231,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         try {
             boolean done = false;
             while (!done) {
-                log.trace("Tidying! {} monitored paths, {} expiration paths, {} path closeables", monitoredPaths.size(), expirationPaths.size(), pathCloseables.size());
+                log.trace("Purging: {} monitored paths, {} expiration paths, {} path closeables", monitoredPaths.size(), expirationPaths.size(), pathCloseables.size());
                 long negativeOldestTimestamp = expirationPaths.firstKey();
                 if (-negativeOldestTimestamp < System.currentTimeMillis()) {
                     Path path = expirationPaths.get(negativeOldestTimestamp);
@@ -243,11 +243,11 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                 try {
                                     closeable.close();
                                 } catch (Exception failure) {
-                                    log.warn("Failure while tidying {}", path, failure);
+                                    log.warn("Failure while purging {}", path, failure);
                                 }
                             }
                         } else {
-                            log.trace("Not tidying {} because it is not yet being monitored", path);
+                            log.trace("Not purging {} because it is not yet being monitored", path);
                             done = true;
                         }
                     }

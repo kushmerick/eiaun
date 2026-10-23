@@ -31,7 +31,7 @@ public class ChangeApplier {
     public void changeSubstances(
             TwoD<Substance> substances,
             Location location,
-            List<Change<String>> substanceChanges
+            List<Change<String,Substance>> substanceChanges
     ) {
         changeThings("substance",
                 location,
@@ -46,7 +46,7 @@ public class ChangeApplier {
     public boolean changeOrganisms(
             TwoD<Organism> organisms,
             Location location,
-            List<Change<Long>> organismChanges,
+            List<Change<Long,Organism>> organismChanges,
             Map<Long, Organism> index
     ) {
         return changeThings("organism",
@@ -62,15 +62,15 @@ public class ChangeApplier {
     private <Thing, Id> boolean changeThings(
             String label,
             Location location,
-            List<Change<Id>> changes,
+            List<Change<Id,Thing>> changes,
             TwoD<Thing> things,
             // a substance can be changed to a different substance,
             // but an organism cannot be changed to a different organism
             boolean mutable,
-            // three methods related to mapping Id to Thing (and optionally updating a backing index if desired)
+            // three methods related to mapping Id to Thing (and updating the backing index for organisms)
             Function<Id, Thing> resolver,
-            Consumer<Thing> setCallback,
-            Consumer<Thing> removeCallback
+            Consumer<Thing> indexer,
+            Consumer<Thing> unindexer
     ) {
         boolean modified = false;
         for (var change : changes) {
@@ -83,9 +83,8 @@ public class ChangeApplier {
                     // another thing is already at the destination
                     rejected = true;
                 } else {
-                    Thing newThing = resolver.apply(change.getReplacement());
-                    things.set(lat, lon, newThing);
-                    setCallback.accept(newThing);
+                    things.set(lat, lon, change.getBaby());
+                    indexer.accept(change.getBaby());
                     modified = true;
                 }
             } else if (change.isDestroy()) {
@@ -93,12 +92,12 @@ public class ChangeApplier {
                 int lat = from.getLat();
                 int lon = from.getLon();
                 Thing oldThing = resolver.apply(change.getOriginal());
-                if (!Objects.equals(things.get(lat, lon), oldThing)) {
+                if (!Objects.equals(things.get(lat, lon), oldThing) || oldThing == null) {
                     // already changed, or no-op (already deleted)
                     rejected = true;
                 } else {
                     things.remove(lat, lon);
-                    removeCallback.accept(oldThing);
+                    unindexer.accept(oldThing);
                     modified = true;
                 }
             } else if (change.isReplace()) {
@@ -115,8 +114,8 @@ public class ChangeApplier {
                     rejected = true;
                 } else {
                     things.set(lat, lon, replacement);
-                    removeCallback.accept(original);
-                    setCallback.accept(replacement);
+                    unindexer.accept(original);
+                    indexer.accept(replacement);
                     modified = true;
                 }
             } else if (change.isMove()) {
@@ -135,7 +134,7 @@ public class ChangeApplier {
                 } else {
                     things.remove(flat, flon);
                     things.set(tlat, tlon, thing);
-                    // just a move so no need to invoke setCallback or removeCallback
+                    // just a move so no need to invoke indexer or unindexer
                     modified = true;
                 }
             } else {
@@ -143,21 +142,25 @@ public class ChangeApplier {
                 rejected = true;
             }
             if (rejected) {
-                // a change is rejected if it is not applicable to the actual state of the substances and organisms.
-                // this happens during the simulation because organisms run in parallel.  so once in a while,
+                // A change is rejected if it is not applicable to the actual state of the substances and organisms.
+                // This happens during the simulation because organisms run in parallel. So it can happen that
                 // two nearby organisms may interact in a way that makes of their actions incompatible (eg, eating
-                // the same substance). the "winner" is whichever happens to upgate the state first.
-                // TODO: During a simulation, it seems reasonable to ignore rejected changes.
-                // TODO: What else could we do?  But during snapshot play-back, are we sure
-                // TODO: we're actually tracking the changes correctly?  As a solution,
-                // TODO: perhaps in case of any rejected change, we should take a full dump?
+                // the same substance). The "winner" is whichever happens to upgate the state first.  An important
+                // question is whether rejection impacts replaying changes during snapshot processing by (for example)
+                // VIZ.  Since we take only occasional full dumps, is it possible that rejecting changes will
+                // screw up correctly tracking the organisms and substances? It seems the answer should be: No.
+                // Whether a change is rejected or not, the resulting state of the world during change replay
+                // should be identical to what it would have been during the actual simulation.  As long as we
+                // replay all changes in the same order, and the snapshot index mechanism guarantees that we do so.
                 this.rejectedChangeRecorder.accept(String.format(
-                        "Rejecting %s change: %s -> %s; %s -> %s",
+                        "Rejecting %s %s change: %s -> %s; %s -> %s; %s",
+                        change.getVerb(),
                         label,
                         change.getOriginal(),
                         change.getReplacement(),
                         change.getFrom(),
-                        change.getTo()));
+                        change.getTo(),
+                        change.getBaby()));
             }
         }
         return modified;

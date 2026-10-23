@@ -41,15 +41,17 @@ class DirectoryWatcherTest {
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
              DirectoryWatcher watcher = new DirectoryWatcher(executor);
              AutoCloseable _ = watcher.register(
-                    dir,
-                    child -> child.getFileName().toString().startsWith("A"),
-                    (verb, child) -> {
-                        if (verb == DirectoryWatcher.Verb.DELETE) {
-                            paths.remove(child);
-                        } else {
-                            paths.add(child);
-                        }
-                    })
+                     dir,
+                     child -> child.getFileName().toString().startsWith("A"),
+                     DirectoryWatcher.Listener.ifMonitoring(
+                             () -> {},
+                             (verb, child) -> {
+                                 if (verb == DirectoryWatcher.Verb.DELETE) {
+                                     paths.remove(child);
+                                 } else {
+                                     paths.add(child);
+                                 }
+                             }))
         ) {
             await().untilAsserted(() -> assertEquals(Set.of(a1), paths));
             Path a2 = Files.createFile(dir.resolve("A2"));
@@ -62,27 +64,30 @@ class DirectoryWatcherTest {
     }
 
     @Test
-    void initialFilesAreAlphabeticallyOrdered(@TempDir Path dir) throws Exception {
+    void initialFilesAreNotNecessarilyAlphabeticallyOrdered(@TempDir Path dir) throws Exception {
         Path a3 = Files.createFile(dir.resolve("A3"));
         Path a2 = Files.createFile(dir.resolve("A2"));
         Path a1 = Files.createFile(dir.resolve("A1"));
-        List<Path> paths = new ArrayList<>();
+        Set<Path> paths = ConcurrentHashMap.newKeySet();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
              DirectoryWatcher watcher = new DirectoryWatcher(executor);
              AutoCloseable _ = watcher.register(
                      dir,
                      child -> child.getFileName().toString().startsWith("A"),
-                     (verb, child) -> {
-                         if (verb == DirectoryWatcher.Verb.DELETE) {
-                             paths.remove(child);
-                         } else {
-                             paths.add(child);
-                         }
-                     })
+                     DirectoryWatcher.Listener.ifMonitoring(
+                             () -> {
+                             },
+                             (verb, child) -> {
+                                 if (verb == DirectoryWatcher.Verb.DELETE) {
+                                     paths.remove(child);
+                                 } else {
+                                     paths.add(child);
+                                 }
+                             }))
         ) {
-            await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3), paths));
+            await().untilAsserted(() -> assertEquals(Set.of(a1, a2, a3), paths));
             Path a0 = Files.createFile(dir.resolve("A0"));
-            await().untilAsserted(() -> assertEquals(List.of(a1, a2, a3, a0), paths));
+            await().untilAsserted(() -> assertEquals(Set.of(a1, a2, a3, a0), paths));
         }
     }
 

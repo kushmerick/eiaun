@@ -9,14 +9,14 @@ public record Response(
         // an organism is responsible for updating its own state
         State newState,
         // Jakku is responsible for changing substances & organisms
-        List<Change<String>> substanceChanges,
-        List<Change<Long>> organismChanges
+        List<Change<String,Substance>> substanceChanges,
+        List<Change<Long,Organism>> organismChanges
 ) {
 
     public static Response of(
             State newState,
-            List<Change<String>> substanceChanges,
-            List<Change<Long>> organismChanges
+            List<Change<String,Substance>> substanceChanges,
+            List<Change<Long,Organism>> organismChanges
     ) {
         return new Response(newState, substanceChanges, organismChanges);
     }

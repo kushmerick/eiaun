@@ -7,6 +7,7 @@ import io.eiaun.shared.util.Functionals;
 import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.JSON;
 import io.eiaun.shared.util.TwoD;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+@Slf4j
 public class FullDumpReader {
 
     private final String compression;
@@ -35,10 +37,21 @@ public class FullDumpReader {
     }
 
     public Optional<TwoD<Organism>> maybeGetOrganisms(Path snapshot) {
-        return maybeGetThings(
+        Optional<TwoD<Organism>> maybeOrganisms = maybeGetThings(
                 snapshot.resolve(FileSnapshotReader.ORGANISMS_DOT + this.compression),
                 generic -> generic.decode(Organism.KIND_ORGANISMS),
                 new TypeRef<Map<String, Map<String, Generic>>>() {});
+        // organisms are serialized without a substance factory (to massively shrink the size
+        // since that would require repeatedly serializing all substance properties for
+        // every genome), so we inject it here.
+        maybeOrganisms.ifPresent(organisms -> {
+            for (int lat: organisms.firstIndices()) {
+                for (int lon: organisms.secondIndices(lat)) {
+                    organisms.get(lat, lon).getGenome().setSubstanceFactory(this.substanceFactory);
+                }
+            }
+        });
+        return maybeOrganisms;
     }
 
     public Optional<TwoD<Substance>> maybeGetSubstances(Path snapshot) {
@@ -84,4 +97,5 @@ public class FullDumpReader {
             throw new RuntimeException("Failure while reading compressed payload", failure);
         }
     }
+
 }

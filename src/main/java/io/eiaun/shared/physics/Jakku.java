@@ -4,6 +4,7 @@ import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
 import io.eiaun.shared.util.TwoD;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.TriConsumer;
@@ -30,7 +31,7 @@ public class Jakku {
     private final ChangeApplier changeApplier;
 
     @Getter private final TwoD<Organism> organisms;
-    private final Map<Long, Organism> organismIndex;
+    @Getter(AccessLevel.PROTECTED) final Map<Long, Organism> organismIndex;
 
     private final Supplier<Organism> organismCreator;
 
@@ -161,8 +162,16 @@ public class Jakku {
                                     organism.getId(), response.substanceChanges().size(), response.organismChanges().size());
                             Runnable fileWrites = null;
                             synchronized (this.lock) {
-                                this.changeApplier.changeSubstances(this.substances, location, response.substanceChanges());
-                                if (this.changeApplier.changeOrganisms(this.organisms, location, response.organismChanges(), this.organismIndex)) {
+                                this.changeApplier.changeSubstances(
+                                        this.substances,
+                                        location,
+                                        response.substanceChanges());
+                                if (this.changeApplier.changeOrganisms(
+                                        this.organisms,
+                                        location,
+                                        response.organismChanges(),
+                                        this.organismIndex)
+                                ) {
                                     updateOrganismLocationsIterator();
                                 }
                                 Pair<String, Runnable> info = this.snapshotRecorder.record(
@@ -170,14 +179,12 @@ public class Jakku {
                                         location,
                                         response.organismChanges(),
                                         response.substanceChanges());
-                                if (info != null) {
-                                    // null means snapshots are disabled
+                                if (info != null) { // null just means that snapshots are disabled
                                     log.info("Snapshot {}", info.getLeft());
                                     fileWrites = info.getRight();
                                 }
                             }
-                            if (fileWrites != null) {
-                                // null means snapshots are disabled
+                            if (fileWrites != null) { // null just means that snapshots are disabled
                                 fileWrites.run();
                             }
                             synchronized (this.lock) {

@@ -5,6 +5,7 @@ import io.eiaun.shared.physics.*;
 import io.eiaun.shared.snapshot.representations.Config;
 import io.eiaun.shared.snapshot.representations.Physics;
 import io.eiaun.shared.util.Functionals;
+import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.JSON;
 import io.eiaun.shared.util.TwoD;
 import lombok.AccessLevel;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.eiaun.shared.organisms.Organism.KIND_ORGANISMS;
 import static org.apache.commons.compress.compressors.CompressorStreamFactory.ZSTANDARD;
 
 @Slf4j
@@ -38,8 +40,8 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     // changed, since this default is so effective.
     private static final String COMPRESSION = ZSTANDARD;
 
-    private static final TypeRef<List<Change<Long>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
-    private static final TypeRef<List<Change<String>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
+    private static final TypeRef<List<Change<Long,Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
+    private static final TypeRef<List<Change<String,Substance>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
 
     private final Path recording;
     @Getter private final Physics physics;
@@ -59,14 +61,13 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         this.fullDumpReader = new FullDumpReader(COMPRESSION, new SubstanceFactory(this.physics.getSubstanceSpecs().values()));
         this.changeApplier = new ChangeApplier(
                 this.config.getGrid(),
-                log::warn, // TODO: Replace with a thrower?
+                log::info,
                 new SubstanceFactory(this.physics.getSubstanceSpecs().values()));
-
     }
 
     private <T> T loadRecordingMetadata(String metadata, Class<T> clazz) {
         return Functionals.get(() -> JSON.fromJson(
-                Files.readString(recording.resolve(metadata)),
+                Files.readString(this.recording.resolve(metadata)),
                 clazz));
     }
 
@@ -75,13 +76,15 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         return parse(this.recording, YMDHMSS).get();
     }
 
+    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
     @Override
     public Pair<Long,Long> getSnapshotIndexAndTimestamp(Path snapshot) {
         return parseSnapshot(snapshot).get();
     }
 
+    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
     @Override
-    public List<Change<String>> getSubstanceChanges(Path snapshot) {
+    public List<Change<String,Substance>> getSubstanceChanges(Path snapshot) {
         return Functionals.get(() -> JSON.fromJson(
                         Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
                         SUBSTANCE_CHANGES_TYPE))
@@ -89,27 +92,33 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                 .toList();
     }
 
+    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
     @Override
-    public List<Change<Long>> getOrganismChanges(Path snapshot) {
+    public List<Change<Long,Organism>> getOrganismChanges(Path snapshot) {
         return Functionals.get(() -> JSON.fromJson(
                         Files.readString(snapshot.resolve(ORGANISM_CHANGES)),
                         ORGANISM_CHANGES_TYPE))
                 .stream()
+                .map(change -> change.translate(generic -> (Organism) generic.decode(KIND_ORGANISMS)))
                 .toList();
     }
 
     @Override
     public void stepTo(Path snapshot) {
         long index = getSnapshotIndexAndTimestamp(snapshot).getLeft();
-        if (index != this.nextSnapshotIndex++) {
-            throw new IllegalArgumentException(String.format("Expecting index %s but got %s: %s", index, this.nextSnapshotIndex, snapshot));
+        if (index != this.nextSnapshotIndex) {
+            throw new IllegalArgumentException(String.format("Expecting index %s but got %s: %s", this.nextSnapshotIndex, index, snapshot));
         }
+        this.nextSnapshotIndex++;
         this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
                 organisms -> {
-                    if (this.organisms == null) {
-                        this.organismIndex = makeIndex(organisms, Organism::getId);
-                    }
                     this.organisms = organisms;
+                    // TODO: Building the new index is a slow. If we ever get to
+                    // TODO: the point of fully trusting change-application to
+                    // TODO: perfectly track the organisms & substances, then we
+                    // TODO: could speed things a lot up by not loading the full
+                    // TODO: dumps at all!
+                    this.organismIndex = makeIndex(organisms, Organism::getId);
                 },
                 () -> {
                     if (this.organisms == null) {
@@ -149,56 +158,5 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         }
         return index;
     }
-
-
-        /*
-    private void updateOrganismsAndSubstances(Path snapshot) {
-        if (this.organisms.isEmpty()) {
-            // presumably this is our first snapshot, so we expect to see a full dump
-            // of the organisms and snapshots.
-            try {
-                processFullDump(snapshot, this.fullDumpReader::maybeGetOrganisms, this.organisms::replace, "organisms");
-                processFullDump(snapshot, this.fullDumpReader::maybeGetSubstances, this.substances::replace, "substances");
-            } catch (RuntimeException e) {
-                log.warn("Missing full dump(s) for {}", snapshot, e);
-            }
-        } else {
-            this.changeApplier.changeOrganisms(getOrganismChanges(snapshot));
-            this.changeApplier.changeSubstances(getSubstanceChanges(snapshot));
-            // Sanity check
-            fullDumpReader.maybeGetOrganisms(snapshot).ifPresent(organisms -> {
-                if (!this.organisms.equals(organisms, Organism::getId)) {
-                    this.organisms.replace(organisms);
-                    log.warn("Organisms mismatch!");
-                }
-            });
-            fullDumpReader.maybeGetSubstances(snapshot).ifPresent(substances -> {
-                if (!this.substances.equals(substances, Substance::getId)) {
-                    this.substances.replace(substances);
-                    log.warn("Substances mismatch!");
-                }
-            });
-        }
-    }
-
-
-
-    private <Thing> void processFullDump(
-            Path snapshot,
-            Function<Path, Optional<TwoD<Thing>>> fullDumpGetter,
-            Consumer<TwoD<Thing>> processor,
-            String label
-    ) {
-            fullDumpGetter.apply(snapshot).ifPresentOrElse(
-                    processor,
-                    () -> { throw new RuntimeException(String.format("Missing %s full dump", label)); });
-    }
-
-     */
-
-
-
-
-
 
 }

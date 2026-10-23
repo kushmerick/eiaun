@@ -25,7 +25,7 @@ class FullDumpReaderTest {
         Path snapshot = Paths.get("src/test/resources/test-data/0000000000000-2026-10-12-07-16-02-78");
         Optional<TwoD<Organism>> organisms = fullDumpReader.maybeGetOrganisms(snapshot);
         assertTrue(organisms.isPresent());
-        assertEquals(372050, organisms.get().get(0, 907).getId());
+        assertEquals(13508, organisms.get().get(0, 907).getId());
     }
 
     @Test
@@ -41,7 +41,7 @@ class FullDumpReaderTest {
         Path snapshot = Paths.get("src/test/resources/test-data/0000000000000-2026-10-12-07-16-02-78");
         Optional<TwoD<Substance>> substances = fullDumpReader.maybeGetSubstances(snapshot);
         assertTrue(substances.isPresent());
-        assertEquals("Bohrium", substances.get().get(0, 907).getId());
+        assertEquals("Hydrogen", substances.get().get(0, 908).getId());
     }
 
 }

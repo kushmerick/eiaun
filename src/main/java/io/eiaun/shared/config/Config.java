@@ -71,11 +71,14 @@ public class Config {
             Constructor<Organism> constructor = clazz.getConstructor(Jakku.class, Map.class);
             Map<String, Double> properties = organismProperties.getProperties().get(className);
             return (jakku) -> {
+                Organism organism;
                 try {
-                    return constructor.newInstance(jakku, properties);
+                    organism = constructor.newInstance(jakku, properties);
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException("Failure while constructing `" + className + "`", e);
                 }
+                organism.getGenome().setSubstanceFactory(jakku.getSubstanceFactory());
+                return organism;
             };
         } catch (Exception e) {
             throw new RuntimeException("Failure while getting constructor for `" + className + "`", e);

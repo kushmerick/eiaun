@@ -1,14 +1,18 @@
 package io.eiaun.shared.physics;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.ToString;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 @ToString // just for logging
 @Data
 @AllArgsConstructor
-public class Change<Thing> {
+public class Change<Id,Thing> {
 
     public enum Verb {
         CREATE,
@@ -17,53 +21,54 @@ public class Change<Thing> {
         REPLACE,
     }
 
-    public static <Thing> Change<Thing> create(
-            @NonNull Thing thing,
+    public static <Id,Thing> Change<Id,Thing> create(
+            @NonNull Thing baby,
             @NonNull Location location
     ) {
-        return new Change<>(Verb.CREATE, null, thing, null, location);
+        return new Change<>(Verb.CREATE, null, null, null, location, baby);
     }
 
-    public static <Thing> Change<Thing> destroy(
-            @NonNull Thing thing
+    public static <Id,Thing> Change<Id,Thing> destroy(
+            @NonNull Id thing
     ) {
         return destroy(thing, Location.ORIGIN);
     }
 
-    public static <Thing> Change<Thing> destroy(
-            @NonNull Thing thing,
+    public static <Id,Thing> Change<Id,Thing> destroy(
+            @NonNull Id thing,
             @NonNull Location location
     ) {
-        return new Change<>(Verb.DESTROY, thing, null, location, null);
+        return new Change<>(Verb.DESTROY, thing, null, location, null, null);
     }
 
-    public static <Thing> Change<Thing> move(
-            @NonNull Thing thing,
+    public static <Id,Thing> Change<Id,Thing> move(
+            @NonNull Id thing,
             @NonNull Location from,
             @NonNull Location to
     ) {
         if (Objects.equals(from, to)) {
             throw new IllegalArgumentException("`from` and `to` can't be equal: " + from);
         }
-        return new Change<>(Verb.MOVE, thing, thing, from, to);
+        return new Change<>(Verb.MOVE, thing, thing, from, to, null);
     }
 
-    public static <Thing> Change<Thing> replace(
-            @NonNull Thing original,
-            @NonNull Thing replacement,
+    public static <Id,Thing> Change<Id,Thing> replace(
+            @NonNull Id original,
+            @NonNull Id replacement,
             @NonNull Location location
     ) {
         if (Objects.equals(original, replacement)) {
             throw new IllegalArgumentException("`original` and `replacement` can't be equal: " + original);
         }
-        return new Change<>(Verb.REPLACE, original, replacement, location, location);
+        return new Change<>(Verb.REPLACE, original, replacement, location, location, null);
     }
 
-    Verb verb;         // expected fields:
-    Thing original;    // DESTROY, MOVE, REPLACE
-    Thing replacement; // CREATE, MOVE, REPLACE
-    Location from;     // DESTROY, MOVE, REPLACE
-    Location to;       // CREATE, MOVE, REPLACE
+    Verb verb;      // expected fields:
+    Id original;    // DESTROY, MOVE, REPLACE
+    Id replacement; // MOVE, REPLACE
+    Location from;  // DESTROY, MOVE, REPLACE
+    Location to;    // CREATE, MOVE, REPLACE
+    Thing baby;     // CREATE
 
     public boolean isCreate() {
         return this.verb == Verb.CREATE;
@@ -81,13 +86,25 @@ public class Change<Thing> {
         return this.verb == Verb.REPLACE;
     }
 
-    public <Thang> Change<Thang> translate(Function<Thing,Thang> translator) {
+    public Change<Id,Thing> offset(Location offset, int grid) {
+        Function<Location, Location> offsetter = l -> l.add(offset, grid);
+        return new Change<>(
+                getVerb(),
+                getOriginal(),
+                getReplacement(),
+                Optional.ofNullable(getFrom()).map(offsetter).orElse(null),
+                Optional.ofNullable(getTo()).map(offsetter).orElse(null),
+                getBaby());
+    }
+
+    public <Thang> Change<Id,Thang> translate(Function<Thing,Thang> translator) {
         return new Change<>(
                 this.verb,
-                this.original == null ? null : translator.apply(this.original),
-                this.replacement == null ? null : translator.apply(this.replacement),
+                this.original,
+                this.replacement ,
                 this.from,
-                this.to);
+                this.to,
+                this.baby == null ? null : translator.apply(this.baby));
     }
 
 }

@@ -4,6 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.Unit;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -47,6 +48,7 @@ public class HomeView extends VerticalLayout {
     private final ListBox<Path> recordingsMenu = new ListBox<>();
     private Snapshots snaps = null;
     private final ListBox<Path> snapshotsMenu = new ListBox<>();
+    private final Paragraph snapshotDisplay = new Paragraph();
     private AutoCloseable recordingsCloser = null;
     private AutoCloseable snapshotsCloser = null;
 
@@ -80,12 +82,15 @@ public class HomeView extends VerticalLayout {
         horizontal.setWidth("100%");
         horizontal.add(recordingsMenu, snapshotsMenu);
         add(horizontal);
+        add(this.snapshotDisplay);
     }
 
     @Override
     protected void onAttach(AttachEvent event) {
         recordingsMenu.addValueChangeListener(e ->
                 updateSnapshots(e.getUI(), e.getValue()));
+        snapshotsMenu.addValueChangeListener(e ->
+                updateSnapshotDisplay(e.getUI(), e.getValue()));
         UI ui = event.getUI();
         try {
             this.recordingsCloser = snapshotReader.watchRecordings(
@@ -102,7 +107,11 @@ public class HomeView extends VerticalLayout {
     }
 
     private void updateSnapshots(UI ui, Path recording) {
+        if (recording == null) {
+            return; // seems weird  but we've seen it in the wild
+        }
         try {
+            this.snapshotDisplay.setText(null);
             if (this.snapshotsCloser != null) {
                 this.snapshotsCloser.close();
                 this.snapshotsCloser = null;
@@ -110,17 +119,37 @@ public class HomeView extends VerticalLayout {
             this.snapshots.clear();
             this.snaps = FileSnapshots.of(recording);
             ui.access(() -> snapshotsMenu.setItems(Collections.emptyList()));
-            if (recording != null) {
-                this.snapshotsCloser = this.snapshotReader.watchSnapshots(
-                        recording,
-                        DirectoryWatcher.Listener.ifCreate(snapshot ->
-                                ui.access(() -> {
-                                    snapshots.add(snapshot);
-                                    snapshotsMenu.setItems(snapshots);
-                                })));
-            }
+            this.snapshotsCloser = this.snapshotReader.watchSnapshots(
+                    recording,
+                    DirectoryWatcher.Listener.ifCreate(snapshot ->
+                            ui.access(() -> {
+                                snapshots.add(snapshot);
+                                snapshotsMenu.setItems(snapshots);
+                            })));
         } catch (Exception failure) {
             log.warn("Failure while updating snapshots", failure);
+        }
+    }
+
+    private void updateSnapshotDisplay(UI ui, Path snapshot) {
+        if (snapshot == null) {
+            return; // seems weird  but we've seen it in the wild
+        }
+        try {
+            this.snaps.stepTo(snapshot);
+            Pair<Long,Long> indexTimestamp = this.snaps.getSnapshotIndexAndTimestamp(snapshot);
+            int organismChanges = this.snaps.getOrganismChanges(snapshot).size();
+            int substanceChanges = this.snaps.getOrganismChanges(snapshot).size();
+            int organisms = this.snaps.getOrganisms().firstIndices().size();
+            int substances = this.snaps.getSubstances().firstIndices().size();
+            String display = String.format("%s (%s) %s organisms (%s changes); %s substance (%s changes)",
+                    indexTimestamp.getLeft(),
+                    AGO.describe(indexTimestamp.getRight()),
+                    organisms, organismChanges, substances, substanceChanges);
+            ui.access(() -> this.snapshotDisplay.setText(display));
+        } catch (Exception failure) {
+            this.snapshotDisplay.setText("Oops! " + failure.getMessage());
+            log.warn("Failure while updating snapshot display", failure);
         }
     }
 

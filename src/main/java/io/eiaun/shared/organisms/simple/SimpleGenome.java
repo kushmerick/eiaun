@@ -8,6 +8,7 @@ import io.eiaun.shared.physics.Jakku;
 import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.physics.Substance;
 import lombok.Getter;
+import org.apache.fory.json.annotation.JsonProperty;
 
 import java.util.Collections;
 import java.util.Map;
@@ -15,8 +16,7 @@ import java.util.Set;
 
 public class SimpleGenome extends Genome {
 
-    @Getter
-    private double visionRadius;
+    @JsonProperty("v") @Getter private double visionRadius;
 
     public SimpleGenome(double visionRadius) {
         this.visionRadius = visionRadius;

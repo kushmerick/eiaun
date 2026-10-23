@@ -5,7 +5,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -21,13 +20,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FileSnapshotReaderTest {
 
+    public static final Path TEST_RECORDINGS = Path.of("src/test/resources/test-recordings");
+
     @Test
-    void canParseSnapshotPath() throws ParseException {
-        FileSnapshotReader reader = new FileSnapshotReader(null, null);
+    void canParseSnapshotPath() {
         String formattedTimestamp = "2026-01-02-03-04-05-678";
         long id = 12345;
         String path = String.format(SNAPSHOT_ID_FORMAT, id) + "-" + formattedTimestamp;
-        Optional<Pair<Long, Long>> parsed = reader.parseSnapshot(Path.of(path));
+        Optional<Pair<Long, Long>> parsed = FileSnapshotManipulator.parseSnapshot(Path.of(path));
         assertTrue(parsed.isPresent());
         assertEquals(id, parsed.get().getLeft());
         long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
@@ -38,7 +38,7 @@ class FileSnapshotReaderTest {
     }
 
     @Test
-    void canRecognizeSnapshotPath() throws ParseException {
+    void canRecognizeSnapshotPath() {
         FileSnapshotReader reader = new FileSnapshotReader(null, null);
         String formattedTimestamp = "2026-01-02-03-04-05-678";
         long id = 12345;
@@ -47,7 +47,7 @@ class FileSnapshotReaderTest {
     }
 
     @Test
-    void canRecognizeInvalidSnapshotPath() throws ParseException {
+    void canRecognizeInvalidSnapshotPath() {
         FileSnapshotReader reader = new FileSnapshotReader(null, null);
         String formattedTimestamp = "2026-01-02-03-04-05-678";
         long id = 12345;
@@ -59,7 +59,7 @@ class FileSnapshotReaderTest {
 
     @Test
     void canWatchRecordings() throws Exception {
-        Path testRecordings = Path.of("src/test/resources/test-recordings");
+        Path testRecordings = TEST_RECORDINGS;
         Set<Path> recordings = ConcurrentHashMap.newKeySet();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             FileSnapshotReader reader = new FileSnapshotReader(
@@ -80,18 +80,14 @@ class FileSnapshotReaderTest {
     void canWatchSnapshots() throws Exception {
         Set<Path> snapshots = ConcurrentHashMap.newKeySet();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            FileSnapshotReader reader = new FileSnapshotReader(
-                    executor,
-                    Path.of("src/test/resources/test-recordings"));
+            FileSnapshotReader reader = new FileSnapshotReader(executor, TEST_RECORDINGS);
             try (var _ = reader.watchSnapshots(
-                    Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647"),
+                    TEST_RECORDINGS.resolve("2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647"),
                     DirectoryWatcher.Listener.ifCreate(snapshots::add))
             ) {
-                await().untilAsserted(() ->
-                        assertEquals(
-                        Set.of(
-                                Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000000-2026-10-12-07-16-02-788"),
-                                Path.of("src/test/resources/test-recordings/2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000001-2026-10-12-07-16-02-788")),
+                await().untilAsserted(() -> assertEquals(
+                        Set.of(TEST_RECORDINGS.resolve("2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000000-2026-10-12-07-16-02-788"),
+                                TEST_RECORDINGS.resolve("2026-10-12-07/2026-10-12-07-15/2026-10-12-07-15-56-647/snapshots/2026-10-12-07/2026-10-12-07-16/2026-10-12-07-16-02-788/0000000000001-2026-10-12-07-16-02-788")),
                         snapshots));
             }
         }

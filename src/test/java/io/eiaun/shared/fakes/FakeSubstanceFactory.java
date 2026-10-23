@@ -16,4 +16,9 @@ public class FakeSubstanceFactory extends SubstanceFactory {
         return new FakeSubstance();
     }
 
+    @Override
+    public Substance make(String id) {
+        return new FakeSubstance(id);
+    }
+
 }

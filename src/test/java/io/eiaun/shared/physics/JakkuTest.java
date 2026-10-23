@@ -12,6 +12,7 @@ import io.eiaun.shared.snapshot.SnapshotRecorder;
 import io.eiaun.shared.util.InfiniteFairIterator;
 import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.function.TriConsumer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,56 @@ import static org.mockito.Mockito.*;
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class JakkuTest {
+
+    // this is the least horrible way I can think of to allow tests to inject substances and
+    // organisms into Jakku, which is something that never happens in production code.
+    private static class MonkeyPatchedJakku extends Jakku {
+
+        public MonkeyPatchedJakku(
+                int grid,
+                double organismDensity,
+                Function<Jakku, Organism> organismCreator,
+                double substanceDensity,
+                SubstanceFactory substanceFactory,
+                Function<Collection<Location>, Iterator<Location>> organismLocationsIteratorGenerator,
+                Consumer<String> rejectedChangeRecorder,
+                SnapshotRecorder snapshotRecorder
+        ) {
+            super(grid, organismDensity, organismCreator, substanceDensity, substanceFactory, organismLocationsIteratorGenerator, rejectedChangeRecorder, snapshotRecorder);
+        }
+
+        public void resetOrganisms(TwoD<Organism> organisms) {
+            getOrganisms().clear();
+            getOrganismIndex().clear();
+            resetThings(
+                    organisms,
+                    (organism, lat, lon) -> getOrganisms().set(lat, lon, organism),
+                    (organism, _, _) -> getOrganismIndex().put(organism.getId(), organism));
+        }
+
+        public void resetSubstances(TwoD<Substance> substances) {
+            getSubstances().clear();
+            resetThings(
+                    substances,
+                    (substance, lat, lon) -> getSubstances().set(lat, lon, substance));
+        }
+
+        private <Thing> void resetThings(
+                TwoD<Thing> things,
+                TriConsumer<Thing, Integer, Integer>... resetters
+        ) {
+            getSubstances().clear();
+            for (int lat: things.firstIndices()) {
+                for (int lon: things.secondIndices(lat)) {
+                    Thing substance = things.get(lat, lon);
+                    for (var resetter : resetters) {
+                        resetter.accept(substance, lat, lon);
+                    }
+                }
+            }
+        }
+
+    }
 
     @Mock
     private Consumer<String> rejectedChangeRecorder;
@@ -64,7 +115,7 @@ class JakkuTest {
     @Test
     void canLookForNeighbors() {
         int grid = 123;
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -80,8 +131,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.getOrganisms().replace(organisms);
-        jakku.getSubstances().replace(substances);
+        jakku.resetOrganisms(organisms);
+        jakku.resetSubstances(substances);
         int radius = 5;
         Map<Location, Organism> neighbors = jakku.lookForNeighbors(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -91,7 +142,7 @@ class JakkuTest {
     @Test
     void canLookForSubstances() {
         int grid = 123;
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -107,8 +158,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.getOrganisms().replace(organisms);
-        jakku.getSubstances().replace(substances);
+        jakku.resetOrganisms(organisms);
+        jakku.resetSubstances(substances);
         int radius = 5;
         Map<Location, Substance> nearbySubstances = jakku.lookForSubstances(grid / 2, grid / 2, radius);
         int diameter = 2 * radius + 1;
@@ -118,7 +169,7 @@ class JakkuTest {
     @Test
     void canLookForEmptiesWhenFull() {
         int grid = 123;
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -134,8 +185,8 @@ class JakkuTest {
                 substances.set(lat, lon, jakku.getSubstanceFactory().make());
             }
         }
-        jakku.getOrganisms().replace(organisms);
-        jakku.getSubstances().replace(substances);
+        jakku.resetOrganisms(organisms);
+        jakku.resetSubstances(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(grid / 2, grid / 2, radius);
         assertTrue(nearbyEmpties.isEmpty());
@@ -161,7 +212,7 @@ class JakkuTest {
     @Test
     void canLookForEmptiesWhenIsolated() {
         int grid = 123;
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -174,10 +225,10 @@ class JakkuTest {
         // injection a single organism in the middle and a single nearby substance
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, FakeOrganism.make(jakku));
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon + 1, new FakeSubstance());
-        jakku.getSubstances().replace(substances);
+        jakku.resetSubstances(substances);
         int radius = 5;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
         int diameter = 2 * radius + 1;
@@ -192,7 +243,7 @@ class JakkuTest {
         // force stepping the organism at (lat, lon)
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -204,11 +255,11 @@ class JakkuTest {
         organisms.set(lat, lon, FakeOrganism.make(jakku));
         organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
         organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
         substances.set(lat - 1, lon + 1, new FakeSubstance());
-        jakku.getSubstances().replace(substances);
+        jakku.resetSubstances(substances);
         double radius = 1;
         Set<Location> nearbyEmpties = jakku.lookForEmpties(lat, lon, radius);
         assertEquals(
@@ -242,7 +293,7 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -258,20 +309,20 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         organisms.set(lat + 1, lon + 1, FakeOrganism.make(jakku));
         organisms.set(lat - 1, lon - 1, FakeOrganism.make(jakku));
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         TwoD<Substance> substances = new TwoD<>();
         substances.set(lat + 1, lon - 1, new FakeSubstance());
         substances.set(lat - 1, lon + 1, new FakeSubstance());
-        jakku.getSubstances().replace(substances);
+        jakku.resetSubstances(substances);
         State newState = new SimpleState();
         Substance replacementSubstance = new FakeSubstance();
-        List<Change<String>> substanceChanges = List.of(
+        List<Change<String,Substance>> substanceChanges = List.of(
                 Change.destroy(substances.get(lat + 1, lon - 1).getId(), Location.of(+1, -1)),
                 Change.replace(substances.get(lat - 1, lon + 1).getId(), replacementSubstance.getId(), Location.of(-1, +1)));
-        Organism newborn = FakeOrganism.make(jakku);
-        List<Change<Long>> organismChanges = List.of(
+        Organism baby = FakeOrganism.make(jakku);
+        List<Change<Long,Organism>> organismChanges = List.of(
                 Change.destroy(organisms.get(lat + 1, lon + 1).getId(), Location.of(+1, +1)),
-                Change.create(newborn.getId(), Location.of(0, -1)));
+                Change.create(baby, Location.of(0, -1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         when(organism.respond(
                 eq(jakku),
@@ -291,10 +342,11 @@ class JakkuTest {
                         Location.of(-1, -1), organisms.get(lat - 1, lon - 1)))))
                 .thenReturn(response);
         jakku.step(this.executor).join();
+        assertNull(jakku.getSubstances().get(lat + 1, lon - 1));
         assertEquals(replacementSubstance, jakku.getSubstances().get(lat - 1, lon + 1));
         assertNull(jakku.getOrganisms().get(lat + 1, lon + 1));
-        assertNotNull(jakku.getOrganisms().get(lat - 1, lon - 1));
-        assertEquals(newborn, jakku.getOrganisms().get(lat, lon - 1));
+        assertEquals(organisms.get(lat - 1, lon - 1), jakku.getOrganisms().get(lat - 1, lon - 1));
+        assertEquals(baby, jakku.getOrganisms().get(lat, lon - 1));
         verifyNoInteractions(this.rejectedChangeRecorder);
     }
 
@@ -305,7 +357,7 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -318,13 +370,13 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<String>> substanceChanges = Collections.emptyList();
-        List<Change<Long>> organismChanges = List.of(
+        List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Long,Organism>> organismChanges = List.of(
                 Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -347,13 +399,63 @@ class JakkuTest {
     }
 
     @Test
+    void canCreate() {
+        int grid = 123;
+        int lat = grid / 2;
+        int lon = grid / 2;
+        Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
+                InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
+                grid,
+                0, FakeOrganism::make,
+                0, new FakeSubstanceFactory(),
+                organismLocationIteratorGenerator,
+                this.rejectedChangeRecorder,
+                this.snapshotRecorder);
+        jakku.initialize();
+        Organism organism = mock(Organism.class);
+        when(organism.getId()).thenReturn(1234L);
+        Genome genome = mock(Genome.class);
+        when(genome.getVisionRadius()).thenReturn(1d);
+        when(organism.getGenome()).thenReturn(genome);
+        State newState = new SimpleState();
+        List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        Organism baby = FakeOrganism.make(jakku);
+        List<Change<Long,Organism>> organismChanges = List.of(
+                Change.create(baby, Location.of(+1, +1)));
+        Response response = new Response(newState, substanceChanges, organismChanges);
+        TwoD<Organism> organisms = new TwoD<>();
+        organisms.set(lat, lon, organism);
+        jakku.resetOrganisms(organisms);
+        when(organism.respond(
+                eq(jakku),
+                eq(Set.of(
+                        Location.of(+1, +1),
+                        Location.of(+1, 0),
+                        Location.of(+1, -1),
+                        Location.of(0, +1),
+                        Location.of(0, -1),
+                        Location.of(-1, +1),
+                        Location.of(-1, 0),
+                        Location.of(-1, -1))),
+                eq(Collections.emptyMap()),
+                eq(Map.of(
+                        Location.ORIGIN, organisms.get(lat, lon)))))
+                .thenReturn(response);
+        jakku.step(this.executor).join();
+        assertEquals(organism, jakku.getOrganisms().get(lat, lon));
+        assertEquals(baby, jakku.getOrganisms().get(lat + 1, lon + 1));
+        verifyNoInteractions(this.rejectedChangeRecorder);
+    }
+
+    @Test
     void canSnapshot() throws IOException {
         int grid = 123;
         int lat = grid / 2;
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -366,13 +468,13 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<String>> substanceChanges = Collections.emptyList();
-        List<Change<Long>> organismChanges = List.of(
+        List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Long,Organism>> organismChanges = List.of(
                 Change.move(organism.getId(), Location.ORIGIN, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -400,7 +502,7 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -413,15 +515,15 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<String>> substanceChanges = Collections.emptyList();
-        List<Change<Long>> organismChanges = List.of(
+        List<Change<String,Substance>> substanceChanges = Collections.emptyList();
+        List<Change<Long,Organism>> organismChanges = List.of(
                 // try to put a child on a neighbor
-                Change.create(organism.getId(), Location.of(+1, +1)));
+                Change.create(organism, Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
         organisms.set(lat + 1, lon + 1, organism);
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(
@@ -448,7 +550,7 @@ class JakkuTest {
         int lon = grid / 2;
         Function<Collection<Location>, Iterator<Location>> organismLocationIteratorGenerator = _ ->
                 InfiniteFairIterator.of(List.of(Location.of(lat, lon)));
-        Jakku jakku = new Jakku(
+        MonkeyPatchedJakku jakku = new MonkeyPatchedJakku(
                 grid,
                 0, FakeOrganism::make,
                 0, new FakeSubstanceFactory(),
@@ -461,16 +563,16 @@ class JakkuTest {
         when(genome.getVisionRadius()).thenReturn(1d);
         when(organism.getGenome()).thenReturn(genome);
         State newState = new SimpleState();
-        List<Change<String>> substanceChanges = List.of(
+        List<Change<String,Substance>> substanceChanges = List.of(
                 // consume a non-existent substance
                 Change.destroy(new FakeSubstance().getId(), Location.of(-1, -1)));
-        List<Change<Long>> organismChanges = List.of(
+        List<Change<Long,Organism>> organismChanges = List.of(
                 // eat a non-existent neighbor
                 Change.destroy(FakeOrganism.make(jakku).getId(), Location.of(+1, +1)));
         Response response = new Response(newState, substanceChanges, organismChanges);
         TwoD<Organism> organisms = new TwoD<>();
         organisms.set(lat, lon, organism);
-        jakku.getOrganisms().replace(organisms);
+        jakku.resetOrganisms(organisms);
         when(organism.respond(
                 eq(jakku),
                 eq(Set.of(

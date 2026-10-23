@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.fory.json.annotation.JsonProperty;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,11 +23,11 @@ public class MoverGenome extends Genome {
 
     private static final Random RANDOM = new Random();
 
-    @Getter(AccessLevel.PACKAGE) private Map<String, String> desirableSubstanceProperties;
-    @Getter private double visionRadius;
-    @Getter(AccessLevel.PACKAGE) private double peakEnergy;
-    @Getter(AccessLevel.PACKAGE) private double moveEnergy;
-    @Getter(AccessLevel.PACKAGE) private double restEnergy;
+    @JsonProperty("d") @Getter(AccessLevel.PACKAGE) private Map<String, String> desirableSubstanceProperties;
+    @JsonProperty("v") @Getter private double visionRadius;
+    @JsonProperty("p") @Getter(AccessLevel.PACKAGE) private double peakEnergy;
+    @JsonProperty("m") @Getter(AccessLevel.PACKAGE) private double moveEnergy;
+    @JsonProperty("r") @Getter(AccessLevel.PACKAGE) private double restEnergy;
 
     public MoverGenome(
             Map<String, String> desirableSubstanceProperties,
@@ -52,8 +53,8 @@ public class MoverGenome extends Genome {
     ) {
         Organism organism = organisms.get(Location.ORIGIN);
         MoverState[] moverState = { (MoverState) state };
-        List<Change<Long>> organismChanges = new ArrayList<>();
-        List<Change<String>> substanceChanges = new ArrayList<>();
+        List<Change<Long,Organism>> organismChanges = new ArrayList<>();
+        List<Change<String,Substance>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
                 .filter(entry -> isDesirable(entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -65,7 +66,7 @@ public class MoverGenome extends Genome {
             substanceChanges.add(Change.destroy(substance.getId()));
             // possibly excrete a metabolite
             if (substance.getMetabolite() != null) {
-                substanceChanges.add(Change.create(substance.getMetabolite(), Location.ORIGIN));
+                substanceChanges.add(Change.create(this.substanceFactory.make(substance.getMetabolite()), Location.ORIGIN));
             }
             // replenish energy
             moverState[0] = new MoverState(moverState[0].getEnergy() + this.peakEnergy);
@@ -131,7 +132,7 @@ public class MoverGenome extends Genome {
     }
 
     private void moveTo(
-            List<Change<Long>> changes,
+            List<Change<Long,Organism>> changes,
             Location location,
             Organism organism
     ) {

@@ -21,9 +21,9 @@ public interface Snapshots {
 
     Pair<Long, Long> getSnapshotIndexAndTimestamp(Path snapshot);
 
-    List<Change<String>> getSubstanceChanges(Path snapshot);
+    List<Change<String,Substance>> getSubstanceChanges(Path snapshot);
 
-    List<Change<Long>> getOrganismChanges(Path snapshot);
+    List<Change<Long,Organism>> getOrganismChanges(Path snapshot);
 
     void stepTo(Path snapshot);
 

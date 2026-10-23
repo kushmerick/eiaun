@@ -2,10 +2,11 @@ package io.eiaun.shared.organisms.mover;
 
 import io.eiaun.shared.organisms.State;
 import lombok.Getter;
+import org.apache.fory.json.annotation.JsonProperty;
 
 public class MoverState extends State {
 
-    @Getter public double energy;
+    @JsonProperty("e") @Getter public double energy;
 
     public MoverState(double energy) {
         this.energy = energy;

@@ -5,6 +5,7 @@ import io.eiaun.shared.organisms.State;
 import io.eiaun.shared.physics.Jakku;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.fory.json.annotation.JsonProperty;
 
 import java.util.Map;
 
@@ -15,8 +16,8 @@ public class SimpleOrganism extends Organism {
 
     public static final String VISION_RADIUS_PROPERTY = "vision_radius";
 
-    @Getter private SimpleState state;
-    @Getter @Setter private SimpleGenome genome;
+    @JsonProperty("s") @Getter private SimpleState state;
+    @JsonProperty("g") @Getter @Setter private SimpleGenome genome;
 
     public SimpleOrganism(
             Jakku ignored,

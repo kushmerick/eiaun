@@ -66,11 +66,6 @@ public class TwoD<Thing> {
         return this.things.getOrDefault(i, Collections.emptyMap()).keySet();
     }
 
-    public void replace(TwoD<Thing> that) {
-        this.things.clear();
-        this.things.putAll(that.things);
-    }
-
     public <Id> boolean equals(TwoD<Thing> that, Function<Thing, Id> identifier) {
         if (this == that) return true;
         if (that == null) return false;

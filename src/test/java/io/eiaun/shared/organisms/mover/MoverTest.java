@@ -154,7 +154,7 @@ class MoverTest {
         assertEquals(
                 """
                 {"k":"M","j":"{\\"id\\":""" + id + """
-                ,\\"state\\":{\\"energy\\":20.0},\\"genome\\":{\\"desirableSubstanceProperties\\":{\\"P1\\":\\"V1\\",\\"P2\\":\\"V2\\",\\"P3\\":\\"V3\\"},\\"visionRadius\\":10.0,\\"peakEnergy\\":20.0,\\"moveEnergy\\":30.0,\\"restEnergy\\":40.0}}"}
+                ,\\"s\\":{\\"e\\":20.0},\\"g\\":{\\"d\\":{\\"P1\\":\\"V1\\",\\"P2\\":\\"V2\\",\\"P3\\":\\"V3\\"},\\"v\\":10.0,\\"p\\":20.0,\\"m\\":30.0,\\"r\\":40.0}}"}
                 """.strip(),
                 encoded);
     }
@@ -164,7 +164,7 @@ class MoverTest {
         Generic generic = new Generic(
                 "M",
                 """
-                {"id":123,"state":{"energy":20.0},"genome":{"desirableSubstanceProperties":{"P1":"V1","P2":"V2","P3":"V3"},"visionRadius":10.0,"peakEnergy":20.0,"moveEnergy":30.0,"restEnergy":40.0}}
+                {"id":123,"s":{"e":20.0},"g":{"d":{"P1":"V1","P2":"V2","P3":"V3"},"v":10.0,"p":20.0,"m":30.0,"r":40.0}}
                 """.strip());
         Mover mover = generic.decode(Mover.KIND_ORGANISMS);
         assertEquals(123, mover.getId());

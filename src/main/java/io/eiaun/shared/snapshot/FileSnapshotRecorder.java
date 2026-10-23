@@ -1,6 +1,5 @@
 package io.eiaun.shared.snapshot;
 
-import com.vaadin.copilot.shaded.guava.base.Functions;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.physics.Change;
 import io.eiaun.shared.physics.Jakku;
@@ -27,8 +26,13 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+
+import static io.eiaun.shared.organisms.Organism.ORGANISM_KINDS;
 
 
 @Slf4j
@@ -72,9 +76,9 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     @Override
     public Pair<String, Runnable> record(
             Jakku jakku,
-            Location changeOffset,
-            List<Change<Long>> organismChanges,
-            List<Change<String>> substanceChanges
+            Location offset,
+            List<Change<Long,Organism>> organismChanges,
+            List<Change<String,Substance>> substanceChanges
             // TODO: This has a huge gap: we do not record the state change of the organism!
             // eg if a Mover does not move, it may lose energy but will not appear in
             // organismChanges.
@@ -105,8 +109,8 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             log.trace("Skipping full dump for {}", snapshotPath);
         }
         int grid = jakku.getGrid();
-        fileWrites.add(() -> writeOrganismChanges(organismChanges, changeOffset, grid, snapshotPath));
-        fileWrites.add(() -> writeSubstanceChanges(substanceChanges, changeOffset, grid, snapshotPath));
+        fileWrites.add(() -> writeOrganismChanges(organismChanges, offset, grid, snapshotPath));
+        fileWrites.add(() -> writeSubstanceChanges(substanceChanges, offset, grid, snapshotPath));
         return Pair.of(
                 snapshotPath.toString(),
                 () -> fileWrites.forEach(Runnable::run));
@@ -127,7 +131,7 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             Path path
     ) {
         writeCompressed(
-                JSON.toJson(thingsAsMap(organisms, o -> Generic.encode(o, Organism.ORGANISM_KINDS))),
+                JSON.toJson(thingsAsMap(organisms, o -> Generic.encode(o, ORGANISM_KINDS))),
                 path.resolve(ORGANISMS_DOT + this.compression));
     }
 
@@ -158,51 +162,53 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     private void writeOrganismChanges(
-            List<Change<Long>> organismChanges,
-            Location changeOffset,
+            List<Change<Long,Organism>> organismChanges,
+            Location offset,
             int grid,
             Path path
     ) {
-        write(JSON.toJson(
-                        changesAsList(
-                                organismChanges,
-                                changeOffset,
-                                grid,
-                                Functions.identity())),
+        write(JSON.toJson(genericize(offset(organismChanges, offset, grid), ORGANISM_KINDS)),
                 path.resolve(ORGANISM_CHANGES));
     }
 
     private void writeSubstanceChanges(
-            List<Change<String>> substanceChanges,
-            Location changeOffset,
+            List<Change<String,Substance>> substanceChanges,
+            Location offset,
             int grid,
             Path path
     ) {
-        write(JSON.toJson(
-                        changesAsList(
-                                substanceChanges,
-                                changeOffset,
-                                grid,
-                                Functions.identity())),
+        write(JSON.toJson(offset(substanceChanges, offset, grid)),
                 path.resolve(SUBSTANCE_CHANGES));
     }
 
-    private <Thing, Representation> List<Change<Representation>> changesAsList(
-            List<Change<Thing>> changes,
-            Location changeOffset,
-            int grid,
-            Function<Thing,Representation> representer
+    // Genomes deal with locations that are relative to the organism's location.
+    // Specifically, changes having relative locations. When writing changes to
+    // a snapshot, these relative locations are offset by the organism's location,
+    // to get an absolute location of the change.
+    private <Id,Thing> List<Change<Id,Thing>> offset(
+            List<Change<Id,Thing>> changes,
+            Location offset,
+            int grid
     ) {
-        Function<Location, Location> offsetter = l -> l.add(changeOffset, grid);
-        return changes.stream()
-                .map(change ->
-                        new Change<>(
-                                change.getVerb(),
-                                Optional.ofNullable(change.getOriginal()).map(representer).orElse(null),
-                                Optional.ofNullable(change.getReplacement()).map(representer).orElse(null),
-                                Optional.ofNullable(change.getFrom()).map(offsetter).orElse(null),
-                                Optional.ofNullable(change.getTo()).map(offsetter).orElse(null)))
-                .toList();
+        return translate(
+                changes,
+                change -> change.offset(offset, grid));
+    }
+
+    private <Thing> List<Change<Long, Generic>> genericize(
+            List<Change<Long, Thing>> changes,
+            Map<Class<?>, String> classKinds
+    ) {
+        return translate(
+                changes,
+                change -> change.translate(thing -> Generic.encode(thing, classKinds)));
+    }
+
+    private <Id,Thing,Thang> List<Change<Id, Thang>> translate(
+            List<Change<Id, Thing>> changes,
+            Function<Change<Id,Thing>,Change<Id,Thang>> translator
+    ) {
+        return changes.stream().map(translator).toList();
     }
 
     private void write(String payload, Path path) {
@@ -215,6 +221,7 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     private void writeCompressed(String payload, Path path) {
+        log.info("Writing compressed pauyload {} to {}", payload.substring(0, 50), path);
         try {
             Files.createDirectories(path.getParent());
             String format = PathUtils.getExtension(path);

@@ -1,6 +1,7 @@
 package io.eiaun.shared.organisms.mover;
 
 import io.eiaun.shared.fakes.FakeOrganism;
+import io.eiaun.shared.fakes.FakeSubstanceFactory;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.organisms.Response;
 import io.eiaun.shared.physics.*;
@@ -43,10 +44,11 @@ class MoverGenomeTest {
 
     @Test
     void canEat() {
-        SubstanceFactory substanceFactory = mock(SubstanceFactory.class);
+        SubstanceFactory substanceFactory = new FakeSubstanceFactory();
         Jakku jakku = mock(Jakku.class);
         when(jakku.getSubstanceFactory()).thenReturn(substanceFactory);
         MoverGenome genome = make();
+        genome.setSubstanceFactory(substanceFactory);
         MoverState state = new MoverState(1234);
         Organism self = FakeOrganism.make(jakku);
         Response response = genome.respond(
@@ -62,7 +64,7 @@ class MoverGenomeTest {
         assertEquals(
                 List.of(
                         Change.destroy(DESIRABLE_SUBSTANCE.getId()),
-                        Change.create(METABOLITE, Location.ORIGIN)),
+                        Change.create(substanceFactory.make(METABOLITE), Location.ORIGIN)),
                 response.substanceChanges());
         assertTrue(response.organismChanges().isEmpty());
     }
