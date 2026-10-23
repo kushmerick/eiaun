@@ -68,11 +68,11 @@ class JakkuTest {
                     (substance, lat, lon) -> getSubstances().set(lat, lon, substance));
         }
 
+        @SafeVarargs
         private <Thing> void resetThings(
                 TwoD<Thing> things,
                 TriConsumer<Thing, Integer, Integer>... resetters
         ) {
-            getSubstances().clear();
             for (int lat: things.firstIndices()) {
                 for (int lon: things.secondIndices(lat)) {
                     Thing substance = things.get(lat, lon);
