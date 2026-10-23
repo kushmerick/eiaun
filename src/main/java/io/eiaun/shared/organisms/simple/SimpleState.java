@@ -2,4 +2,10 @@ package io.eiaun.shared.organisms.simple;
 
 import io.eiaun.shared.organisms.State;
 
-public class SimpleState extends State {}
+public class SimpleState extends State {
+
+    @Override public boolean equals(State ignored) {
+        return true;
+    }
+
+}

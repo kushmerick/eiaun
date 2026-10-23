@@ -25,7 +25,17 @@ public interface Snapshots {
 
     List<Change<Long,Organism>> getOrganismChanges(Path snapshot);
 
-    void stepTo(Path snapshot);
+    record StepToResult(boolean clean, String dirt) {
+        public static StepToResult CLEAN = new StepToResult(true, null);
+        public static StepToResult dirty(String dirt) {
+            return new StepToResult(false, dirt);
+        }
+        public boolean dirty() {
+            return !this.clean;
+        }
+    }
+
+    StepToResult stepTo(Path snapshot);
 
     TwoD<Organism> getOrganisms();
 

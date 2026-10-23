@@ -104,21 +104,27 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     }
 
     @Override
-    public void stepTo(Path snapshot) {
+    public StepToResult stepTo(Path snapshot) {
         long index = getSnapshotIndexAndTimestamp(snapshot).getLeft();
         if (index != this.nextSnapshotIndex) {
             throw new IllegalArgumentException(String.format("Expecting index %s but got %s: %s", this.nextSnapshotIndex, index, snapshot));
         }
         this.nextSnapshotIndex++;
+        String[] dirt = { null };
         this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
                 organisms -> {
-                    this.organisms = organisms;
-                    // TODO: Building the new index is a slow. If we ever get to
-                    // TODO: the point of fully trusting change-application to
-                    // TODO: perfectly track the organisms & substances, then we
-                    // TODO: could speed things a lot up by not loading the full
-                    // TODO: dumps at all!
-                    this.organismIndex = makeIndex(organisms, Organism::getId);
+                    if (this.organisms != null) {
+                        dirt[0] = this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState);
+                    }
+                    if (dirt[0] == null) {
+                        this.organisms = organisms;
+                        // TODO: Building the new index is a slow. If we ever get to
+                        // TODO: the point of fully trusting change-application to
+                        // TODO: perfectly track the organisms & substances, then we
+                        // TODO: could speed things a lot up by not loading the full
+                        // TODO: dumps at all!
+                        this.organismIndex = makeIndex(organisms, Organism::getId);
+                    }
                 },
                 () -> {
                     if (this.organisms == null) {
@@ -130,6 +136,9 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                             getOrganismChanges(snapshot),
                             organismIndex);
                 });
+        if (dirt[0] != null) {
+            return StepToResult.dirty(dirt[0]);
+        }
         this.fullDumpReader.maybeGetSubstances(snapshot).ifPresentOrElse(
                 this::setSubstances,
                 () -> {
@@ -141,6 +150,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                             Location.ORIGIN,
                             getSubstanceChanges(snapshot));
                 });
+        return dirt[0] == null ? StepToResult.CLEAN : StepToResult.dirty(dirt[0]);
     }
 
     private static <Id, Thing> Map<Id, Thing> makeIndex(

@@ -136,17 +136,22 @@ public class HomeView extends VerticalLayout {
             return; // seems weird  but we've seen it in the wild
         }
         try {
-            this.snaps.stepTo(snapshot);
+            Snapshots.StepToResult result = this.snaps.stepTo(snapshot);
             Pair<Long,Long> indexTimestamp = this.snaps.getSnapshotIndexAndTimestamp(snapshot);
             int organismChanges = this.snaps.getOrganismChanges(snapshot).size();
             int substanceChanges = this.snaps.getOrganismChanges(snapshot).size();
             int organisms = this.snaps.getOrganisms().firstIndices().size();
             int substances = this.snaps.getSubstances().firstIndices().size();
-            String display = String.format("%s (%s) %s organisms (%s changes); %s substance (%s changes)",
-                    indexTimestamp.getLeft(),
-                    AGO.describe(indexTimestamp.getRight()),
-                    organisms, organismChanges, substances, substanceChanges);
-            ui.access(() -> this.snapshotDisplay.setText(display));
+            String[] display = {
+                    String.format("%s (%s) %s organisms (%s changes); %s substance (%s changes)",
+                            indexTimestamp.getLeft(),
+                            AGO.describe(indexTimestamp.getRight()),
+                            organisms, organismChanges, substances, substanceChanges)
+            };
+            if (result.dirty()) {
+                display[0] += " - BUT " + result.dirt();
+            }
+            ui.access(() -> this.snapshotDisplay.setText(display[0]));
         } catch (Exception failure) {
             this.snapshotDisplay.setText("Oops! " + failure.getMessage());
             log.warn("Failure while updating snapshot display", failure);

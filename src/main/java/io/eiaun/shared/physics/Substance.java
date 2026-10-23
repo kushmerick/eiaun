@@ -12,4 +12,8 @@ public class Substance {
     @Getter private final Map<String, String> properties;
     @Getter private final String metabolite;
 
+    @Override public String toString() {
+        return "<S:" + this.id + ">";
+    }
+
 }

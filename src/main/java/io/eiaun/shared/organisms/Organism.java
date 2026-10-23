@@ -48,4 +48,8 @@ abstract public class Organism {
         return response;
     }
 
+    @Override public String toString() {
+        return "<O:" + this.id + ">";
+    }
+
 }

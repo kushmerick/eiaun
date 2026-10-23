@@ -66,20 +66,31 @@ public class TwoD<Thing> {
         return this.things.getOrDefault(i, Collections.emptyMap()).keySet();
     }
 
-    public <Id> boolean equals(TwoD<Thing> that, Function<Thing, Id> identifier) {
-        if (this == that) return true;
-        if (that == null) return false;
-        if (this.things.size() != that.things.size()) return false; // short-circuit
-        for (int i: this.firstIndices()) {
-            for (int j: this.secondIndices(i)) {
+    @SafeVarargs
+    public final String anyDiscrepancy(TwoD<Thing> that, Function<Thing,?>... getters) {
+        // TODO: make this 2-pass approach more efficient
+        String discrepancy = anyDiscrepancy2(that, getters);
+        if (discrepancy != null) return discrepancy;
+        return that.anyDiscrepancy2(this, getters);
+    }
+
+    @SafeVarargs
+    private String anyDiscrepancy2(TwoD<Thing> that, Function<Thing,?>... getters) {
+        for (int i : this.firstIndices()) {
+            for (int j : this.secondIndices(i)) {
                 Thing mine = this.get(i, j);
                 Thing yours = that.get(i, j);
-                if (yours == null || !Objects.equals(identifier.apply(mine), identifier.apply(yours))) {
-                    return false;
+                for (Function<Thing, ?> getter : getters) {
+                    Object m = mine == null ? null : getter.apply(mine);
+                    Object y = yours == null ? null : getter.apply(yours);
+                    if (!Objects.equals(m, y)) {
+                        return String.format("(%s,%s): %s/%s <> %s/%s", i, j, mine, m, yours, y);
+                    }
                 }
             }
         }
-        return true;
+        return null;
     }
+
 
 }

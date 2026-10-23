@@ -1,7 +1,5 @@
 package io.eiaun.shared.snapshot;
 
-import io.eiaun.shared.physics.ChangeApplier;
-import io.eiaun.shared.physics.SubstanceFactory;
 import io.eiaun.shared.util.Ago;
 import io.eiaun.shared.util.DirectoryWatcher;
 import io.eiaun.shared.util.DirectoryWatcher.Listener;
@@ -348,8 +346,8 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                             // This works only for the first snapshot, because we can't guarantee
                                             // that snapshots are enumerated in order.
                                             Snapshots snaps = FileSnapshots.of(recording);
-                                            snaps.stepTo(snapshot);
-                                            log.info("First snapshot: {} organisms, {} substances", snaps.getOrganisms().firstIndices().size(), snaps.getSubstances().firstIndices().size());
+                                            Snapshots.StepToResult result = snaps.stepTo(snapshot);
+                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snaps.getOrganisms().firstIndices().size(), snaps.getSubstances().firstIndices().size());
                                         }
                                     }));
                         }

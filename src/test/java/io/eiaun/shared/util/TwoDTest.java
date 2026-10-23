@@ -49,21 +49,4 @@ class TwoDTest {
         assertFalse(twod.contains(10, 20));
     }
 
-    @Test
-    void settingComputeEquality() {
-        TwoD<Integer> twod1 = new TwoD<>();
-        assertFalse(twod1.equals(null, Function.identity()));
-        TwoD<Integer> twod2 = new TwoD<>();
-        assertTrue(twod1.equals(twod2, Function.identity()));
-        twod1.set(10, 20, 30);
-        assertFalse(twod1.equals(twod2, Function.identity()));
-        twod2.set(50, 60, 70);
-        assertFalse(twod1.equals(twod2, Function.identity()));
-        twod2.remove(50, 60);
-        twod2.set(10, 20, 40);
-        assertFalse(twod1.equals(twod2, Function.identity()));
-        twod2.set(10, 20, 30);
-        assertTrue(twod1.equals(twod2, Function.identity()));
-    }
-
 }
