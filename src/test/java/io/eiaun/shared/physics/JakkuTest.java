@@ -315,10 +315,8 @@ class JakkuTest {
         substances.set(lat - 1, lon + 1, new FakeSubstance());
         jakku.resetSubstances(substances);
         State newState = new SimpleState();
-        Substance replacementSubstance = new FakeSubstance();
         List<Change<String,Substance>> substanceChanges = List.of(
-                Change.destroy(substances.get(lat + 1, lon - 1).getId(), Location.of(+1, -1)),
-                Change.replace(substances.get(lat - 1, lon + 1).getId(), replacementSubstance.getId(), Location.of(-1, +1)));
+                Change.destroy(substances.get(lat + 1, lon - 1).getId(), Location.of(+1, -1)));
         Organism baby = FakeOrganism.make(jakku);
         List<Change<Long,Organism>> organismChanges = List.of(
                 Change.destroy(organisms.get(lat + 1, lon + 1).getId(), Location.of(+1, +1)),
@@ -343,7 +341,6 @@ class JakkuTest {
                 .thenReturn(response);
         jakku.step(this.executor).join();
         assertNull(jakku.getSubstances().get(lat + 1, lon - 1));
-        assertEquals(replacementSubstance, jakku.getSubstances().get(lat - 1, lon + 1));
         assertNull(jakku.getOrganisms().get(lat + 1, lon + 1));
         assertEquals(organisms.get(lat - 1, lon - 1), jakku.getOrganisms().get(lat - 1, lon - 1));
         assertEquals(baby, jakku.getOrganisms().get(lat, lon - 1));

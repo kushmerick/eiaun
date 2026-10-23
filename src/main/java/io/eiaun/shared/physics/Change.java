@@ -18,7 +18,6 @@ public class Change<Id,Thing> {
         CREATE,
         MOVE,
         DESTROY,
-        REPLACE,
     }
 
     public static <Id,Thing> Change<Id,Thing> create(
@@ -52,17 +51,6 @@ public class Change<Id,Thing> {
         return new Change<>(Verb.MOVE, thing, thing, from, to, null);
     }
 
-    public static <Id,Thing> Change<Id,Thing> replace(
-            @NonNull Id original,
-            @NonNull Id replacement,
-            @NonNull Location location
-    ) {
-        if (Objects.equals(original, replacement)) {
-            throw new IllegalArgumentException("`original` and `replacement` can't be equal: " + original);
-        }
-        return new Change<>(Verb.REPLACE, original, replacement, location, location, null);
-    }
-
     Verb verb;      // expected fields:
     Id original;    // DESTROY, MOVE, REPLACE
     Id replacement; // MOVE, REPLACE
@@ -80,10 +68,6 @@ public class Change<Id,Thing> {
 
     public boolean isDestroy() {
         return this.verb == Verb.DESTROY;
-    }
-
-    public boolean isReplace() {
-        return this.verb == Verb.REPLACE;
     }
 
     public Change<Id,Thing> offset(Location offset, int grid) {

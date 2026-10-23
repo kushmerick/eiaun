@@ -100,24 +100,6 @@ public class ChangeApplier {
                     unindexer.accept(oldThing);
                     modified = true;
                 }
-            } else if (change.isReplace()) {
-                Location from = location.add(change.getFrom(), this.grid);
-                int lat = from.getLat();
-                int lon = from.getLon();
-                Thing current = things.get(lat, lon);
-                Thing original = resolver.apply(change.getOriginal());
-                Thing replacement = resolver.apply(change.getReplacement());
-                if (!mutable || !Objects.equals(current, original) || Objects.equals(current, replacement)) {
-                    // replace immutable thing,
-                    // or original is already gone,
-                    // or no-op (already replaced)
-                    rejected = true;
-                } else {
-                    things.set(lat, lon, replacement);
-                    unindexer.accept(original);
-                    indexer.accept(replacement);
-                    modified = true;
-                }
             } else if (change.isMove()) {
                 Location from = location.add(change.getFrom(), this.grid);
                 int flat = from.getLat();

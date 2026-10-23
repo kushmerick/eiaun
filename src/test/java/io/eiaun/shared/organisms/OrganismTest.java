@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class OrganismTest {
 
@@ -18,13 +17,13 @@ class OrganismTest {
                 Collections.emptyList(),
                 Collections.emptyList());
         Organism organism = FakeOrganism.make(null, response);
-        assertNotEquals(response.newState(), organism.getState());
+        assertNotSame(response.newState(), organism.getState());
         organism.respond(
                 null,
                 Collections.emptySet(),
                 Collections.emptyMap(),
                 Collections.emptyMap());
-        assertEquals(response.newState(), organism.getState());
+        assertSame(response.newState(), organism.getState());
     }
 
 }
