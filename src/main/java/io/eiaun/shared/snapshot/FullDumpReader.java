@@ -36,9 +36,9 @@ public class FullDumpReader {
         this.substanceFactory = substanceFactory;
     }
 
-    public Optional<TwoD<Organism>> maybeGetOrganisms(Path snapshot) {
+    public Optional<TwoD<Organism>> maybeGetOrganisms(Path path) {
         Optional<TwoD<Organism>> maybeOrganisms = maybeGetThings(
-                snapshot.resolve(FileSnapshotReader.ORGANISMS_DOT + this.compression),
+                path.resolve(FileSnapshotReader.ORGANISMS_DOT + this.compression),
                 generic -> generic.decode(Organism.KIND_ORGANISMS),
                 new TypeRef<Map<String, Map<String, Generic>>>() {});
         // organisms are serialized without a substance factory (to massively shrink the size
@@ -54,14 +54,14 @@ public class FullDumpReader {
         return maybeOrganisms;
     }
 
-    public Optional<TwoD<Substance>> maybeGetSubstances(Path snapshot) {
+    public Optional<TwoD<Substance>> maybeGetSubstances(Path path) {
         return maybeGetThings(
-                snapshot.resolve(FileSnapshotReader.SUBSTANCES_DOT + this.compression),
+                path.resolve(FileSnapshotReader.SUBSTANCES_DOT + this.compression),
                 this.substanceFactory::make,
                 new TypeRef<Map<String, Map<String, String>>>() {});
     }
 
-    private <Thing, Representation> Optional<TwoD<Thing>> maybeGetThings(
+    private static <Thing, Representation> Optional<TwoD<Thing>> maybeGetThings(
             Path thingsPath,
             Function<Representation, Thing> transformer,
             TypeRef<Map<String,Map<String,Representation>>> typeRef
@@ -84,7 +84,7 @@ public class FullDumpReader {
         }
     }
 
-    String readCompressed(Path path) {
+    private static String readCompressed(Path path) {
         try {
             String format = PathUtils.getExtension(path);
             try (var compressed = Files.newInputStream(path);

@@ -1,6 +1,7 @@
 package io.eiaun.shared.physics;
 
 import io.eiaun.shared.physics.Location;
+import io.eiaun.shared.util.JSON;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +29,14 @@ class LocationTest {
         double distance = Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
         assertEquals(distance, Location.of(lat1, lon1).distance(Location.of(lat2, lon2)));
         assertEquals(distance, Location.of(lat2, lon2).distance(Location.of(lat1, lon1)));
+    }
+
+    @Test
+    public void canRoundTripWithJSON() {
+        Location l1 = Location.of(123, 456);
+        String json = JSON.toJson(l1);
+        Location l2 = JSON.fromJson(json, Location.class);
+        assertEquals(l1.toString(), l2.toString());
     }
 
 }

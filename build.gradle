@@ -2,7 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'com.vaadin' version '25.3.0'
+	id 'com.vaadin' version '25.3.3'
 }
 
 group = 'io.osowa'
@@ -19,7 +19,9 @@ ext {
 	zstdVersion = '1.5.7-16'
 	gsonVersion = '2.14.0'
 	foryJsonVersion = '1.7.3'
-	vaadinVersion = '25.3.0'
+	vaadinVersion = '25.3.3'
+	vaadinSvgVersion = '3.0.0'
+	vaadinBrowserlessTestVersion = '25.3.2'
 	awaitilityVersion = '4.3.0'
 }
 
@@ -31,6 +33,7 @@ java {
 
 repositories {
 	mavenCentral()
+	maven { url = uri("https://maven.vaadin.com/vaadin-addons") }
 }
 
 dependencies {
@@ -52,8 +55,9 @@ dependencies {
 	implementation "com.vaadin:vaadin-core:${vaadinVersion}"
 	implementation "com.vaadin:vaadin-spring-boot-starter:${vaadinVersion}"
 	implementation "com.vaadin:vaadin-dev:${vaadinVersion}"
+	implementation "com.vaadin.componentfactory:svg:${vaadinSvgVersion}"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation "com.vaadin:browserless-test-spring:${vaadinVersion}"
+	testImplementation "com.vaadin:browserless-test-spring:${vaadinBrowserlessTestVersion}"
 	testImplementation "org.awaitility:awaitility:${awaitilityVersion}"
 	testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
 	testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"

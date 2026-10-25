@@ -1,8 +1,8 @@
 package io.eiaun.shared.physics;
 
-import lombok.Value;
+import lombok.Data;
 
-@Value
+@Data
 public class Location {
 
     public static final Location ORIGIN = Location.of(0, 0);

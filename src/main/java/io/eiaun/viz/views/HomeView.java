@@ -6,8 +6,10 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.listbox.ListBox;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.svg.elements.SvgElement;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.eiaun.shared.snapshot.FileSnapshots;
@@ -15,6 +17,7 @@ import io.eiaun.shared.snapshot.SnapshotReader;
 import io.eiaun.shared.snapshot.Snapshots;
 import io.eiaun.shared.util.Ago;
 import io.eiaun.shared.util.DirectoryWatcher;
+import io.eiaun.viz.atlas.Atlas;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +30,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 @Route("")
 @PageTitle("VIZ: Home")
@@ -51,6 +51,7 @@ public class HomeView extends VerticalLayout {
     private final Paragraph snapshotDisplay = new Paragraph();
     private AutoCloseable recordingsCloser = null;
     private AutoCloseable snapshotsCloser = null;
+    private Atlas atlas;
 
     @Autowired
     public HomeView(
@@ -73,7 +74,7 @@ public class HomeView extends VerticalLayout {
                 // TODO: But if it does, getSnapshotIndexAndTimestamp could be made static
                 return "this should never happen";
             }
-            Pair<Long,Long> indexTimestamp = this.snaps.getSnapshotIndexAndTimestamp(snapshot);
+            Pair<Long, Long> indexTimestamp = this.snaps.getSnapshotIndexAndTimestamp(snapshot);
             long index = indexTimestamp.getLeft();
             long timestamp = indexTimestamp.getRight();
             return index + ": " + YMDHMS.format(LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneOffset.UTC)) + " (" + AGO.describe(timestamp) + ")";
@@ -96,10 +97,10 @@ public class HomeView extends VerticalLayout {
             this.recordingsCloser = snapshotReader.watchRecordings(
                     DirectoryWatcher.Listener.ifCreate(recording ->
                             ui.access(() -> {
-                                recordings.add(recording);
+                                this.recordings.add(recording);
                                 Path selected = recordingsMenu.getValue();
-                                recordingsMenu.setItems(recordings);
-                                if (selected != null) recordingsMenu.setValue(selected);
+                                this.recordingsMenu.setItems(recordings);
+                                if (selected != null) this.recordingsMenu.setValue(selected);
                             })));
         } catch (IOException failure) {
             throw new UncheckedIOException("Failure while watching recordings", failure);
@@ -118,6 +119,10 @@ public class HomeView extends VerticalLayout {
             }
             this.snapshots.clear();
             this.snaps = FileSnapshots.of(recording);
+            if (this.atlas != null) {
+                remove(this.atlas.get());
+            }
+            this.atlas = new Atlas(this.snaps);
             ui.access(() -> snapshotsMenu.setItems(Collections.emptyList()));
             this.snapshotsCloser = this.snapshotReader.watchSnapshots(
                     recording,
@@ -133,27 +138,30 @@ public class HomeView extends VerticalLayout {
 
     private void updateSnapshotDisplay(UI ui, Path snapshot) {
         if (snapshot == null) {
-            return; // seems weird  but we've seen it in the wild
+            return; // seems weird but we've seen it in the wild
         }
         try {
-            Snapshots.StepToResult result = this.snaps.stepTo(snapshot);
             Pair<Long,Long> indexTimestamp = this.snaps.getSnapshotIndexAndTimestamp(snapshot);
-            int organismChanges = this.snaps.getOrganismChanges(snapshot).size();
-            int substanceChanges = this.snaps.getOrganismChanges(snapshot).size();
-            int organisms = this.snaps.getOrganisms().firstIndices().size();
-            int substances = this.snaps.getSubstances().firstIndices().size();
+            int organismChanges = this.snaps.getSnapshotOrganismChanges(snapshot).size();
+            int substanceChanges = this.snaps.getSnapshotSubstanceChanges(snapshot).size();
+            int organisms = Optional.ofNullable(this.snaps.getOrganisms()).map(o -> o.firstIndices().size()).orElse(-123);
+            int substances = Optional.ofNullable(this.snaps.getSubstances()).map(s -> s.firstIndices().size()).orElse(-123);
             String[] display = {
                     String.format("%s (%s) %s organisms (%s changes); %s substance (%s changes)",
                             indexTimestamp.getLeft(),
                             AGO.describe(indexTimestamp.getRight()),
                             organisms, organismChanges, substances, substanceChanges)
             };
-            if (result.dirty()) {
-                display[0] += " - BUT " + result.dirt();
-            }
             ui.access(() -> this.snapshotDisplay.setText(display[0]));
+            // Atlas!
+            ui.access(() -> remove(atlas.get())); // is this needed / is there a better/correct way to refresh?
+            Snapshots.StepToResult result = this.atlas.stepTo(snapshot);
+            if (result.dirty()) {
+                Notification.show(result.dirt());
+            }
+            ui.access(() -> add(atlas.get()));
         } catch (Exception failure) {
-            this.snapshotDisplay.setText("Oops! " + failure.getMessage());
+            Notification.show("Oops! " + failure.getMessage());
             log.warn("Failure while updating snapshot display", failure);
         }
     }

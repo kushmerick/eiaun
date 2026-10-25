@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static io.eiaun.shared.organisms.Organism.KIND_ORGANISMS;
@@ -40,29 +41,38 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     // changed, since this default is so effective.
     private static final String COMPRESSION = ZSTANDARD;
 
-    private static final TypeRef<List<Change<Long,Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
-    private static final TypeRef<List<Change<String,Substance>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
+    private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {
+    };
+    private static final TypeRef<List<Change<String, Substance>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {
+    };
 
     private final Path recording;
-    @Getter private final Physics physics;
-    @Getter private final Config config;
+    @Getter
+    private final Physics physics;
+    @Getter
+    private final Config config;
+    private final SubstanceFactory substanceFactory;
     private final FullDumpReader fullDumpReader;
     private final ChangeApplier changeApplier;
 
     private int nextSnapshotIndex = 0;
+    private Path snapshot;
     @Getter private TwoD<Organism> organisms = null;
-    private Map<Long,Organism> organismIndex = null;
+    private Map<Long, Organism> organismIndex = null;
     @Getter @Setter(AccessLevel.PRIVATE) private TwoD<Substance> substances = null;
 
     private FileSnapshots(Path recording) {
         this.recording = recording;
         this.physics = loadRecordingMetadata(PHYSICS, Physics.class);
         this.config = loadRecordingMetadata(CONFIG, Config.class);
-        this.fullDumpReader = new FullDumpReader(COMPRESSION, new SubstanceFactory(this.physics.getSubstanceSpecs().values()));
+        this.substanceFactory = new SubstanceFactory(this.physics.getSubstanceSpecs().values());
+        this.fullDumpReader = new FullDumpReader(COMPRESSION, this.substanceFactory);
+        this.organisms = this.fullDumpReader.maybeGetOrganisms(recording).orElseThrow(() -> new RuntimeException("Missing initial organisms full dump"));
+        this.organismIndex = makeIndex(organisms, Organism::getId);
+        this.substances = this.fullDumpReader.maybeGetSubstances(recording).orElseThrow(() -> new RuntimeException("Missing initial substances full dump"));
         this.changeApplier = new ChangeApplier(
                 this.config.getGrid(),
-                log::info,
-                new SubstanceFactory(this.physics.getSubstanceSpecs().values()));
+                log::info);
     }
 
     private <T> T loadRecordingMetadata(String metadata, Class<T> clazz) {
@@ -76,46 +86,25 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         return parse(this.recording, YMDHMSS).get();
     }
 
-    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
     @Override
-    public Pair<Long,Long> getSnapshotIndexAndTimestamp(Path snapshot) {
-        return parseSnapshot(snapshot).get();
-    }
-
-    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
-    @Override
-    public List<Change<String,Substance>> getSubstanceChanges(Path snapshot) {
-        return Functionals.get(() -> JSON.fromJson(
-                        Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
-                        SUBSTANCE_CHANGES_TYPE))
-                .stream()
-                .toList();
-    }
-
-    // TODO: Consider removing `snapshot` parameter, use most recent step-to.
-    @Override
-    public List<Change<Long,Organism>> getOrganismChanges(Path snapshot) {
-        return Functionals.get(() -> JSON.fromJson(
-                        Files.readString(snapshot.resolve(ORGANISM_CHANGES)),
-                        ORGANISM_CHANGES_TYPE))
-                .stream()
-                .map(change -> change.translate(generic -> (Organism) generic.decode(KIND_ORGANISMS)))
-                .toList();
-    }
-
-    @Override
-    public StepToResult stepTo(Path snapshot) {
+    public StepToResult stepTo(
+            Path snapshot,
+            BiConsumer<Location, Organism> organismCreatedCallback,
+            BiConsumer<Location, Organism> organismDestroyedCallback,
+            BiConsumer<Location, Substance> substanceCreatedCallback,
+            BiConsumer<Location, Substance> substanceDestroyedCallback
+    ) {
         long index = getSnapshotIndexAndTimestamp(snapshot).getLeft();
         if (index != this.nextSnapshotIndex) {
             throw new IllegalArgumentException(String.format("Expecting index %s but got %s: %s", this.nextSnapshotIndex, index, snapshot));
         }
         this.nextSnapshotIndex++;
-        String[] dirt = { null };
+        this.snapshot = snapshot;
+        String[] dirt = {null};
         this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
                 organisms -> {
-                    if (this.organisms != null) {
-                        dirt[0] = this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState);
-                    }
+                    // sanity check: ensure the current organisms
+                    dirt[0] = this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState);
                     if (dirt[0] == null) {
                         this.organisms = organisms;
                         // TODO: Building the new index is a slow. If we ever get to
@@ -126,31 +115,73 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                         this.organismIndex = makeIndex(organisms, Organism::getId);
                     }
                 },
-                () -> {
-                    if (this.organisms == null) {
-                        throw new IllegalStateException("Missing index 0 organisms full dump");
-                    }
-                    this.changeApplier.changeOrganisms(
-                            this.organisms,
-                            Location.ORIGIN,
-                            getOrganismChanges(snapshot),
-                            organismIndex);
-                });
+                () -> this.changeApplier.changeOrganisms(
+                        this.organisms,
+                        Location.ORIGIN, // recorded changes are absolute not relative
+                        getSnapshotOrganismChanges(),
+                        this.organismIndex::get,
+                        (location, organism) -> {
+                            this.organismIndex.put(organism.getId(), organism);
+                            organismCreatedCallback.accept(location, organism);
+                        },
+                        (location, organism) -> {
+                            this.organismIndex.remove(organism.getId());
+                            organismDestroyedCallback.accept(location, organism);
+                        }));
         if (dirt[0] != null) {
             return StepToResult.dirty(dirt[0]);
         }
         this.fullDumpReader.maybeGetSubstances(snapshot).ifPresentOrElse(
                 this::setSubstances,
-                () -> {
-                    if (this.substances == null) {
-                        throw new IllegalStateException("Missing index 0 substances full dump");
-                    }
-                    this.changeApplier.changeSubstances(
-                            this.substances,
-                            Location.ORIGIN,
-                            getSubstanceChanges(snapshot));
-                });
+                () -> this.changeApplier.changeSubstances(
+                        this.substances,
+                        Location.ORIGIN, // recorded changes are absolute not relative
+                        getSnapshotSubstanceChanges(),
+                        this.substanceFactory::make,
+                        substanceCreatedCallback,
+                        substanceDestroyedCallback));
         return dirt[0] == null ? StepToResult.CLEAN : StepToResult.dirty(dirt[0]);
+    }
+
+    @Override
+    public Pair<Long, Long> getSnapshotIndexAndTimestamp() {
+        return getSnapshotIndexAndTimestamp(this.snapshot);
+    }
+
+    @Override
+    public Pair<Long, Long> getSnapshotIndexAndTimestamp(Path snapshot) {
+        return parseSnapshot(snapshot).get();
+    }
+
+    @Override
+    public List<Change<String, Substance>> getSnapshotSubstanceChanges() {
+        return getSnapshotSubstanceChanges(this.snapshot);
+    }
+
+    @Override
+    public List<Change<String, Substance>> getSnapshotSubstanceChanges(Path snapshot) {
+        return Functionals.get(() -> JSON.fromJson(
+                        Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
+                        SUBSTANCE_CHANGES_TYPE))
+                .stream()
+                .toList();
+    }
+
+    public List<Change<Long, Organism>> getSnapshotOrganismChanges() {
+        return getSnapshotOrganismChanges(this.snapshot);
+    }
+
+    public List<Change<Long, Organism>> getSnapshotOrganismChanges(Path snapshot) {
+        return Functionals.get(() -> JSON.fromJson(
+                        Files.readString(snapshot.resolve(ORGANISM_CHANGES)),
+                        ORGANISM_CHANGES_TYPE))
+                .stream()
+                .map(change -> change.translate(generic -> {
+                    Organism organism = generic.decode(KIND_ORGANISMS);
+                    organism.getGenome().setSubstanceFactory(this.substanceFactory);
+                    return organism;
+                }))
+                .toList();
     }
 
     private static <Id, Thing> Map<Id, Thing> makeIndex(
@@ -158,8 +189,8 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             Function<Thing, Id> identifier
     ) {
         Map<Id, Thing> index = new HashMap<>();
-        for (int lat: things.firstIndices()) {
-            for (int lon: things.secondIndices(lat)) {
+        for (int lat : things.firstIndices()) {
+            for (int lon : things.secondIndices(lat)) {
                 Thing thing = things.get(lat, lon);
                 if (thing != null) { // guard against race conditions
                     index.put(identifier.apply(thing), thing);

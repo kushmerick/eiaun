@@ -99,7 +99,7 @@ public class Change<Id,Thing> {
         return new Change<>(
                 this.verb,
                 this.original,
-                this.replacement ,
+                this.replacement,
                 this.from,
                 this.to,
                 this.baby == null ? null : translator.apply(this.baby),

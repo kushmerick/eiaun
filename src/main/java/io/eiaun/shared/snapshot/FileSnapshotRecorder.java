@@ -87,13 +87,14 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             log.trace("Snapshots disabled");
             return null;
         }
+        List<Runnable> fileWrites = new ArrayList<>();
         if (!wrotePreamble) {
-            // no need to make this small file write asynchronous
-            writePreamble(jakku, this.recordingsPath);
+            fileWrites.add(() -> writePreamble(jakku, this.recordingsPath));
             wrotePreamble = true;
         }
         long snapshotId = this.snapshotCounter++;
-        boolean dump = snapshotId % this.dumpInterval == 0;
+        // take a full dump every `dumpInterval` snapshots
+        boolean dump = (snapshotId % this.dumpInterval) == (this.dumpInterval - 1);
         long snapshotTimestamp = System.currentTimeMillis();
         Path snapshotPath = this.recordingsPath.resolve(
                 Path.of(SNAPSHOTS,
@@ -101,7 +102,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
                         formatYMDHM(snapshotTimestamp),
                         formatYMDHMSS(snapshotTimestamp),
                         formatSnapshot(snapshotId, snapshotTimestamp)));
-        List<Runnable> fileWrites = new ArrayList<>();
         if (dump) {
             fileWrites.add(() -> writeOrganisms(jakku.getOrganisms(), snapshotPath));
             fileWrites.add(() -> writeSubstances(jakku.getSubstances(), snapshotPath));
@@ -124,6 +124,8 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
                 path.resolve(PHYSICS));
         write(JSON.toJson(Config.from(jakku)),
                 path.resolve(CONFIG));
+        writeOrganisms(jakku.getOrganisms(), path);
+        writeSubstances(jakku.getSubstances(), path);
     }
 
     private void writeOrganisms(
@@ -221,7 +223,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     }
 
     private void writeCompressed(String payload, Path path) {
-        log.info("Writing compressed pauyload {} to {}", payload.substring(0, 50), path);
         try {
             Files.createDirectories(path.getParent());
             String format = PathUtils.getExtension(path);

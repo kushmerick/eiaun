@@ -7,6 +7,7 @@ import org.apache.commons.lang3.function.FailableCallable;
 import org.apache.commons.lang3.function.FailableRunnable;
 
 import java.io.IOException;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @UtilityClass
@@ -48,8 +49,8 @@ public class Functionals {
         }
     }
 
-    public static <Thing> Consumer<Thing> noop() {
-        return thing -> {};
+    public static <T,U> BiConsumer<T,U> noop() {
+        return (_, _) -> {};
     }
 
 }

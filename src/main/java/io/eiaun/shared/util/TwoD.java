@@ -3,6 +3,7 @@ package io.eiaun.shared.util;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import org.apache.commons.lang3.function.TriConsumer;
 
 import java.util.Collections;
 import java.util.Map;
@@ -64,6 +65,14 @@ public class TwoD<Thing> {
 
     public Set<Integer> secondIndices(int i) {
         return this.things.getOrDefault(i, Collections.emptyMap()).keySet();
+    }
+
+    public void forEach(TriConsumer<Integer, Integer, Thing> consumer) {
+        for (int i : this.firstIndices()) {
+            for (int j : this.secondIndices(i)) {
+                consumer.accept(i, j, get(i, j));
+            }
+        }
     }
 
     @SafeVarargs

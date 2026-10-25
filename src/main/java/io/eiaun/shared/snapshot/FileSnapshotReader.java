@@ -338,16 +338,15 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                         log.info("Snapshot {} {} ({} org changes; {} sub changes): {}",
                                                 index,
                                                 ago.describe(indexTimestamp.getRight()),
-                                                snapshots.getOrganismChanges(snapshot).size(),
-                                                snapshots.getSubstanceChanges(snapshot).size(),
+                                                snapshots.getSnapshotOrganismChanges(snapshot).size(),
+                                                snapshots.getSnapshotSubstanceChanges(snapshot).size(),
                                                 snapshot);
                                         if (index == 0) {
                                             // Just for fun, demonstrate loading organisms from a full dump.
                                             // This works only for the first snapshot, because we can't guarantee
                                             // that snapshots are enumerated in order.
-                                            Snapshots snaps = FileSnapshots.of(recording);
-                                            Snapshots.StepToResult result = snaps.stepTo(snapshot);
-                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snaps.getOrganisms().firstIndices().size(), snaps.getSubstances().firstIndices().size());
+                                            Snapshots.StepToResult result = snapshots.stepTo(snapshot);
+                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snapshots.getOrganisms().firstIndices().size(), snapshots.getSubstances().firstIndices().size());
                                         }
                                     }));
                         }

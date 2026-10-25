@@ -2,6 +2,7 @@ package io.eiaun.shared.physics;
 
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
+import io.eiaun.shared.util.Functionals;
 import io.eiaun.shared.util.TwoD;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -70,8 +71,7 @@ public class Jakku {
         this.rejectedChangeRecorder = rejectedChangeRecorder;
         this.changeApplier = new ChangeApplier(
                 this.grid,
-                this.rejectedChangeRecorder,
-                this.substanceFactory);
+                this.rejectedChangeRecorder);
         this.snapshotRecorder = snapshotRecorder;
     }
 
@@ -164,12 +164,17 @@ public class Jakku {
                                 this.changeApplier.changeSubstances(
                                         this.substances,
                                         location,
-                                        changes.substanceChanges());
+                                        changes.substanceChanges(),
+                                        this.substanceFactory::make,
+                                        Functionals.noop(),
+                                        Functionals.noop());
                                 if (this.changeApplier.changeOrganisms(
                                         this.organisms,
                                         location,
                                         changes.organismChanges(),
-                                        this.organismIndex)
+                                        this.organismIndex::get,
+                                        Functionals.noop(),
+                                        Functionals.noop())
                                 ) {
                                     updateOrganismLocationsIterator();
                                 }

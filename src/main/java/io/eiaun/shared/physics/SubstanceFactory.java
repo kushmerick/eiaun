@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 public class SubstanceFactory {
 
-    private final Random random = new Random();
+    private static final Random RANDOM = new Random();
 
     // the singleton cache must be synchronized, because during the simulation
     // organisms may be creating substances concurrently
@@ -41,7 +41,7 @@ public class SubstanceFactory {
     }
 
     public Substance make() {
-        double threshold = this.random.nextDouble();
+        double threshold = RANDOM.nextDouble();
         double cumulative = 0;
         for (SubstanceSpec spec: this.substanceSpecs.values()) {
             cumulative += spec.abundance;

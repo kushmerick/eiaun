@@ -2,13 +2,11 @@ package io.eiaun.shared.physics;
 
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.organisms.State;
-import io.eiaun.shared.util.Functionals;
 import io.eiaun.shared.util.Generic;
 import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -19,48 +17,48 @@ public class ChangeApplier {
 
     private final int grid;
     private final Consumer<String> rejectedChangeRecorder;
-    private final SubstanceFactory substanceFactory;
 
     public ChangeApplier(
             int grid,
-            Consumer<String> rejectedChangeRecorder,
-            SubstanceFactory substanceFactory
+            Consumer<String> rejectedChangeRecorder
     ) {
         this.grid = grid;
         this.rejectedChangeRecorder = rejectedChangeRecorder;
-        this.substanceFactory = substanceFactory;
     }
 
     public void changeSubstances(
             TwoD<Substance> substances,
             Location location,
-            List<Change<String,Substance>> substanceChanges
+            List<Change<String,Substance>> changes,
+            Function<String,Substance> resolver,
+            BiConsumer<Location, Substance>  createdCallback,
+            BiConsumer<Location, Substance>  destroyedCallback
     ) {
         changeThings("substance",
                 location,
-                substanceChanges,
+                changes,
                 substances,
-                true,
-                this.substanceFactory::make,
-                Functionals.noop(),
-                Functionals.noop(),
+                resolver,
+                createdCallback,
+                destroyedCallback,
                 null);
     }
 
     public boolean changeOrganisms(
             TwoD<Organism> organisms,
             Location location,
-            List<Change<Long,Organism>> organismChanges,
-            Map<Long, Organism> index
+            List<Change<Long,Organism>> changes,
+            Function<Long,Organism> resolver,
+            BiConsumer<Location, Organism>  createdCallback,
+            BiConsumer<Location, Organism>  destroyedCallback
     ) {
         return changeThings("organism",
                 location,
-                organismChanges,
+                changes,
                 organisms,
-                false,
-                index::get,
-                organism -> index.put(organism.getId(), organism),
-                organism -> index.remove(organism.getId()),
+                resolver,
+                createdCallback,
+                destroyedCallback,
                 (organism, state) -> organism.setState(state.decode(State.KIND_STATES)));
     }
 
@@ -69,13 +67,10 @@ public class ChangeApplier {
             Location location,
             List<Change<Id,Thing>> changes,
             TwoD<Thing> things,
-            // A Substance can be changed to a different substance,
-            // but an Organism cannot be changed to a different organism
-            boolean mutable,
             // three methods related to mapping Id to Thing (and updating the backing index for organisms)
             Function<Id, Thing> resolver,
-            Consumer<Thing> indexer,
-            Consumer<Thing> unindexer,
+            BiConsumer<Location, Thing> createdCallback,
+            BiConsumer<Location, Thing> destroyedCallback,
             // Just for Organisms: state updating function
             BiConsumer<Thing, Generic> stateUpdater
     ) {
@@ -90,8 +85,9 @@ public class ChangeApplier {
                     // another thing is already at the destination
                     rejected = true;
                 } else {
-                    things.set(lat, lon, change.getBaby());
-                    indexer.accept(change.getBaby());
+                    Thing baby = change.getBaby();
+                    things.set(lat, lon, baby);
+                    createdCallback.accept(to, baby);
                     modified = true;
                 }
             } else if (change.isDestroy()) {
@@ -104,7 +100,7 @@ public class ChangeApplier {
                     rejected = true;
                 } else {
                     things.remove(lat, lon);
-                    unindexer.accept(oldThing);
+                    destroyedCallback.accept(from, oldThing);
                     modified = true;
                 }
             } else if (change.isMove()) {
@@ -122,8 +118,9 @@ public class ChangeApplier {
                     rejected = true;
                 } else {
                     things.remove(flat, flon);
+                    destroyedCallback.accept(from, thing);
                     things.set(tlat, tlon, thing);
-                    // just a move so no need to invoke indexer or unindexer
+                    createdCallback.accept(to, thing);
                     modified = true;
                 }
             } else if (change.isUpdate()) {
@@ -138,7 +135,7 @@ public class ChangeApplier {
                     stateUpdater.accept(thing, change.getState());
                 }
             } else {
-                log.warn(String.format("Gibberish change: %s", change));
+                log.warn("Gibberish change: {}", change);
                 rejected = true;
             }
             if (rejected) {
