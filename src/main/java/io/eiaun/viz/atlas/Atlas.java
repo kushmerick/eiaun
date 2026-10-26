@@ -9,23 +9,24 @@ import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.physics.Substance;
 import io.eiaun.shared.snapshot.Snapshots;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public class Atlas implements Supplier<Svg> {
 
     private static final RandomStringUtils RANDOM_STRINGS = RandomStringUtils.secure();
 
-    private final int ORGANISM_RADIUS = 5;
+    private final int ORGANISM_RADIUS = 2;
     private final String ORGANISM_COLOR = "green";
 
-    private final int SUBSTANCE_SIZE = 5;
+    private final int SUBSTANCE_SIZE = 4;
     private final String SUBSTANCE_COLOR = "orange";
+
+    private final int UNIT = Math.max(ORGANISM_RADIUS, SUBSTANCE_SIZE);
+    private final int JIGGLE = 1; // offset substance so looks nicer in case it is co-located with an organism
 
     private final Snapshots snapshots;
     private final Svg atlas;
@@ -37,7 +38,10 @@ public class Atlas implements Supplier<Svg> {
 
     public Atlas(Snapshots snapshots) {
         this.snapshots = snapshots;
+        int grid = this.snapshots.getConfig().getGrid();
         this.atlas = new Svg();
+        int size = (grid + 1) * UNIT + JIGGLE;
+        this.atlas.viewbox(0, 0, size, size);
         this.icons = new HashMap<>();
     }
 
@@ -81,11 +85,11 @@ public class Atlas implements Supplier<Svg> {
         String id = substanceIconId(lat, lon, substance);
         Rect icon = new Rect(id, SUBSTANCE_SIZE, SUBSTANCE_SIZE);
         icon.setFillColor(SUBSTANCE_COLOR);
-        addIcon(icon, lat, lon);
+        addIcon(icon, lat + JIGGLE, lon + JIGGLE);
     }
 
     private void addIcon(SvgElement icon, int lat, int lon) {
-        icon.move(lat, lon);
+        icon.move(lat * UNIT, lon * UNIT);
         this.atlas.add(icon);
         this.icons.put(icon.getId(), icon);
     }

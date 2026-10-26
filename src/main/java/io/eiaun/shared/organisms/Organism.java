@@ -48,7 +48,7 @@ abstract public class Organism {
     }
 
     @Override public String toString() {
-        return "<O:" + this.id + ">";
+        return "<Org:" + this.id + ">";
     }
 
 }

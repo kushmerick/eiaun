@@ -169,7 +169,10 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             int grid,
             Path path
     ) {
-        write(JSON.toJson(genericize(offset(organismChanges, offset, grid), ORGANISM_KINDS)),
+        write(JSON.toJson(
+                translate(
+                        offset(organismChanges, offset, grid),
+                        change -> change.translate(organism -> Generic.encode(organism, ORGANISM_KINDS)))),
                 path.resolve(ORGANISM_CHANGES));
     }
 
@@ -179,7 +182,10 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             int grid,
             Path path
     ) {
-        write(JSON.toJson(offset(substanceChanges, offset, grid)),
+        write(JSON.toJson(
+                translate(
+                        offset(substanceChanges, offset, grid),
+                        change -> change.translate(Substance::getId))),
                 path.resolve(SUBSTANCE_CHANGES));
     }
 
@@ -195,15 +201,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
         return translate(
                 changes,
                 change -> change.offset(offset, grid));
-    }
-
-    private <Thing> List<Change<Long, Generic>> genericize(
-            List<Change<Long, Thing>> changes,
-            Map<Class<?>, String> classKinds
-    ) {
-        return translate(
-                changes,
-                change -> change.translate(thing -> Generic.encode(thing, classKinds)));
     }
 
     private <Id,Thing,Thang> List<Change<Id, Thang>> translate(

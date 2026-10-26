@@ -9,7 +9,7 @@ import com.vaadin.flow.component.listbox.ListBox;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.svg.elements.SvgElement;
+import com.vaadin.flow.component.svg.Svg;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import io.eiaun.shared.snapshot.FileSnapshots;
@@ -159,7 +159,9 @@ public class HomeView extends VerticalLayout {
             if (result.dirty()) {
                 Notification.show(result.dirt());
             }
-            ui.access(() -> add(atlas.get()));
+            Svg theAtlas = atlas.get();
+            theAtlas.setWidth(30, Unit.CM);
+            ui.access(() -> add(theAtlas));
         } catch (Exception failure) {
             Notification.show("Oops! " + failure.getMessage());
             log.warn("Failure while updating snapshot display", failure);

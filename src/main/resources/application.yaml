@@ -13,7 +13,7 @@ eiaun:
       compression: zstd
       dump_interval: 100
   jakku:
-    grid: 1000
+    grid: 100
     organisms:
       density: 0.4
       # type: io.eiaun.shared.organisms.simple.SimpleOrganism

@@ -13,7 +13,7 @@ public class Substance {
     @Getter private final String metabolite;
 
     @Override public String toString() {
-        return "<S:" + this.id + ">";
+        return "<Sub:" + this.id + ">";
     }
 
 }

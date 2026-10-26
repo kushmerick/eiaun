@@ -41,10 +41,8 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     // changed, since this default is so effective.
     private static final String COMPRESSION = ZSTANDARD;
 
-    private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {
-    };
-    private static final TypeRef<List<Change<String, Substance>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {
-    };
+    private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
+    private static final TypeRef<List<Change<String, String>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
 
     private final Path recording;
     @Getter
@@ -164,6 +162,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                         Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
                         SUBSTANCE_CHANGES_TYPE))
                 .stream()
+                .map(change -> change.translate(this.substanceFactory::make))
                 .toList();
     }
 
