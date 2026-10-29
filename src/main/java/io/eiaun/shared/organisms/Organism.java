@@ -47,6 +47,7 @@ abstract public class Organism {
         return getGenome().respond(jakku, getState(), empties, substances, neighbors);
     }
 
+    // just for logging
     @Override public String toString() {
         return "<Org:" + this.id + ">";
     }

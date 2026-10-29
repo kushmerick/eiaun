@@ -345,7 +345,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                             // Just for fun, demonstrate loading organisms from a full dump.
                                             // This works only for the first snapshot, because we can't guarantee
                                             // that snapshots are enumerated in order.
-                                            Snapshots.StepToResult result = snapshots.stepTo(snapshot);
+                                            Snapshots.StepToResult result = snapshots.stepToSnapshot(snapshot);
                                             log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snapshots.getOrganisms().firstIndices().size(), snapshots.getSubstances().firstIndices().size());
                                         }
                                     }));

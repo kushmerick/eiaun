@@ -15,11 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fory.reflect.TypeRef;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -44,6 +44,16 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
     private static final TypeRef<List<Change<String, String>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
 
+    // snapshots/2026-10-26-15/2026-10-26-15-49/2026-10-26-15-49-56-942/0000000000009-2026-10-26-15-49-56-942
+    private static final String STEP_TO_NEXT_PATTERN =
+            String.join(File.separator,
+                    SNAPSHOTS,
+                    "*",                        // 2026-10-26-15
+                    "*",                        // 2026-10-26-15-49
+                    "*",                        // 2026-10-26-15-49-56-942
+                    SNAPSHOT_ID_FORMAT + "-*"); // 0000000000009-2026-10-26-15-49-56-942
+    private static final int STEP_TO_NEXT_DEPTH = 5;
+
     private final Path recording;
     @Getter
     private final Physics physics;
@@ -57,7 +67,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     private Path snapshot;
     @Getter private TwoD<Organism> organisms = null;
     private Map<Long, Organism> organismIndex = null;
-    @Getter @Setter(AccessLevel.PRIVATE) private TwoD<Substance> substances = null;
+    @Getter private TwoD<Substance> substances = null;
 
     private FileSnapshots(Path recording) {
         this.recording = recording;
@@ -85,7 +95,15 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     }
 
     @Override
-    public StepToResult stepTo(
+    public void bumpNextSnapshotIndex(int delta) {
+        // TODO: This is WRONG when `snapshotIndexDelta` is not zero. Let N = nextSnapshotIndex + snapshotIndexDelta
+        // TODO: be the index of the target snapshot. We need to find the newest snapshot index K <= N that has a
+        // TODO: full dump, then apply the changes from snapshots K+1, K+2, ..., N.
+        this.nextSnapshotIndex += delta;
+    }
+
+    @Override
+    public StepToResult stepToSnapshot(
             Path snapshot,
             BiConsumer<Location, Organism> organismCreatedCallback,
             BiConsumer<Location, Organism> organismDestroyedCallback,
@@ -100,16 +118,14 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         this.snapshot = snapshot;
         String[] dirt = {null};
         this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
+                // TODO: Loading the full dumps and then building this new index are very slow. If we ever
+                // TODO: get to the point of fully trusting ChangeApplier to perfectly track the organisms
+                // TODO: and substances, then we could speed things a lot up by ignoring the full dumps!
                 organisms -> {
-                    // sanity check: ensure the current organisms
+                    // sanity check: ensure the current organisms are correct
                     dirt[0] = this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState);
                     if (dirt[0] == null) {
                         this.organisms = organisms;
-                        // TODO: Building the new index is a slow. If we ever get to
-                        // TODO: the point of fully trusting change-application to
-                        // TODO: perfectly track the organisms & substances, then we
-                        // TODO: could speed things a lot up by not loading the full
-                        // TODO: dumps at all!
                         this.organismIndex = makeIndex(organisms, Organism::getId);
                     }
                 },
@@ -127,10 +143,17 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                             organismDestroyedCallback.accept(location, organism);
                         }));
         if (dirt[0] != null) {
-            return StepToResult.dirty(dirt[0]);
+            return StepToResult.dirty(snapshot, dirt[0]);
         }
         this.fullDumpReader.maybeGetSubstances(snapshot).ifPresentOrElse(
-                this::setSubstances,
+                // TODO: Ditto - Eventually ignore full dumps?
+                substances -> {
+                    // sanity check: ensure the current substances are correct
+                    dirt[0] = this.substances.anyDiscrepancy(substances, Substance::getId);
+                    if (dirt[0] == null) {
+                       this.substances = substances;
+                    }
+                },
                 () -> this.changeApplier.changeSubstances(
                         this.substances,
                         Location.ORIGIN, // recorded changes are absolute not relative
@@ -138,7 +161,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                         this.substanceFactory::make,
                         substanceCreatedCallback,
                         substanceDestroyedCallback));
-        return dirt[0] == null ? StepToResult.CLEAN : StepToResult.dirty(dirt[0]);
+        return dirt[0] == null ? StepToResult.clean(snapshot) : StepToResult.dirty(snapshot, dirt[0]);
     }
 
     @Override
@@ -197,6 +220,51 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             }
         }
         return index;
+    }
+
+    @Override
+    public StepToResult stepToNextSnapshot(
+            BiConsumer<Location, Organism> organismCreatedCallback,
+            BiConsumer<Location, Organism> organismDestroyedCallback,
+            BiConsumer<Location, Substance> substanceCreatedCallback,
+            BiConsumer<Location, Substance> substanceDestroyedCallback
+    ) {
+        // find the snapshot with index = `this.nextSNapshotIndex`
+        // this.recordings = recordings/2026-10-26-15/2026-10-26-15-49/2026-10-26-15-49-54-676
+        // we are looking for something like:
+        // snapshots/2026-10-26-15/2026-10-26-15-49/2026-10-26-15-49-56-942/0000000000009-2026-10-26-15-49-56-942
+        PathMatcher matcher = this.recording.getFileSystem()
+                .getPathMatcher("glob:" + String.format(STEP_TO_NEXT_PATTERN, this.nextSnapshotIndex));
+        Path[] snapshot = { null };
+        try {
+            Files.walkFileTree(
+                    this.recording,
+                    Collections.emptySet(),
+                    STEP_TO_NEXT_DEPTH + 1,
+                    new SimpleFileVisitor<>() {
+                        @Override public FileVisitResult preVisitDirectory(Path maybeSnapshot, BasicFileAttributes attrs) {
+                            Path relative = FileSnapshots.this.recording.relativize(maybeSnapshot);
+                            int depth = relative.getNameCount();
+                            if (depth == STEP_TO_NEXT_DEPTH && matcher.matches(relative)) {
+                                snapshot[0] = maybeSnapshot;
+                                return FileVisitResult.TERMINATE;
+                            }
+                            return FileVisitResult.CONTINUE;
+                        }
+                    });
+        } catch (IOException failure) {
+            throw new RuntimeException(String.format("Failure while stepping to %s", this.nextSnapshotIndex), failure);
+        }
+        if (snapshot[0] == null) {
+            // no such snapshot -- ie we got to the end
+            return StepToResult.clean(null);
+        }
+        return stepToSnapshot(
+                snapshot[0],
+                organismCreatedCallback,
+                organismDestroyedCallback,
+                substanceCreatedCallback,
+                substanceDestroyedCallback);
     }
 
 }

@@ -12,6 +12,7 @@ public class Substance {
     @Getter private final Map<String, String> properties;
     @Getter private final String metabolite;
 
+    // just for logging
     @Override public String toString() {
         return "<Sub:" + this.id + ">";
     }

@@ -12,7 +12,7 @@ public class MoverState extends State {
         this.energy = energy;
     }
 
-    @Override public boolean equals(State state) {
+    @Override public boolean isSame(State state) {
         return state instanceof MoverState ms && this.energy == ms.energy;
     }
 

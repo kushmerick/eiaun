@@ -48,8 +48,8 @@ public class MoverGenome extends Genome {
             Map<Location, Substance> substances,
             Map<Location, Organism> organisms
     ) {
-        Organism organism = organisms.get(Location.ORIGIN);
-        MoverState[] moverState = {(MoverState) state};
+        Organism self = organisms.get(Location.ORIGIN);
+        MoverState[] selfState = {(MoverState) state};
         List<Change<Long, Organism>> organismChanges = new ArrayList<>();
         List<Change<String, Substance>> substanceChanges = new ArrayList<>();
         Map<Location, Substance> desirableSubstances = substances.entrySet().stream()
@@ -59,7 +59,7 @@ public class MoverGenome extends Genome {
         if (desirableSubstances.containsKey(Location.ORIGIN)) {
             Substance substance = desirableSubstances.get(Location.ORIGIN);
             log.info("Content: Organism {} with energy {} found desirable substance {} - {}",
-                    organism.getId(), moverState[0].getEnergy(), substance.getId(), explainDesire(substance));
+                    self.getId(), selfState[0].getEnergy(), substance.getId(), explainDesire(substance));
             // eat the substance
             substanceChanges.add(Change.destroy(substance.getId()));
             // possibly excrete a metabolite
@@ -67,13 +67,13 @@ public class MoverGenome extends Genome {
                 substanceChanges.add(Change.create(this.substanceFactory.make(substance.getMetabolite()), Location.ORIGIN));
             }
             // replenish energy
-            moverState[0] = new MoverState(moverState[0].getEnergy() + this.peakEnergy);
+            selfState[0] = new MoverState(selfState[0].getEnergy() + this.peakEnergy);
         } else {
-            if (moverState[0].getEnergy() < this.moveEnergy) {
-                log.info("Dead: Organism {} with energy {} has died", organism.getId(), moverState[0].getEnergy());
+            if (selfState[0].getEnergy() < this.moveEnergy) {
+                log.info("Dead: Organism {} with energy {} has died", self.getId(), selfState[0].getEnergy());
                 return Changes.of(
                         Collections.emptyList(),
-                        List.of(Change.destroy(organism.getId())));
+                        List.of(Change.destroy(self.getId())));
             }
             desirableSubstances.keySet().stream()
                     // calculate distance to each desirable substance
@@ -96,18 +96,18 @@ public class MoverGenome extends Genome {
                                     .findFirst()
                                     .ifPresentOrElse(empty -> {
                                         log.info("Motivated: Organism {} with energy {} moving by {} toward substance {} at {} - {}",
-                                                organism.getId(), moverState[0].getEnergy(), empty, desiredSubstance.getId(), location, explanation);
-                                        moveTo(organismChanges, empty, organism);
+                                                self.getId(), selfState[0].getEnergy(), empty, desiredSubstance.getId(), location, explanation);
+                                        moveTo(organismChanges, empty, self);
                                         newLocation[0] = empty;
                                     }, () -> {
                                         log.info("Stuck: Organism {} with energy {} desires {} at {} but can't move - {}",
-                                                organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
+                                                self.getId(), selfState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
                                     });
                         } else {
                             // we can move directly to the substance because there is no organism already there
                             log.info("Excited: Organism {} with energy {} moving directly to substance {} at {} - {}",
-                                    organism.getId(), moverState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
-                            moveTo(organismChanges, location, organism);
+                                    self.getId(), selfState[0].getEnergy(), desiredSubstance.getId(), location, explanation);
+                            moveTo(organismChanges, location, self);
                             newLocation[0] = location;
                         }
                     }, () -> {
@@ -115,15 +115,15 @@ public class MoverGenome extends Genome {
                         if (!empties.isEmpty()) {
                             Location[] asArray = empties.toArray(Location[]::new);
                             Location empty = asArray[RANDOM.nextInt(asArray.length)];
-                            moveTo(organismChanges, empty, organism);
+                            moveTo(organismChanges, empty, self);
                             newLocation[0] = empty;
                             log.info("Frustrated: Organism {} with energy {} sees no desirable substances, so moving randomly by {}",
-                                    organism.getId(), moverState[0].getEnergy(), empty);
+                                    self.getId(), selfState[0].getEnergy(), empty);
                         }
                     });
         }
         double spent = newLocation[0] == Location.ORIGIN ? this.restEnergy : this.moveEnergy;
-        double newEnergy = moverState[0].getEnergy() - spent;
+        double newEnergy = selfState[0].getEnergy() - spent;
         organismChanges.add(
                 Change.update(
                         newLocation[0],
@@ -147,6 +147,7 @@ public class MoverGenome extends Genome {
                         substance.getProperties().get(entry.getKey()).equals(entry.getValue()));
     }
 
+    // just for logging
     private String explainDesire(Substance substance) {
         return SetUtils.intersection(
                         this.desirableSubstanceProperties.keySet(),

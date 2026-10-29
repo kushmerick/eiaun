@@ -21,28 +21,36 @@ public interface Snapshots {
 
     long getRecordingTimestamp();
 
-    record StepToResult(boolean clean, String dirt) {
-        public static StepToResult CLEAN = new StepToResult(true, null);
+    void bumpNextSnapshotIndex(int delta);
 
-        public static StepToResult dirty(String dirt) {
-            return new StepToResult(false, dirt);
+    record StepToResult(Path snapshot, boolean clean, String dirt) {
+        public static StepToResult clean(Path snapshot) {
+            return new StepToResult(snapshot, true, null);
         }
-
+        public static StepToResult dirty(Path snapshot, String dirt) {
+            return new StepToResult(snapshot, false, dirt);
+        }
         public boolean dirty() {
             return !this.clean;
         }
     }
 
-    StepToResult stepTo(
+    StepToResult stepToSnapshot(
             Path snapshot,
             BiConsumer<Location, Organism> organismCreatedCallback,
             BiConsumer<Location, Organism> organismDestroyedCallback,
             BiConsumer<Location, Substance> substanceCreatedCallback,
             BiConsumer<Location, Substance> substanceDestroyedCallback);
 
-    default StepToResult stepTo(Path snapshot) {
-        return stepTo(snapshot, (_, _) -> {}, (_, _) -> {}, (_, _) -> {}, (_, _) -> {});
+    default StepToResult stepToSnapshot(Path snapshot) {
+        return stepToSnapshot(snapshot, (_, _) -> {}, (_, _) -> {}, (_, _) -> {}, (_, _) -> {});
     }
+
+    StepToResult stepToNextSnapshot(
+            BiConsumer<Location, Organism> organismCreatedCallback,
+            BiConsumer<Location, Organism> organismDestroyedCallback,
+            BiConsumer<Location, Substance> substanceCreatedCallback,
+            BiConsumer<Location, Substance> substanceDestroyedCallback);
 
     TwoD<Organism> getOrganisms();
 
@@ -50,14 +58,17 @@ public interface Snapshots {
 
     Pair<Long, Long> getSnapshotIndexAndTimestamp();
 
+    @Deprecated
     Pair<Long, Long> getSnapshotIndexAndTimestamp(Path snapshot);
 
     List<Change<String, Substance>> getSnapshotSubstanceChanges();
 
+    @Deprecated
     List<Change<String, Substance>> getSnapshotSubstanceChanges(Path snapshot);
 
     List<Change<Long, Organism>> getSnapshotOrganismChanges();
 
+    @Deprecated
     List<Change<Long, Organism>> getSnapshotOrganismChanges(Path snapshot);
 
 }

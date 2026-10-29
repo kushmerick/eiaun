@@ -167,7 +167,7 @@ public class DirectoryWatcher implements AutoCloseable {
 
     /**
      * Register to receive a notification for every file in a directory that
-     * passes a given test.  Note that the listener is first notified about
+     * satisfies a given filter.  Note that the listener is first notified about
      * existing files, and then notified about subsequent new, deleted or modified
      * files.
      * @param path The directory to monitor. Do not register a directory again without
@@ -181,6 +181,8 @@ public class DirectoryWatcher implements AutoCloseable {
      *                 file change(s), depending on the details of the underlying filesystem.
      * @return An AutoCloseable that must be invoked when the client no longer wants
      * to monitor this directory.
+     * @throws IllegalStateException If `path` has already been registered but the
+     * AutoCloseable returned by its registration has not been invoked.
      * @throws IOException If `path` does not exist or is not a directory, and so forth.
      * @throws InterruptedException The initial enumeration of children may be very slow
      * because it involves IO but more importantly the invoked listeners may be very slow,
@@ -190,7 +192,44 @@ public class DirectoryWatcher implements AutoCloseable {
             Path path,
             Predicate<Path> filter,
             Listener listener
+    ) throws IOException, InterruptedException {
+        return register(path, true, filter, listener);
+    }
+
+    /**
+     * Register to receive a notification for files in a directory satisfying a given filter
+     * that are created, modified or deleted. Optionally, the listener is first notified about
+     * existing files.
+     * @param path The directory to monitor. Do not register a directory again without
+     *             invoking the AutoCloseable returned by the previous registration.
+     * @param existing If true, the listener is first notified of existing children. If false,
+     *                 the listener is notified only of children that are created, modified
+     *                 or deleted after registration.
+     * @param filter A filter for which the subset of files about which to be notified.
+     * @param listener A method that will be invoked for each file in the directory.
+     *                 Listeners are encouraged to be idempotent, but we guarantee
+     *                 that they will be invoked exactly once with a CREATE (DELETE)
+     *                 notification for each file that is created (deleted); note that
+     *                 multiple MODIFY notification may be sent for a given (sequence of)
+     *                 file change(s), depending on the details of the underlying filesystem.
+     * @return An AutoCloseable that must be invoked when the client no longer wants
+     * to monitor this directory.
+     * @throws IllegalStateException If `path` has already been registered but the
+     * AutoCloseable returned by its registration has not been invoked.
+     * @throws IOException If `path` does not exist or is not a directory, and so forth.
+     * @throws InterruptedException The initial enumeration of children may be very slow
+     * because it involves IO but more importantly the invoked listeners may be very slow,
+     * so this method explicitly checks whether it has been interrupted.
+     */
+    public AutoCloseable register(
+            Path path,
+            boolean existing,
+            Predicate<Path> filter,
+            Listener listener
     ) throws InterruptedException, IOException {
+        if (this.registrations.containsKey(path)) {
+            throw new IllegalStateException("Path " + path + " is already registered");
+        }
         // Listeners are encouraged to be idempotent.  But to make life easier on the caller, we
         // guarantee to notify about each child creation and deletion exactly once. (But note that
         // we send a notification for every modification.)  See also the "TO DO" now [{**}] above
@@ -199,33 +238,37 @@ public class DirectoryWatcher implements AutoCloseable {
         // first, start an initialization thread that hallucinates CREATE for all existing children,
         // and then registers the path to listen for future changes.
         CountDownLatch storedRegistration = new CountDownLatch(1);
-        Future<?> initializer = this.executor.submit(() -> {
-            try (Stream<Path> paths = Files.list(path)) {
-                paths.filter(filter).forEach(child -> {
-                    children.add(child);
-                    notify(path, listener, Verb.CREATE, child);
-                });
-            } catch (IOException failure) {
-                log.warn("Failure while enumerating children of {}", path, failure);
-                return;
-            }
-            // inform caller that we are done enumerating children
-            notify(path, listener, Verb.MONITORING, null);
-            // register for future events
-            try {
-                // we need the registration stored so we can update it with the WatchService registrationn key,
-                // but we can't store the registration until this thread has started because the registration
-                // contain this thread's Future.  hence this latch avoids a race condition by pausing until
-                // the registration has been stored.
-                storedRegistration.await();
-                this.registrations.get(path)
-                        .setKey(path.register(this.watcher, KINDS));
-            } catch (InterruptedException _) {
-                log.info("Interrupted while watcher-registering {}", path);
-            } catch (IOException failure) {
-                log.warn("Failure while watcher-registering {}", path, failure);
-            }
-        });
+        Future<?> initializer = CompletableFuture.completedFuture(null);
+        if (existing) {
+            initializer = this.executor.submit(() -> {
+                try (Stream<Path> paths = Files.list(path)) {
+                    paths.filter(filter).forEach(child -> {
+                        children.add(child);
+                        notify(path, listener, Verb.CREATE, child);
+                    });
+                } catch (IOException failure) {
+                    // log but squelch this failure in case it is transient
+                    log.warn("Failure while enumerating children of {}", path, failure);
+                    return;
+                }
+                // inform caller that we are done enumerating children
+                notify(path, listener, Verb.MONITORING, null);
+                // register for future events
+                try {
+                    // We need the registration stored so we can update it with the WatchService registration key,
+                    // but we can't store the registration until this thread has started because the registration
+                    // contain this thread's Future. Hence this latch avoids a race condition by pausing until
+                    // the registration has been stored.
+                    storedRegistration.await();
+                    this.registrations.get(path)
+                            .setKey(path.register(this.watcher, KINDS));
+                } catch (InterruptedException _) {
+                    log.info("Interrupted while registering {}", path);
+                } catch (IOException failure) {
+                    log.warn("Failure while registering {}", path, failure);
+                }
+            });
+        }
         Registration registration = new Registration(initializer, children, filter, listener);
         this.registrations.put(path, registration);
         storedRegistration.countDown();
@@ -237,8 +280,7 @@ public class DirectoryWatcher implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        this.registrations.values().forEach(
-                registration -> registration.initializer.cancel(true));
+        this.registrations.values().forEach(Registration::close);
         this.registrations.clear();
         this.loop.cancel(true);
         this.watcher.close();

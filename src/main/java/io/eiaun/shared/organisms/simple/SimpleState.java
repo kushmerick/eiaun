@@ -4,7 +4,7 @@ import io.eiaun.shared.organisms.State;
 
 public class SimpleState extends State {
 
-    @Override public boolean equals(State ignored) {
+    @Override public boolean isSame(State ignored) {
         return true;
     }
 

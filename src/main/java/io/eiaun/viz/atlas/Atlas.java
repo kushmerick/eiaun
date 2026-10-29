@@ -50,38 +50,33 @@ public class Atlas implements Supplier<Svg> {
     }
 
     public Snapshots.StepToResult stepTo(Path snapshot) {
-        Snapshots.StepToResult result = this.snapshots.stepTo(snapshot,
+        return this.snapshots.stepToSnapshot(snapshot,
                 this::addOrganism,
                 this::removeOrganism,
                 this::addSubstance,
                 this::removeSubstance);
-        if (result.dirty()) {
-            return result;
-        }
-        if (this.atlas.getSvgElements().isEmpty()) {
-            // snapshots.stepTo invokes callbacks only for changes, so need to explicitly populate for the first time
-            this.snapshots.getOrganisms().forEach(this::addOrganism);
-            this.snapshots.getSubstances().forEach(this::addSubstance);
-        }
-        return Snapshots.StepToResult.CLEAN;
     }
 
-    private void addOrganism(Location location, Organism organism) {
+    public boolean isEmpty() {
+        return this.atlas.getSvgElements().isEmpty();
+    }
+
+    public void addOrganism(Location location, Organism organism) {
         addOrganism(location.getLat(), location.getLon(), organism);
     }
 
-    private void addOrganism(int lat, int lon, Organism organism) {
+    public void addOrganism(int lat, int lon, Organism organism) {
         String id = String.valueOf(organism.getId());
         Circle icon = new Circle(id, ORGANISM_RADIUS);
         icon.setFillColor(ORGANISM_COLOR);
         addIcon(icon, lat, lon);
     }
 
-    private void addSubstance(Location location, Substance substance) {
+    public void addSubstance(Location location, Substance substance) {
         addSubstance(location.getLat(), location.getLon(), substance);
     }
 
-    private void addSubstance(int lat, int lon, Substance substance) {
+    public void addSubstance(int lat, int lon, Substance substance) {
         String id = substanceIconId(lat, lon, substance);
         Rect icon = new Rect(id, SUBSTANCE_SIZE, SUBSTANCE_SIZE);
         icon.setFillColor(SUBSTANCE_COLOR);
@@ -94,11 +89,11 @@ public class Atlas implements Supplier<Svg> {
         this.icons.put(icon.getId(), icon);
     }
 
-    private void removeOrganism(Location ignored, Organism organism) {
+    public void removeOrganism(Location ignored, Organism organism) {
         removeIcon(String.valueOf(organism.getId()));
     }
 
-    private void removeSubstance(Location location, Substance substance) {
+    public void removeSubstance(Location location, Substance substance) {
         removeIcon(substanceIconId(location.getLat(), location.getLon(), substance));
     }
 
