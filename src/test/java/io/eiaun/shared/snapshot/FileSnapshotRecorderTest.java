@@ -2,10 +2,11 @@ package io.eiaun.shared.snapshot;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOT_ID_FORMAT;
+import static io.eiaun.shared.snapshot.FileSnapshotManipulator.SNAPSHOTS;
 import static io.eiaun.shared.snapshot.FileSnapshotManipulator.YMDHMSS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -33,15 +34,17 @@ public class FileSnapshotRecorderTest {
 
     @Test
     void canFormatSnapshotPath() {
-        String formattedTimestamp = "2026-01-02-03-04-05-678";
-        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
-                .atZone(ZoneOffset.UTC)
-                .toInstant()
-                .toEpochMilli();
-        long id = 12345;
+        Path recording = Path.of("recordings/2026-01-02-03/2026-01-02-03-04/2026-01-02-03-04-05-678");
+        long id = 90012345;
         assertEquals(
-                String.format(SNAPSHOT_ID_FORMAT, id) + "-" + formattedTimestamp,
-                FileSnapshotRecorder.formatSnapshot(id, timestamp));
+                recording.resolve(
+                        SNAPSHOTS,
+                        "000",
+                        "000000",
+                        "000000090",
+                        "000000090012",
+                        "000000090012345"),
+                FileSnapshotRecorder.makeSnapshotPath(recording, id));
     }
 
 }

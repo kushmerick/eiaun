@@ -10,6 +10,4 @@ public interface SnapshotReader {
 
     AutoCloseable watchRecordings(DirectoryWatcher.Listener listener) throws IOException;
 
-    AutoCloseable watchSnapshots(Path recording, DirectoryWatcher.Listener listener) throws IOException;
-
 }

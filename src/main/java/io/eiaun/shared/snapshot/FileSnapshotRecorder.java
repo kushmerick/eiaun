@@ -34,12 +34,11 @@ import java.util.function.Function;
 
 import static io.eiaun.shared.organisms.Organism.ORGANISM_KINDS;
 
-
 @Slf4j
 public class FileSnapshotRecorder extends FileSnapshotManipulator implements SnapshotRecorder {
 
     private final boolean enabled;
-    private final Path recordingsPath;
+    private final Path recording;
     private long snapshotCounter;
     private boolean wrotePreamble = false;
     private final String compression;
@@ -52,7 +51,7 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
     ) {
         this.enabled = enabled;
         long recordingTimestamp = System.currentTimeMillis();
-        this.recordingsPath = Path.of(
+        this.recording = Path.of(
                 ROOT,
                 formatYMDH(recordingTimestamp),
                 formatYMDHM(recordingTimestamp),
@@ -61,11 +60,11 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
         this.compression = compression;
         this.dumpInterval = dumpInterval;
         if (this.enabled) {
-            if (this.recordingsPath.toFile().exists()) {
+            if (this.recording.toFile().exists()) {
                 // should never happen, but we may lose data if it does, so let's be overly cautious
-                throw new RuntimeException(String.format("Recording timestamp collision: %s", this.recordingsPath));
+                throw new RuntimeException(String.format("Recording timestamp collision: %s", this.recording));
             }
-            log.info("Recording to {}", this.recordingsPath);
+            log.info("Recording to {}", this.recording);
         }
     }
 
@@ -79,29 +78,20 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             Location offset,
             List<Change<Long,Organism>> organismChanges,
             List<Change<String,Substance>> substanceChanges
-            // TODO: This has a huge gap: we do not record the state change of the organism!
-            // eg if a Mover does not move, it may lose energy but will not appear in
-            // organismChanges.
     ) {
         if (!enabled) {
             log.trace("Snapshots disabled");
             return null;
         }
         List<Runnable> fileWrites = new ArrayList<>();
-        if (!wrotePreamble) {
-            fileWrites.add(() -> writePreamble(jakku, this.recordingsPath));
-            wrotePreamble = true;
+        if (!this.wrotePreamble) {
+            fileWrites.add(() -> writePreamble(jakku, this.recording));
+            this.wrotePreamble = true;
         }
         long snapshotId = this.snapshotCounter++;
         // take a full dump every `dumpInterval` snapshots
         boolean dump = (snapshotId % this.dumpInterval) == (this.dumpInterval - 1);
-        long snapshotTimestamp = System.currentTimeMillis();
-        Path snapshotPath = this.recordingsPath.resolve(
-                Path.of(SNAPSHOTS,
-                        formatYMDH(snapshotTimestamp),
-                        formatYMDHM(snapshotTimestamp),
-                        formatYMDHMSS(snapshotTimestamp),
-                        formatSnapshot(snapshotId, snapshotTimestamp)));
+        Path snapshotPath = makeSnapshotPath(this.recording, snapshotId);
         if (dump) {
             fileWrites.add(() -> writeOrganisms(jakku.getOrganisms(), snapshotPath));
             fileWrites.add(() -> writeSubstances(jakku.getSubstances(), snapshotPath));
@@ -250,10 +240,6 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
 
     private static LocalDateTime getDateTime(long timestamp) {
         return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneOffset.UTC);
-    }
-
-    static String formatSnapshot(long snapshotId, long snapshotTimestamp) {
-        return String.format(SNAPSHOT_ID_FORMAT + "-%s", snapshotId, formatYMDHMSS(snapshotTimestamp));
     }
 
     /*

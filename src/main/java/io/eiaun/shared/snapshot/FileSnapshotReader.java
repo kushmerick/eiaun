@@ -6,7 +6,6 @@ import io.eiaun.shared.util.DirectoryWatcher.Listener;
 import io.eiaun.shared.util.Functionals;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.FailableConsumer;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,26 +18,18 @@ import java.util.concurrent.*;
 public class FileSnapshotReader extends FileSnapshotManipulator implements SnapshotReader {
 
     private static final double EXPIRATION_SAFETY_FACTOR = 1.1;
-    private static final long YMDHMSS_EXPIRATION = (long) (Duration.ofMillis(5).toMillis() * EXPIRATION_SAFETY_FACTOR); // 1 milli should be fine
     private static final long YMDHM_EXPIRATION = (long) (Duration.ofMinutes(1).toMillis() * EXPIRATION_SAFETY_FACTOR);
     private static final long YMDH_EXPIRATION = (long) (Duration.ofHours(1).toMillis() * EXPIRATION_SAFETY_FACTOR);
 
     private final ExecutorService executor;
     private final Path root;
 
-    /**
-     * @param executor         An ExecutorService on which monitoring tasks will run.
-     **/
     public FileSnapshotReader(
             ExecutorService executor
     ) {
         this(executor, Path.of(ROOT));
     }
 
-    /**
-     * @param executor         An ExecutorService on which monitoring tasks will run.
-     * @param root             The directory containing the recordings.
-     **/
     protected FileSnapshotReader(
             ExecutorService executor,
             Path root
@@ -76,7 +67,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 Functionals.get("Adding a recordings watcher for root: " + this.root,
                         () -> watcher.register(
                                 this.root,
-                                this::isYMDH,
+                                FileSnapshotReader::isYMDH,
                                 makeListener(this.root, monitoredPaths, expirationPaths, pathCloseables,
                                         ymdh -> {
                                             expirationPaths.put(
@@ -87,7 +78,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                     Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
                                                             () -> watcher.register(
                                                                     ymdh,
-                                                                    this::isYMDHM,
+                                                                    FileSnapshotReader::isYMDHM,
                                                                     makeListener(ymdh, monitoredPaths, expirationPaths, pathCloseables,
                                                                             ymdhm -> {
                                                                                 expirationPaths.put(
@@ -98,96 +89,17 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                                         Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
                                                                                                 () -> watcher.register(
                                                                                                         ymdhm,
-                                                                                                        this::isYMDHMSS,
+                                                                                                        FileSnapshotReader::isYMDHMSS,
                                                                                                         makeListener(ymdhm, monitoredPaths, expirationPaths, pathCloseables, listener))));
                                                                             }))));
                                         }))));
         List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
         closeables.add(watcher);
-        return makeCloseable("watching recordings", closeables);
-    }
-
-    /**
-     * Receive a callback for every snapshot in the given recording, which
-     * will be a path like recordings/ymdh/ymdhm/ymdhmss/snapshots/ymdh/ymdhm/ymdhmss/00123-ymdhmss.
-     * Important Note: At most one snapshot can be watched at a time!  The caller
-     * must invoke the AutoCloseable returned by this method before call this method
-     * again.
-     * @param recording Recording path
-     * @param listener Listener
-     * @return An AutoCloseable that must be invoked when the caller no longer
-     * wants to listen for this recording's snapshots.
-     * @throws RuntimeException Any number of things might go wrong (recording gets
-     * deleted, random filesystem errors, and so forth). These exceptions are logged
-     * and generally cause the watch process to stop (listener is not invoked anymore).
-     * The rationale is that in our scenario, there's nothing a caller could do about
-     * it anyway.  But let's revisit this decision if it isn't working out.
-     */
-    @Override
-    public AutoCloseable watchSnapshots(
-            Path recording,
-            Listener listener
-    ) throws IOException {
-        // negative expiration timestamp -> paths for that timestamp
-        SortedMap<Long, Path> expirationPaths = new ConcurrentSkipListMap<>();
-        // path -> directory-watcher closeable for that path
-        Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
-        // set of paths whose existing children have been enumerating
-        Set<Path> monitoredPaths = ConcurrentHashMap.newKeySet();
-        Path snapshots = recording.resolve(SNAPSHOTS);
-        DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
-        pathCloseables.put(
-                snapshots,
-                Functionals.get("Adding a snapshots watcher for snapshots: " + snapshots,
-                        () -> watcher.register(
-                                snapshots,
-                                this::isYMDH,
-                                makeListener(snapshots, monitoredPaths, expirationPaths, pathCloseables,
-                                        ymdh -> {
-                                            expirationPaths.put(
-                                                    -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
-                                                    ymdh);
-                                            pathCloseables.put(
-                                                    ymdh,
-                                                    Functionals.get("Adding a snapshots watcher for YMDH: " + ymdh,
-                                                            () -> watcher.register(
-                                                                    ymdh,
-                                                                    this::isYMDHM,
-                                                                    makeListener(ymdh, monitoredPaths, expirationPaths, pathCloseables,
-                                                                            ymdhm -> {
-                                                                                expirationPaths.put(
-                                                                                        -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
-                                                                                        ymdhm);
-                                                                                pathCloseables.put(
-                                                                                        ymdhm,
-                                                                                        Functionals.get("Adding a snapshots watcher for YMDHM: " + ymdhm,
-                                                                                                () -> watcher.register(
-                                                                                                        ymdhm,
-                                                                                                        this::isYMDHMSS,
-                                                                                                        makeListener(ymdhm, monitoredPaths, expirationPaths, pathCloseables,
-                                                                                                                ymdhmss -> {
-                                                                                                                    expirationPaths.put(
-                                                                                                                            -getExpiration(ymdhmss, YMDHMSS, YMDHMSS_EXPIRATION),
-                                                                                                                            ymdhmss);
-                                                                                                                    pathCloseables.put(
-                                                                                                                            ymdhmss,
-                                                                                                                            Functionals.get("Adding a snapshots watcher for YMDHMSS: " + ymdhmss,
-                                                                                                                                    () -> watcher.register(
-                                                                                                                                            ymdhmss,
-                                                                                                                                            this::isSnapshot,
-                                                                                                                                            makeListener(ymdhmss, monitoredPaths, expirationPaths, pathCloseables, listener))));
-                                                                                                                }))));
-                                                                            }))));
-                                        }))));
-        List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
-        closeables.add(watcher);
-        return makeCloseable("watching snapshots", closeables);
+        return makeCloseable(closeables);
     }
 
     private long getExpiration(Path path, DateTimeFormatter format, long expirationMillis) {
-        return parse(path, format)
-                .map(timestamp -> timestamp + expirationMillis)
-                .orElseThrow();
+        return getRecordingTimestamp(path, format) + expirationMillis;
     }
 
     private Listener makeListener(
@@ -262,12 +174,9 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         }
     }
 
-    private AutoCloseable makeCloseable(
-            String description,
-            Collection<AutoCloseable> closeables
-    ) {
+    private AutoCloseable makeCloseable(Collection<AutoCloseable> closeables) {
         return () -> {
-            Exception failure = new RuntimeException(String.format("Failure while closing after %s", description));
+            Exception failure = new RuntimeException("Failure while closing");
             for (AutoCloseable closeable : closeables) {
                 try {
                     closeable.close();
@@ -281,20 +190,16 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         };
     }
 
-    private boolean isYMDH(Path path) {
-        return parse(path, YMDH).isPresent();
+    private static boolean isYMDH(Path path) {
+        return isRecordingTimestamp(path, YMDH);
     }
 
-    private boolean isYMDHM(Path path) {
-        return parse(path, YMDHM).isPresent();
+    private static boolean isYMDHM(Path path) {
+        return isRecordingTimestamp(path, YMDHM);
     }
 
-    private boolean isYMDHMSS(Path path) {
-        return parse(path, YMDHMSS).isPresent();
-    }
-
-    boolean isSnapshot(Path path) {
-        return parseSnapshot(path).isPresent();
+    private static boolean isYMDHMSS(Path path) {
+        return isRecordingTimestamp(path, YMDHMSS);
     }
 
     /**
@@ -330,25 +235,26 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                     recording);
                             log.info("Config - Organism density {}", snapshots.getConfig().getOrganismDensity());
                             log.info("Physics - Substances {}", snapshots.getPhysics().getSubstanceSpecs().size());
-                            previous = reader.watchSnapshots(
-                                    recording,
-                                    Listener.ifCreate(snapshot -> {
-                                        Pair<Long,Long> indexTimestamp = snapshots.getSnapshotIndexAndTimestamp(snapshot);
-                                        long index = indexTimestamp.getLeft();
-                                        log.info("Snapshot {} {} ({} org changes; {} sub changes): {}",
-                                                index,
-                                                ago.describe(indexTimestamp.getRight()),
-                                                snapshots.getSnapshotOrganismChanges(snapshot).size(),
-                                                snapshots.getSnapshotSubstanceChanges(snapshot).size(),
-                                                snapshot);
-                                        if (index == 0) {
-                                            // Just for fun, demonstrate loading organisms from a full dump.
-                                            // This works only for the first snapshot, because we can't guarantee
-                                            // that snapshots are enumerated in order.
-                                            Snapshots.StepToResult result = snapshots.stepToSnapshot(snapshot);
-                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snapshots.getOrganisms().firstIndices().size(), snapshots.getSubstances().firstIndices().size());
-                                        }
-                                    }));
+// TODO: Bring back some of the snapshot functionality
+//                            previous = reader.watchSnapshots(
+//                                    recording,
+//                                    Listener.ifCreate(snapshot -> {
+//                                        Pair<Long,Long> indexTimestamp = snapshots.getSnapshotIndexAndTimestamp(snapshot);
+//                                        long index = indexTimestamp.getLeft();
+//                                        log.info("Snapshot {} {} ({} org changes; {} sub changes): {}",
+//                                                index,
+//                                                ago.describe(indexTimestamp.getRight()),
+//                                                snapshots.getSnapshotOrganismChanges(snapshot).size(),
+//                                                snapshots.getSnapshotSubstanceChanges(snapshot).size(),
+//                                                snapshot);
+//                                        if (index == 0) {
+//                                            // Just for fun, demonstrate loading organisms from a full dump.
+//                                            // This works only for the first snapshot, because we can't guarantee
+//                                            // that snapshots are enumerated in order.
+//                                            Snapshots.StepToResult result = snapshots.stepToSnapshot(snapshot);
+//                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snapshots.getOrganisms().firstIndices().size(), snapshots.getSubstances().firstIndices().size());
+//                                        }
+//                                    }));
                         }
                     } catch (InterruptedException _) {
                         throw new RuntimeException("Interrupted");

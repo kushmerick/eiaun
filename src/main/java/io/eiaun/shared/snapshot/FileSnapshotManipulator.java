@@ -1,37 +1,42 @@
 package io.eiaun.shared.snapshot;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Optional;
 
 /**
- * Snapshots are written to files like:
+ * Each recording is written to a director hierarchy named from "prefixes" of the time when the recording started.
+ * This allows ~thousands of recordings per hour without any directory containing a huge number of children.
+ * Each snapshot has a unique sequential numeric id, starting from zero, and are written to a directory
+ * hierarchy under their recording named by "prefixes" of the id.  Similarly, this allows ~thousands of snapshots
+ * per second while keeping the number of children per directory manageable.
+ * The full hierarchy looks like this:
  * <pre>
- *  recordings/                                                                Root path
- *   2026-10-13-09/                                     YYYY-MM-dd-HH when this run began
- *    2026-10-13-09-15/                                 YYYY-MM-dd-HH-mm when this run began
- *      2026-10-13-09-15-31-672/                        Full timestamp when this run began
- *       physics.json                                   Substance properties and other physical details
- *       config.json                                    Configuration (grid size, initial densities, etc)
- *       organisms.json.XX                              Locations and contents of all organisms at "time = 0"
- *       substances.json.XX                             Locations and contents of all substances at "time = 0"
- *       snapshots/                                     Snapshots live here
- *        2026-10-14-10/                                YYYY-MM-dd-HH when this snapshot was taken
- *          2026-10-14-10-51/                           YYYY-MM-dd-HH-mm when this snapshot was taken
- *            2026-10-14-10-51-17-186/                  Full timestamp when this snapshot was taken
- *              0000023782371-2026-10-14-10-51-17-186/  Id & full Timestamp of this snapshot
- *                organism-changes.json                 Organism changes that produced this state from the prior state
- *                substance-changes.json                Substance changes that produced this state from the prior state
- *                organisms.json.XX                     Locations and contents of all organisms (full dumps only)
- *                substances.json.XX                    Locations and contents of all substances (full dumps only)
+ *  recordings/                              Root path
+ *   2026-10-13-09/                          YYYY-MM-dd-HH when this run began
+ *    2026-10-13-09-15/                      YYYY-MM-dd-HH-mm when this run began
+ *      2026-10-13-09-15-31-672/             Full timestamp when this run began
+ *       physics.json                        Substance properties and other physical details
+ *       config.json                         Configuration (grid size, initial densities, etc)
+ *       organisms.json.XX                   Locations and contents of all organisms at "time = 0"
+ *       substances.json.XX                  Locations and contents of all substances at "time = 0"
+ *       snapshots/                          Snapshots live here
+ *        ABC/                               Top 3 digits of the snapshot id
+ *          ABCDEF/                          Top 6 digits of the snapshot id
+ *            ABCDEFGHI/                     Top 9 digits of the snapshot id
+ *              ABCDEFGHIJK/                 Top 12 digits of the snapshot id
+ *                ABCDEFGHIJKLMNO/           Full 15 digit snapshot id
+ *                  organism-changes.json    Organism changes that produced this state from the prior state
+ *                  substance-changes.json   Substance changes that produced this state from the prior state
+ *                  organisms.json.XX        Locations and contents of all organisms (full dumps only)
+ *                  substances.json.XX       Locations and contents of all substances (full dumps only)
  *  </pre>
- *  where XX is the compression algorithm (see {@link io.eiaun.shared.config.Config#SNAPSHOT_COMPRESSION}).
+ *  where ABCDEFGHIJKLMNO is the zero-padded 15 digit snapshot id, and XX is the compression algorithm
+ *  (see {@link io.eiaun.shared.config.Config#SNAPSHOT_COMPRESSION}).
  */
 @Slf4j
 public class FileSnapshotManipulator {
@@ -39,8 +44,18 @@ public class FileSnapshotManipulator {
     protected static final DateTimeFormatter YMDH = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH");
     protected static final DateTimeFormatter YMDHM = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm");
     protected static final DateTimeFormatter YMDHMSS = DateTimeFormatter.ofPattern("uuuu-MM-dd-HH-mm-ss-SSS");
-    protected static final int SNAPSHOT_ID_WIDTH = 13; // pad ids with enough 0's so that a trillion sorts alphabetically
-    protected static final String SNAPSHOT_ID_FORMAT = "%0" + SNAPSHOT_ID_WIDTH + "d";
+
+    protected static final int SNAPSHOT_ID_DIGITS_PER_SEGMENT = 3; // one thousand files per directory
+    protected static final int SNAPSHOT_ID_SEGMENTS = 5; // 10^(3*5) = one quadrillion ids sort alphabetically
+    protected static final String[] SNAPSHOT_ID_FORMAT = new String[SNAPSHOT_ID_SEGMENTS];
+    protected static final long[] SNAPSHOT_ID_DIVISOR = new long[SNAPSHOT_ID_SEGMENTS];
+    static {
+        for (int i = 0; i < SNAPSHOT_ID_SEGMENTS; i++) {
+            SNAPSHOT_ID_DIVISOR[i] = Math.powExact(10L, SNAPSHOT_ID_DIGITS_PER_SEGMENT * (SNAPSHOT_ID_SEGMENTS - i - 1));
+            SNAPSHOT_ID_FORMAT[i] = "%0" + (i + 1) * SNAPSHOT_ID_DIGITS_PER_SEGMENT + "d";
+        }
+    }
+
     protected static final String ROOT = "recordings";
     protected static final String DOT_JSON = ".json";
     protected static final String PHYSICS = "physics" + DOT_JSON;
@@ -52,34 +67,38 @@ public class FileSnapshotManipulator {
     protected static final String SUBSTANCES_DOT = "substances" + DOT_JSON_DOT;
     protected static final String SUBSTANCE_CHANGES = "substance-changes" + DOT_JSON;
 
-    protected static Optional<Pair<Long, Long>> parseSnapshot(Path path) {
+    protected static long getSnapshotId(Path path) {
         // sample:
-        // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815/snapshots/2026-10-08-21/2026-10-08-21-35/2026-10-08-21-35-05-848/0000000001129-2026-10-08-21-35-05-848
-        String name = path.getFileName().toString();
-        int dash = name.indexOf('-');
-        if (dash == SNAPSHOT_ID_WIDTH) {
-            long id = Long.parseLong(name.substring(0, dash));
-            name = name.substring(dash + 1);
-            Optional<Long> timestamp = parse(Path.of(name), YMDHMSS);
-            return timestamp.map(t -> Pair.of(id, t));
-        }
-        return Optional.empty();
+        // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815/snapshots/ABC/ABCDEF/ABCDEFGHI/ABCDEFGHIJKL/ABCDEFGHIJKLMNO
+        // where ABCDEFGHIJKLMNO is the (SNAPSHOT_ID_SEGMENTS*SNAPSHOT_ID_DIGITS_PER_SEGMENT) = 15 digit zero-padded
+        // snapshot id.
+        return Long.parseLong(path.getFileName().toString());
     }
 
-    protected static Optional<Long> parse(Path path, DateTimeFormatter format) {
+    protected static long getRecordingTimestamp(Path path, DateTimeFormatter format) {
         // sample:
         // recordings/2026-10-08-21/2026-10-08-21-34/2026-10-08-21-34-26-815
-        String name = path.getFileName().toString();
+        return LocalDateTime.parse(path.getFileName().toString(), format)
+                .atZone(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli();
+    }
+
+    protected static boolean isRecordingTimestamp(Path path, DateTimeFormatter format) {
         try {
-            long timestamp = LocalDateTime.parse(name, format)
-                    .atZone(ZoneOffset.UTC)
-                    .toInstant()
-                    .toEpochMilli();
-            return Optional.of(timestamp);
-        } catch (DateTimeParseException failure) {
-            log.warn("Failure while parsing `{}` with `{}`", path, format, failure);
+            getRecordingTimestamp(path, format);
+            return true;
+        } catch (DateTimeParseException _) {
+            return false;
         }
-        return Optional.empty();
+    }
+
+    static Path makeSnapshotPath(Path recording, long snapshotId) {
+        String[] segments = new String[SNAPSHOT_ID_SEGMENTS];
+        for (int i = 0; i < SNAPSHOT_ID_SEGMENTS; i++) {
+            segments[i] = String.format(SNAPSHOT_ID_FORMAT[i], snapshotId / SNAPSHOT_ID_DIVISOR[i]);
+        }
+        return recording.resolve(SNAPSHOTS, segments);
     }
 
 }

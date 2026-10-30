@@ -15,6 +15,7 @@ import com.vaadin.flow.component.slider.DecimalSlider;
 import com.vaadin.flow.component.svg.Svg;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import io.eiaun.shared.snapshot.FileSnapshotManipulator;
 import io.eiaun.shared.snapshot.FileSnapshots;
 import io.eiaun.shared.snapshot.SnapshotReader;
 import io.eiaun.shared.snapshot.Snapshots;
@@ -23,7 +24,6 @@ import io.eiaun.shared.util.DirectoryWatcher;
 import io.eiaun.shared.util.Functionals;
 import io.eiaun.viz.atlas.Atlas;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -155,12 +155,12 @@ public class HomeView extends VerticalLayout {
             throw new UncheckedIOException("Failure while watching recordings", failure);
         }
         this.resetButton.addClickListener(e -> pickRecording(e.getUI(), this.recordingsPicker.getValue()));
-        this.back10Button.addClickListener(e -> notifyOnFailure(bumpIfPaused(-10, e.getUI()), "Can't go so far backwards."));
-        this.backButton.addClickListener(e -> notifyOnFailure(bumpIfPaused(-1, e.getUI()), "Can't go backwards"));
+        this.back10Button.addClickListener(e -> notifyOnFailure(bumpIfPaused(-10, e.getUI()), "Can't go so far backward."));
+        this.backButton.addClickListener(e -> notifyOnFailure(bumpIfPaused(-1, e.getUI()), "Can't go backward"));
         this.playButton.addClickListener(e -> play(e.getUI()));
         this.pauseButton.addClickListener(e -> pause(e.getUI(), true));
-        this.forwardButton.addClickListener(e -> notifyOnFailure(bumpIfPaused(0, e.getUI()), "Can't go forwards"));
-        this.forward10Button.addClickListener(e -> notifyOnFailure(bumpIfPaused(+10, e.getUI()),  "Can't go so far forwards"));
+        this.forwardButton.addClickListener(e -> notifyOnFailure(bumpIfPaused(0, e.getUI()), "Can't go forward"));
+        this.forward10Button.addClickListener(e -> notifyOnFailure(bumpIfPaused(+10, e.getUI()),  "Can't go so far forward"));
         this.toEndButton.addClickListener(_ -> notifyOnFailure(false, "Not yet implemented!"));
     }
 
@@ -209,40 +209,30 @@ public class HomeView extends VerticalLayout {
 
     private boolean bumpIfPaused(int delta, UI ui) {
         if (this.playing != null && !this.playing.isDone()) {
-            // don't bump while playing.  probably hard to address all race conditions.
-            // instead, the user must first pause.
+            // Don't bump while playing. Probably hard to address all race conditions. And
+            // anyway, what's the point of bumping while playing? Instead, the user must pause.
             return true;
         }
         return bump(delta, ui);
     }
 
     private boolean bump(int delta, UI ui) {
-        this.snapshots.bumpNextSnapshotIndex(delta);
         boolean[] success = { true };
-        try {
-            ui.access(() -> {
-                Snapshots.StepToResult result = this.snapshots.stepToNextSnapshot(
-                        this.atlas::addOrganism,
-                        this.atlas::removeOrganism,
-                        this.atlas::addSubstance,
-                        this.atlas::removeSubstance);
-                if (result.dirty()) {
-                    Notification.show("Oops: " + result.dirt());
-                }
-                if (result.snapshot() == null) {
-                    success[0] = false;
-                } else {
-                    Pair<Long, Long> indexTimestamp = this.snapshots.getSnapshotIndexAndTimestamp();
-                    this.snapshotDetails.setVisible(true);
-                    this.snapshotDetails.setText("Snapshot " + indexTimestamp.getLeft() + ": " +
-                            formatTimestamp(indexTimestamp.getRight(), YMDHMS));
-                }
-            });
-        } catch (Exception failure) {
-            Notification.show("Can't step to next snapshot: " + failure.getMessage());
-            log.warn("Failure while stepping to next snapshot", failure);
-            success[0] = false;
-        }
+        ui.access(() -> {
+            this.snapshotDetails.setVisible(true);
+            Snapshots.Result result = this.snapshots.bump(delta,
+                    this.atlas::addOrganism,
+                    this.atlas::removeOrganism,
+                    this.atlas::addSubstance,
+                    this.atlas::removeSubstance);
+            if (!result.found()) {
+                Notification.show("Can't go " + (delta >= 0 ? "forwards" : "backwards") + ".");
+                success[0] = false;
+                return;
+            }
+            this.snapshotDetails.setText("Snapshot " + this.snapshots.getId()); // TODO: "... of max"
+            result.dirt().forEach(dirt -> Notification.show("Oops: " + dirt));
+        });
         return success[0];
     }
 
@@ -269,22 +259,19 @@ public class HomeView extends VerticalLayout {
 
     private void play(UI ui) {
         if (isLoadingRecording()) return;
-        if (playing != null) return;
+        if (this.playing != null) return;
+        ui.access(this.playButton::focus);
         this.playing = this.executor.submit(() -> {
-            ui.access(this.playButton::focus);
             boolean more;
             do {
-                log.info("Playing: Sleeping");
                 try {
                     long sleep = Math.round(Math.exp(this.speedSlider.getValue()));
                     Thread.sleep(sleep);
                 } catch (InterruptedException _) {
                     return;
                 }
-                log.info("Playing: Bumping");
                 more = bump(0, ui);
             } while (more);
-            log.info("Playing: Done");
         });
     }
 

@@ -10,7 +10,6 @@ import io.eiaun.shared.physics.Substance;
 import io.eiaun.shared.snapshot.Snapshots;
 import org.apache.commons.lang3.RandomStringUtils;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -28,7 +27,6 @@ public class Atlas implements Supplier<Svg> {
     private final int UNIT = Math.max(ORGANISM_RADIUS, SUBSTANCE_SIZE);
     private final int JIGGLE = 1; // offset substance so looks nicer in case it is co-located with an organism
 
-    private final Snapshots snapshots;
     private final Svg atlas;
 
     // key --> icon
@@ -37,8 +35,7 @@ public class Atlas implements Supplier<Svg> {
     private final Map<String, SvgElement> icons;
 
     public Atlas(Snapshots snapshots) {
-        this.snapshots = snapshots;
-        int grid = this.snapshots.getConfig().getGrid();
+        int grid = snapshots.getConfig().getGrid();
         this.atlas = new Svg();
         int size = (grid + 1) * UNIT + JIGGLE;
         this.atlas.viewbox(0, 0, size, size);
@@ -47,14 +44,6 @@ public class Atlas implements Supplier<Svg> {
 
     public Svg get() {
         return this.atlas;
-    }
-
-    public Snapshots.StepToResult stepTo(Path snapshot) {
-        return this.snapshots.stepToSnapshot(snapshot,
-                this::addOrganism,
-                this::removeOrganism,
-                this::addSubstance,
-                this::removeSubstance);
     }
 
     public boolean isEmpty() {
