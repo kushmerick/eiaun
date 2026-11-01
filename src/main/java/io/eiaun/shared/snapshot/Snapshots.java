@@ -10,11 +10,15 @@ import io.eiaun.shared.util.TwoD;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * This interfaces defines methods for inspecting and traversing snapshots.
+ * Implementations of this class are instantiated for a specific recording.
+ * Snapshots have a unique sequential long id, starting from zero.
+ */
 public interface Snapshots {
 
     long getRecordingTimestamp();
@@ -59,7 +63,7 @@ public interface Snapshots {
             BiConsumer<Location, Substance> substanceDestroyedCallback);
 
     long getId();
-    long getMaxId();
+    long getCount();
 
     TwoD<Organism> getOrganisms();
 

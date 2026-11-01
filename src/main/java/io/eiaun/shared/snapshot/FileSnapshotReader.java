@@ -1,5 +1,6 @@
 package io.eiaun.shared.snapshot;
 
+import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.util.Ago;
 import io.eiaun.shared.util.DirectoryWatcher;
 import io.eiaun.shared.util.DirectoryWatcher.Listener;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.BiConsumer;
 
 @Slf4j
 public class FileSnapshotReader extends FileSnapshotManipulator implements SnapshotReader {
@@ -209,74 +211,52 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
      * dynamically updated list of all recordings.  But this sample is rather silly/useless: because
      * recordings and snapshots are not guaranteed to be enumerated in timestamp order, we log a fairly
      * meaningless subset of each recording's snapshots.
+     *
      * @param ignored Command-line args.
      * @throws Exception If something goes wrong.
      */
     static void main(String[] ignored) throws Exception {
         Ago ago = new Ago();
         BlockingQueue<Path> recordings = new LinkedBlockingQueue<>();
+        Future<?> snapshotsWatcher = null;
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             FileSnapshotReader reader = new FileSnapshotReader(executor);
-            // first, start a thread to loop forever, waiting for the next recording, abandoning
-            // the previous one, and watching its snapshots.
-            Future<Void> snapshotsWatcher = null;
-            try {
-                snapshotsWatcher = executor.submit(() -> {
-                    AutoCloseable previous = null;
-                    try {
-                        while (true) {
-                            Path recording = recordings.take();
-                            if (previous != null) {
-                                Functionals.run(previous::close);
-                            }
-                            Snapshots snapshots = FileSnapshots.of(recording);
-                            log.info("Recording ({}): {}",
-                                    ago.describe(snapshots.getRecordingTimestamp()),
-                                    recording);
-                            log.info("Config - Organism density {}", snapshots.getConfig().getOrganismDensity());
-                            log.info("Physics - Substances {}", snapshots.getPhysics().getSubstanceSpecs().size());
-// TODO: Bring back some of the snapshot functionality
-//                            previous = reader.watchSnapshots(
-//                                    recording,
-//                                    Listener.ifCreate(snapshot -> {
-//                                        Pair<Long,Long> indexTimestamp = snapshots.getSnapshotIndexAndTimestamp(snapshot);
-//                                        long index = indexTimestamp.getLeft();
-//                                        log.info("Snapshot {} {} ({} org changes; {} sub changes): {}",
-//                                                index,
-//                                                ago.describe(indexTimestamp.getRight()),
-//                                                snapshots.getSnapshotOrganismChanges(snapshot).size(),
-//                                                snapshots.getSnapshotSubstanceChanges(snapshot).size(),
-//                                                snapshot);
-//                                        if (index == 0) {
-//                                            // Just for fun, demonstrate loading organisms from a full dump.
-//                                            // This works only for the first snapshot, because we can't guarantee
-//                                            // that snapshots are enumerated in order.
-//                                            Snapshots.StepToResult result = snapshots.stepToSnapshot(snapshot);
-//                                            log.info("First snapshot ({}/{}): {} organisms, {} substances", result.clean(), result.dirt(), snapshots.getOrganisms().firstIndices().size(), snapshots.getSubstances().firstIndices().size());
-//                                        }
-//                                    }));
-                        }
-                    } catch (InterruptedException _) {
-                        throw new RuntimeException("Interrupted");
-                    } catch (Exception failure) {
-                        throw new RuntimeException("Oops", failure);
-                    } finally {
-                        if (previous != null) {
-                            Functionals.run(previous::close);
-                        }
+            snapshotsWatcher = executor.submit(() -> {
+                try {
+                    while (true) {
+                        Path recording = recordings.take();
+                        Snapshots snapshots = FileSnapshots.of(recording);
+                        log.info("Recording ({}): {}",
+                                ago.describe(snapshots.getRecordingTimestamp()),
+                                recording);
+                        log.info("Config - Organism density {}", snapshots.getConfig().getOrganismDensity());
+                        log.info("Physics - Substances {}", snapshots.getPhysics().getSubstanceSpecs().size());
+                        log.info("Organisms: {}", snapshots.getOrganisms().firstIndices().size());
+                        log.info("Substances: {}", snapshots.getSubstances().firstIndices().size());
+                        boolean done;
+                        do {
+                            done = !snapshots.next(noop(), noop(), noop(), noop()).found();
+                            log.info("Snapshot {}", snapshots.getId());
+                        } while (!done);
                     }
-                });
-                // second, enqueue recordings as they are discovered, for consumption by the above thread
-                try (var _ = reader.watchRecordings(Listener.ifCreate(recordings::offer))) {
-                    // wait forever
-                    new CountDownLatch(1).await();
+                } catch (Exception failure) {
+                    log.warn("Oops", failure);
                 }
-            } finally {
-                if (snapshotsWatcher != null) {
-                    snapshotsWatcher.cancel(true);
-                }
+            });
+            // second, enqueue recordings as they are discovered, for consumption by the above thread
+            try (var _ = reader.watchRecordings(Listener.ifCreate(recordings::offer))) {
+                // wait forever
+                new CountDownLatch(1).await();
+            }
+        } finally {
+            if (snapshotsWatcher != null) {
+                snapshotsWatcher.cancel(true);
             }
         }
+    }
+
+    private static <Thing> BiConsumer<Location,Thing> noop() {
+        return (_, __) -> {};
     }
 
 }

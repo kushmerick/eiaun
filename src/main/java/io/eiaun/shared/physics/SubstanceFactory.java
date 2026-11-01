@@ -25,8 +25,7 @@ public class SubstanceFactory {
     // organisms may be creating substances concurrently
     private final Map<String, Substance> singletons = new ConcurrentHashMap<>();
 
-    @Getter
-    private final Map<String, SubstanceSpec> substanceSpecs;
+    @Getter private final Map<String, SubstanceSpec> substanceSpecs;
 
     public SubstanceFactory(Collection<SubstanceSpec> substanceSpecs) {
         this.substanceSpecs = substanceSpecs.stream()

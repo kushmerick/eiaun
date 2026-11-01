@@ -15,7 +15,6 @@ import com.vaadin.flow.component.slider.DecimalSlider;
 import com.vaadin.flow.component.svg.Svg;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import io.eiaun.shared.snapshot.FileSnapshotManipulator;
 import io.eiaun.shared.snapshot.FileSnapshots;
 import io.eiaun.shared.snapshot.SnapshotReader;
 import io.eiaun.shared.snapshot.Snapshots;
@@ -88,7 +87,7 @@ public class HomeView extends VerticalLayout {
         this.snapshotDetails = new Paragraph();
         this.buttons = new HorizontalLayout();
         this.resetButton = new Button(VaadinIcon.REPLY.create());
-        this.resetButton.setTooltipText("Reset to the first snapshot");
+        this.resetButton.setTooltipText("Back to the first snapshot");
         this.back10Button = new Button(VaadinIcon.FAST_BACKWARD.create());
         this.back10Button.setTooltipText("Back 10 snapshots");
         this.backButton = new Button(VaadinIcon.BACKWARDS.create());
@@ -230,7 +229,7 @@ public class HomeView extends VerticalLayout {
                 success[0] = false;
                 return;
             }
-            this.snapshotDetails.setText("Snapshot " + this.snapshots.getId()); // TODO: "... of max"
+            this.snapshotDetails.setText("Snapshot " + this.snapshots.getId() + " of " + this.snapshots.getCount());
             result.dirt().forEach(dirt -> Notification.show("Oops: " + dirt));
         });
         return success[0];

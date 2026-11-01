@@ -14,12 +14,10 @@ import org.apache.fory.reflect.TypeRef;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static io.eiaun.shared.organisms.Organism.KIND_ORGANISMS;
 import static org.apache.commons.compress.compressors.CompressorStreamFactory.ZSTANDARD;
@@ -87,18 +85,27 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     }
 
     @Override
-    public long getMaxId() {
-        // TODO: traverse the file system, entering the numerically largest subdirectory at each level, until
-        // TODO: we reach the deepest level, then return the numerically largest child
-        throw new RuntimeException("Not implemented yet");
+    public long getCount() {
+        Path largest = this.recording.resolve(SNAPSHOTS);
+        try {
+            for (int i = 0; i < SNAPSHOT_ID_SEGMENTS; i++) {
+                try (Stream<Path> children = Files.list(largest)) {
+                    largest = children.max(Comparator.naturalOrder()).get();
+                }
+            }
+            return 1 + getSnapshotId(largest);
+        } catch (Exception failure) {
+            log.warn("Failure while getting max id", failure);
+            return 0;
+        }
     }
 
     @Override
     public List<Change<String, Substance>> getSubstanceChanges() {
-        return getSnapshotSubstanceChanges(this.snapshot);
+        return getSubstanceChanges(this.snapshot);
     }
 
-    private List<Change<String, Substance>> getSnapshotSubstanceChanges(Path snapshot) {
+    private List<Change<String, Substance>> getSubstanceChanges(Path snapshot) {
         return Functionals.get(() -> JSON.fromJson(
                         Files.readString(snapshot.resolve(SUBSTANCE_CHANGES)),
                         SUBSTANCE_CHANGES_TYPE))
@@ -109,10 +116,10 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
 
     @Override
     public List<Change<Long, Organism>> getOrganismChanges() {
-        return getSnapshotOrganismChanges(this.snapshot);
+        return getOrganismChanges(this.snapshot);
     }
 
-    private List<Change<Long, Organism>> getSnapshotOrganismChanges(Path snapshot) {
+    private List<Change<Long, Organism>> getOrganismChanges(Path snapshot) {
         return Functionals.get(() -> JSON.fromJson(
                         Files.readString(snapshot.resolve(ORGANISM_CHANGES)),
                         ORGANISM_CHANGES_TYPE))
@@ -164,14 +171,14 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             BiConsumer<Location, Substance> substanceCreatedCallback,
             BiConsumer<Location, Substance> substanceDestroyedCallback
     ) {
-        // TODO: This is WRONG when id != this.snapshotId + 1.
+        // TODO: This is WRONG when id != this.snapshotId
         // TODO: We need to find the newest snapshot index K <= id that has a
         // TODO: full dump, then apply the changes from snapshots K+1, K+2, ..., id.
         Path snapshot = makeSnapshotPath(this.recording, id);
         if (!Files.exists(snapshot)) {
             return Snapshots.Result.NOT_FOUND;
         }
-        this.nextSnapshotId = id;
+        this.nextSnapshotId = id + 1;
         this.snapshot = snapshot;
         List<String> dirt = new ArrayList<>();
         this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
