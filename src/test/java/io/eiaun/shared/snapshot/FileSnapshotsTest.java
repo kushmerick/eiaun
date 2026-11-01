@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -56,6 +57,31 @@ class FileSnapshotsTest {
     void canGetId() {
         this.snapshots.next(noop(), noop(), noop(), noop());
         assertEquals(0, this.snapshots.getId());
+        this.snapshots.next(noop(), noop(), noop(), noop());
+        assertEquals(1, this.snapshots.getId());
+    }
+
+    @Test
+    void canNext() {
+        this.snapshots.next(noop(), noop(), noop(), noop());
+        assertEquals(0, this.snapshots.getId());
+    }
+
+    @Test
+    void canBump() {
+        this.snapshots.bump(5, noop(), noop(), noop(), noop());
+        assertEquals(4, this.snapshots.getId());
+    }
+
+    @Test
+    void canSnap() {
+        this.snapshots.snap(10, noop(), noop(), noop(), noop());
+        assertEquals(10, this.snapshots.getId());
+    }
+
+    @Test
+    void canNotGetIdBeforeLoadingFirstSnapshot() {
+        assertThrows(RuntimeException.class, () -> this.snapshots.getId());
     }
 
     @Test
@@ -75,15 +101,37 @@ class FileSnapshotsTest {
 
     @Test
     void canBumpAndGetSubstanceChanges() {
-        this.snapshots.bump(2, noop(), noop(), noop(), noop());
+        // the third snapshot destroys Hydrogen @ (215, 370)
+        this.snapshots.bump(3, noop(), noop(), noop(), noop());
         List<Change<String, Substance>> changes = this.snapshots.getSubstanceChanges();
         assertEquals(1, changes.size());
         assertEquals(
-                Change.<String, Substance>destroy("Hydrogen", Location.of(215,370)),
+                Change.<String, Substance>destroy("Hydrogen", Location.of(215, 370)),
                 changes.getFirst());
     }
 
-    @Disabled // fails because changes are incorrectly rejected
+    @Disabled // TODO fails because changes are incorrectly rejected
+    @Test
+    void canLoadFullOrganismsSnapshot() {
+        // the 99'th snapshot has a full dump, which differs from the start by
+        // (among other things) organism 4526 moving from (1, 409) to (1, 412)
+        assertEquals(4526, this.snapshots.getOrganisms().get(1, 409).getId());
+        this.snapshots.snap(99, noop(), noop(), noop(), noop());
+        assertEquals(4526, this.snapshots.getOrganisms().get(1, 412).getId());
+    }
+
+    @Disabled // TODO fails because changes are incorrectly rejected
+    @Test
+    void canLoadFullSubstancesSnapshot() {
+        // the 99'th snapshot has a full dump, which differs from the start by
+        // (among other things) th Oxygen at (0,318) getting metabolized
+        // to Potassium.
+        assertEquals("Oxygen", this.snapshots.getSubstances().get(0, 318).getId());
+        this.snapshots.snap(99, noop(), noop(), noop(), noop());
+        assertEquals("Potassium", this.snapshots.getSubstances().get(0, 318).getId());
+    }
+
+    @Disabled // TODO fails because changes are incorrectly rejected
     @Test
     void callbacksAreInvoked() {
         // TODO: Make this comre comprehensive: all four callbacks not just one!

@@ -41,7 +41,7 @@ public interface Snapshots {
             BiConsumer<Location, Substance> substanceCreatedCallback,
             BiConsumer<Location, Substance> substanceDestroyedCallback
     ) {
-        return bump(0,
+        return bump(1,
                 organismCreatedCallback,
                 organismDestroyedCallback,
                 substanceCreatedCallback,

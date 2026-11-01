@@ -156,7 +156,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             BiConsumer<Location, Substance> substanceCreatedCallback,
             BiConsumer<Location, Substance> substanceDestroyedCallback
     ) {
-        return snap(this.nextSnapshotId + delta,
+        return snap(this.nextSnapshotId - 1 + delta,
                 organismCreatedCallback,
                 organismDestroyedCallback,
                 substanceCreatedCallback,
@@ -181,7 +181,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         this.nextSnapshotId = id + 1;
         this.snapshot = snapshot;
         List<String> dirt = new ArrayList<>();
-        this.fullDumpReader.maybeGetOrganisms(snapshot).ifPresentOrElse(
+        this.fullDumpReader.maybeGetOrganisms(this.snapshot).ifPresentOrElse(
                 // TODO: Loading the full dumps and then building this new index are very slow. If we ever
                 // TODO: get to the point of fully trusting ChangeApplier to perfectly track the organisms
                 // TODO: and substances, then we could speed things a lot up by ignoring the full dumps!
@@ -205,7 +205,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                             this.organismIndex.remove(organism.getId());
                             organismDestroyedCallback.accept(location, organism);
                         }));
-        this.fullDumpReader.maybeGetSubstances(snapshot).ifPresentOrElse(
+        this.fullDumpReader.maybeGetSubstances(this.snapshot).ifPresentOrElse(
                 // TODO: Ditto - Eventually ignore full dumps?
                 substances -> {
                     // sanity check: ensure the current substances are correct
