@@ -225,7 +225,7 @@ public class HomeView extends VerticalLayout {
                     this.atlas::addSubstance,
                     this.atlas::removeSubstance);
             if (!result.found()) {
-                Notification.show("Can't go " + (delta >= 0 ? "forwards" : "backwards") + ".");
+                Notification.show("Can't go " + (delta >= 0 ? "for" : "back") + "wards.");
                 success[0] = false;
                 return;
             }

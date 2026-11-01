@@ -33,18 +33,13 @@ public class FileSnapshotRecorderTest {
     }
 
     @Test
-    void canFormatSnapshotPath() {
-        Path recording = Path.of("recordings/2026-01-02-03/2026-01-02-03-04/2026-01-02-03-04-05-678");
-        long id = 90012345;
-        assertEquals(
-                recording.resolve(
-                        SNAPSHOTS,
-                        "000",
-                        "000000",
-                        "000000090",
-                        "000000090012",
-                        "000000090012345"),
-                FileSnapshotRecorder.makeSnapshotPath(recording, id));
+    void canFormatYMDHMTimestamp() {
+        String formattedTimestamp = "2026-01-02-03-04-05-678";
+        long timestamp = LocalDateTime.parse(formattedTimestamp, YMDHMSS)
+                .atZone(ZoneOffset.UTC)
+                .toInstant()
+                .toEpochMilli();
+        assertEquals("2026-01-02-03-04", FileSnapshotRecorder.formatYMDHM(timestamp));
     }
 
 }
