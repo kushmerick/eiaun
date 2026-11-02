@@ -1,3 +1,5 @@
+# Ack: ChatGPT :-( :-)
+
 # Reduce each entry to just its id, e.g. {"k":"M","j":"{\"id\":40582,...}"} -> 40582
 # If the entry has no parseable j/id, it becomes the marker string "<no id>".
 def ids:

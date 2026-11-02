@@ -1,3 +1,5 @@
+# Ack: ChatGPT :-( :-)
+
 # Sort keys numerically when possible, otherwise as strings
 def sk: map(tonumber? // .);
 
