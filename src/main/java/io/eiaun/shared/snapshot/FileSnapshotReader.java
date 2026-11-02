@@ -231,13 +231,16 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                 recording);
                         log.info("Config - Organism density {}", snapshots.getConfig().getOrganismDensity());
                         log.info("Physics - Substances {}", snapshots.getPhysics().getSubstanceSpecs().size());
-                        log.info("Organisms: {}", snapshots.getOrganisms().firstIndices().size());
-                        log.info("Substances: {}", snapshots.getSubstances().firstIndices().size());
-                        boolean done;
-                        do {
-                            done = !snapshots.next(noop(), noop(), noop(), noop()).found();
-                            log.info("Snapshot {}", snapshots.getId());
-                        } while (!done);
+                        log.info("Organisms: {}", snapshots.getOrganisms().size());
+                        log.info("Substances: {}", snapshots.getSubstances().size());
+                        while (snapshots.next(noop(), noop(), noop(), noop()).found()) {
+                            log.info("Snapshot {} ({} organisms & {} changes, {} substances & {} changes)",
+                                    snapshots.getId(),
+                                    snapshots.getOrganisms().size(),
+                                    snapshots.getOrganismChanges().size(),
+                                    snapshots.getSubstances().size(),
+                                    snapshots.getSubstanceChanges().size());
+                        }
                     }
                 } catch (Exception failure) {
                     log.warn("Oops", failure);

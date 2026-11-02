@@ -29,8 +29,9 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         return new FileSnapshots(recording);
     }
 
-    // this is configurable from application.yaml, but we assume it is never
-    // changed, since this default is so effective.
+    // This is configurable from application.yaml, but we assume
+    // it is never changed, since this default is so effective.
+    // TODO: Add compression to representations.Config.
     private static final String COMPRESSION = ZSTANDARD;
 
     private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
@@ -43,7 +44,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     private final FullDumpReader fullDumpReader;
     private final ChangeApplier changeApplier;
 
-    private long nextSnapshotId = 0;  // alwaystracks  one ahead of snapshot
+    private long nextSnapshotId = 0;  // always tracks one ahead of snapshot
     private Path snapshot = null;     // always tracks one behind nextSnapshotId
     @Getter private TwoD<Organism> organisms = null;
     private Map<Long, Organism> organismIndex = null;
@@ -79,7 +80,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     @Override
     public long getId() {
         if (this.nextSnapshotId == 0) {
-            throw new IllegalStateException("No snapshots has been loaded");
+            throw new IllegalStateException("No current snapshot"); // call "next" etc first
         }
         return this.nextSnapshotId - 1;
     }
@@ -171,7 +172,8 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             BiConsumer<Location, Substance> substanceCreatedCallback,
             BiConsumer<Location, Substance> substanceDestroyedCallback
     ) {
-        // TODO: This is WRONG when id != this.snapshotId
+        // TODO: This is WRONG when id != this.snapshotId because the code below applies
+        // TODO: the changes to the wrong state.
         // TODO: We need to find the newest snapshot index K <= id that has a
         // TODO: full dump, then apply the changes from snapshots K+1, K+2, ..., id.
         Path snapshot = makeSnapshotPath(this.recording, id);
@@ -187,11 +189,17 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                 // TODO: and substances, then we could speed things a lot up by ignoring the full dumps!
                 organisms -> {
                     // sanity check: ensure the current organisms are correct
-                    String d = this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState);
-                    if (d != null) dirt.add(d);
+                    this.organisms.anyDiscrepancy(organisms, Organism::getId, Organism::getState)
+                            .ifPresent(dirt::add);
                     this.organisms = organisms;
                     this.organismIndex = makeIndex(organisms, Organism::getId);
                 },
+                // TODO: We only explicitly apply changes (hence only invoke the callbacks)
+                // TODO: when there is no full dump.  That means callers that need to receive
+                // TODO: callbacks for every snapshot will become incoherent.  Eg VIZ's atlas
+                // TODO: will display the wrong icons. The fix *might* be as simple as changing
+                // TODO: "ifPresentOrElse" above to "ifPresent" and then pulling this code out
+                // TODO: to run regardless of whether there was a full dump.
                 () -> this.changeApplier.changeOrganisms(
                         this.organisms,
                         Location.ORIGIN, // recorded changes are absolute not relative
@@ -209,10 +217,11 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                 // TODO: Ditto - Eventually ignore full dumps?
                 substances -> {
                     // sanity check: ensure the current substances are correct
-                    String d = this.substances.anyDiscrepancy(substances, Substance::getId);
-                    if (d != null) dirt.add(d);
+                    this.substances.anyDiscrepancy(substances, Substance::getId)
+                            .ifPresent(dirt::add);
                     this.substances = substances;
                 },
+                // TODO: Ditto - Move this code out from "ifPresentOrElse"?
                 () -> this.changeApplier.changeSubstances(
                         this.substances,
                         Location.ORIGIN, // recorded changes are absolute not relative

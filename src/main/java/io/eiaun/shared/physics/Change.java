@@ -4,12 +4,10 @@ import io.eiaun.shared.util.Generic;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.ToString;
 
 import java.util.Objects;
 import java.util.function.Function;
 
-@ToString // just for logging
 @Data
 @AllArgsConstructor
 public class Change<Id,Thing> {

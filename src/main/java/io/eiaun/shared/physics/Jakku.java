@@ -105,6 +105,11 @@ public class Jakku {
                 created++;
             }
         }
+        // write the recording preamble
+        Runnable preamble = this.snapshotRecorder.preamble(this);
+        if (preamble != null) { // null just means that snapshots are disabled
+            preamble.run();
+        }
     }
 
     public Map<String, Set<String>> getAllSubstanceProperties() {

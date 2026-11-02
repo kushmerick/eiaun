@@ -9,12 +9,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static io.eiaun.shared.testresources.TestRecordings.RECORDINGS;
+import static io.eiaun.shared.testresources.TestRecordings.RECORDING;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FileSnapshotReaderTest {
-
-    public static final Path RECORDINGS = Path.of("src/test/resources/test-recordings");
 
     @Test
     void canWatchRecordings() throws Exception {
@@ -27,7 +27,7 @@ class FileSnapshotReaderTest {
                     DirectoryWatcher.Listener.ifCreate(recordings::add))
             ) {
                 await().untilAsserted(() -> assertEquals(
-                        Set.of(RECORDINGS.resolve("2026-11-01-15/2026-11-01-15-12/2026-11-01-15-12-31-275")),
+                        Set.of(RECORDING),
                         recordings));
             }
         }

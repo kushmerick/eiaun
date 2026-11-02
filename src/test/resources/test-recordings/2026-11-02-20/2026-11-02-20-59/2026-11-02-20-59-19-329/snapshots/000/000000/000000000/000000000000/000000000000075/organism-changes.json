@@ -1,0 +1,1 @@
+[{"verb":"MOVE","original":90357,"replacement":90357,"from":{"lat":22,"lon":111},"to":{"lat":23,"lon":112}},{"verb":"UPDATE","to":{"lat":23,"lon":112},"state":{"k":"M","j":"{\"e\":4.0}"}}]

@@ -1,9 +1,11 @@
 package io.eiaun.shared.util;
 
+import com.vaadin.copilot.shaded.guava.base.Functions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,6 +49,26 @@ class TwoDTest {
         assertTrue(twod.contains(10, 20));
         twod.set(10, 20, null);
         assertFalse(twod.contains(10, 20));
+    }
+
+    @Test
+    void canDetectDiscrepancy() {
+        TwoD<Integer> twod1 = new TwoD<>();
+        twod1.set(10, 20, 30);
+        TwoD<Integer> twod2 = new TwoD<>();
+        twod2.set(10, 20, 40);
+        assertEquals(
+                "(10,20): 30/30 <> 40/40",
+                twod1.anyDiscrepancy(twod2, Functions.identity()).get());
+    }
+
+    @Test
+    void handlesNoDiscrepancy() {
+        TwoD<Integer> twod1 = new TwoD<>();
+        twod1.set(10, 20, 30);
+        TwoD<Integer> twod2 = new TwoD<>();
+        twod2.set(10, 20, 30);
+        assertFalse(twod1.anyDiscrepancy(twod2, Functions.identity()).isPresent());
     }
 
 }

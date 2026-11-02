@@ -5,10 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.lang3.function.TriConsumer;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -51,10 +48,6 @@ public class TwoD<Thing> {
         }
     }
 
-    public boolean isEmpty() {
-        return this.things.isEmpty();
-    }
-
     public void clear() {
         this.things.clear();
     }
@@ -76,15 +69,13 @@ public class TwoD<Thing> {
     }
 
     @SafeVarargs
-    public final String anyDiscrepancy(TwoD<Thing> that, Function<Thing,?>... getters) {
+    public final Optional<String> anyDiscrepancy(TwoD<Thing> that, Function<Thing,?>... getters) {
         // TODO: make this 2-pass approach more efficient
-        String discrepancy = anyDiscrepancy2(that, getters);
-        if (discrepancy != null) return discrepancy;
-        return that.anyDiscrepancy2(this, getters);
+        return this.anyDiscrepancy2(that, getters).or(() -> that.anyDiscrepancy2(this, getters));
     }
 
     @SafeVarargs
-    private String anyDiscrepancy2(TwoD<Thing> that, Function<Thing,?>... getters) {
+    private Optional<String> anyDiscrepancy2(TwoD<Thing> that, Function<Thing,?>... getters) {
         for (int i : this.firstIndices()) {
             for (int j : this.secondIndices(i)) {
                 Thing mine = this.get(i, j);
@@ -93,13 +84,20 @@ public class TwoD<Thing> {
                     Object m = mine == null ? null : getter.apply(mine);
                     Object y = yours == null ? null : getter.apply(yours);
                     if (!Objects.equals(m, y)) {
-                        return String.format("(%s,%s): %s/%s <> %s/%s", i, j, mine, m, yours, y);
+                        return Optional.of(String.format("(%s,%s): %s/%s <> %s/%s", i, j, mine, m, yours, y));
                     }
                 }
             }
         }
-        return null;
+        return Optional.empty();
     }
 
+    /**
+     * This is moderately expensive so don't use it for casual logging etc!
+     * @return the number of entries
+     */
+    public int size() {
+        return this.things.values().stream().mapToInt(Map::size).sum();
+    }
 
 }

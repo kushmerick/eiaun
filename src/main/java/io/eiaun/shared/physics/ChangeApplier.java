@@ -64,6 +64,7 @@ public class ChangeApplier {
 
     private <Thing, Id> boolean changeThings(
             String label,
+            // change location are relative to this location
             Location location,
             List<Change<Id,Thing>> changes,
             TwoD<Thing> things,
@@ -124,15 +125,21 @@ public class ChangeApplier {
                     modified = true;
                 }
             } else if (change.isUpdate()) {
-                Location to = location.add(change.getTo(), this.grid);
-                int lat = to.getLat();
-                int lon = to.getLon();
-                Thing thing = things.get(lat, lon);
-                if (thing == null || stateUpdater == null) {
-                    // updated thing does not exist, or does not have updatable state
+                if (stateUpdater == null) {
+                    // thing does not have updatable state
                     rejected = true;
                 } else {
-                    stateUpdater.accept(thing, change.getState());
+                    Location to = location.add(change.getTo(), this.grid);
+                    int lat = to.getLat();
+                    int lon = to.getLon();
+                    Thing thing = things.get(lat, lon);
+                    Generic state = change.getState();
+                    if (thing == null || state == null) {
+                        // updated thing does not exist, or new state is invalid
+                        rejected = true;
+                    } else {
+                        stateUpdater.accept(thing, state);
+                    }
                 }
             } else {
                 log.warn("Gibberish change: {}", change);

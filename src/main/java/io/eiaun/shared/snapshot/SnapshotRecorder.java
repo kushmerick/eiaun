@@ -12,17 +12,26 @@ import java.util.List;
 public interface SnapshotRecorder {
 
     /**
+     * Record the preamble -- ie Config, Physics, full dumps.
+     * @param jakku Jakku
+     * @return A Runnable to do the actual recording (or nuill if recording is disabled).
+     * The caller must invoke this Runnable! The intent is that the caller can schedule
+     * this heavy lifting on another thread if desired.
+     */
+    Runnable preamble(Jakku jakku);
+
+    /**
      * Record a snapshot.
      * @param jakku Jakku
      * @param changeOffset The location to which "___Changes" locations are relative.
      * @param organismChanges Organism changes.
      * @param substanceChanges Substance changes.
-     * @return A pair comprising a snapshot id, and a runnable.  The id uniquely
-     * identifies this specific snapshot. When invoked, the runnable actually
-     * writes the snapshot. This runnable is returned because implementations
-     * typically write to some slow backing store, so the caller can schedule that
-     * heavy lifting however it likes (eg by submitting it to an ExecutorService),
-     * rather than complicating implementations with such details.
+     * @return A pair comprising a snapshot id, and a runnable (or null if recording
+     * is disabled). The id uniquely identifies this specific snapshot. When invoked,
+     * the runnable actually writes the snapshot. This runnable is returned because
+     * implementations typically write to some slow backing store, so the caller can
+     * schedule that heavy lifting however it likes (eg by submitting it to an
+     * ExecutorService), rather than complicating implementations with such details.
      */
     Pair<String, Runnable> record(
             Jakku jakku,

@@ -34,13 +34,19 @@ import java.util.function.Function;
 
 import static io.eiaun.shared.organisms.Organism.ORGANISM_KINDS;
 
+// TODO: Organism full dumps consist mainly of their genomes serialized as long JSON strings.
+// TODO: But they don't change (all changes are reflected in the state). So we could instead
+// TODO: serialize organism genomes only when they are born (ie, for the initial full dump,
+// TODO: and for every CREATE change).  This would make full dumps much smaller, at the cost
+// TODO: of some extra complexity and new organism-genome files. On the other hand, we take
+// TODO: full dumps for just 1% of the steps, so maybe it is not worth it?
+
 @Slf4j
 public class FileSnapshotRecorder extends FileSnapshotManipulator implements SnapshotRecorder {
 
     private final boolean enabled;
     private final Path recording;
     private long snapshotCounter;
-    private boolean wrotePreamble = false;
     private final String compression;
     private final int dumpInterval;
 
@@ -83,56 +89,66 @@ public class FileSnapshotRecorder extends FileSnapshotManipulator implements Sna
             log.trace("Snapshots disabled");
             return null;
         }
-        List<Runnable> fileWrites = new ArrayList<>();
-        if (!this.wrotePreamble) {
-            fileWrites.add(() -> writePreamble(jakku, this.recording));
-            this.wrotePreamble = true;
-        }
+        List<Runnable> writes = new ArrayList<>(3);
         long snapshotId = this.snapshotCounter++;
         // take a full dump every `dumpInterval` snapshots
         boolean dump = (snapshotId % this.dumpInterval) == (this.dumpInterval - 1);
         Path snapshotPath = makeSnapshotPath(this.recording, snapshotId);
         if (dump) {
-            fileWrites.add(() -> writeOrganisms(jakku.getOrganisms(), snapshotPath));
-            fileWrites.add(() -> writeSubstances(jakku.getSubstances(), snapshotPath));
+            writes.add(writeFullDump(jakku, snapshotPath));
         } else {
             log.trace("Skipping full dump for {}", snapshotPath);
         }
         int grid = jakku.getGrid();
-        fileWrites.add(() -> writeOrganismChanges(organismChanges, offset, grid, snapshotPath));
-        fileWrites.add(() -> writeSubstanceChanges(substanceChanges, offset, grid, snapshotPath));
+        writes.add(() -> writeOrganismChanges(organismChanges, offset, grid, snapshotPath));
+        writes.add(() -> writeSubstanceChanges(substanceChanges, offset, grid, snapshotPath));
         return Pair.of(
                 snapshotPath.toString(),
-                () -> fileWrites.forEach(Runnable::run));
+                () -> writes.forEach(Runnable::run));
     }
 
-    private void writePreamble(
-            Jakku jakku,
-            Path path
-    ) {
-        write(JSON.toJson(Physics.from(jakku)),
-                path.resolve(PHYSICS));
-        write(JSON.toJson(Config.from(jakku)),
-                path.resolve(CONFIG));
-        writeOrganisms(jakku.getOrganisms(), path);
-        writeSubstances(jakku.getSubstances(), path);
+    @Override
+    public Runnable preamble(Jakku jakku) {
+        if (!enabled) {
+            log.trace("Preamble disabled");
+            return null;
+        }
+        List<Runnable> writes = new ArrayList<>(3);
+        writes.add(() -> write(JSON.toJson(Physics.from(jakku)),
+                this.recording.resolve(PHYSICS)));
+        writes.add(() -> write(JSON.toJson(Config.from(jakku)),
+                this.recording.resolve(CONFIG)));
+        writes.add(writeFullDump(jakku, this.recording));
+        return () -> writes.forEach(Runnable::run);
+    }
+
+    private Runnable writeFullDump(Jakku jakku, Path snapshotPath) {
+        // note that we clone the organisms & substances here in the current thread,
+        // allowing Jakku to schedule the returned Runnable without a risk that some
+        // other change pollutes this snapshot.
+        Map<String, Map<String, Generic>> organisms = thingsAsMap(jakku.getOrganisms(), o -> Generic.encode(o, ORGANISM_KINDS));
+        Map<String, Map<String, String>> substances = thingsAsMap(jakku.getSubstances(), Substance::getId);
+        return () -> {
+            writeOrganisms(organisms, snapshotPath);
+            writeSubstances(substances, snapshotPath);
+        };
     }
 
     private void writeOrganisms(
-            TwoD<Organism> organisms,
+            Map<String, Map<String, Generic>> organisms,
             Path path
     ) {
         writeCompressed(
-                JSON.toJson(thingsAsMap(organisms, o -> Generic.encode(o, ORGANISM_KINDS))),
+                JSON.toJson(organisms),
                 path.resolve(ORGANISMS_DOT + this.compression));
     }
 
     private void writeSubstances(
-            TwoD<Substance> substances,
+            Map<String, Map<String, String>> substances,
             Path path
     ) {
         writeCompressed(
-                JSON.toJson(thingsAsMap(substances, Substance::getId)),
+                JSON.toJson(substances),
                 path.resolve(SUBSTANCES_DOT + this.compression));
     }
 
