@@ -61,16 +61,16 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
         SortedMap<Long, Path> expirationPaths = new ConcurrentSkipListMap<>();
         // path -> DW.register's closeable for that path
         Map<Path, AutoCloseable> pathCloseables = new ConcurrentHashMap<>();
-        // set of paths whose existing children have been enumerated
-        Set<Path> monitoredPaths = ConcurrentHashMap.newKeySet();
+        // set of registered paths whose existing children are still being enumerated
+        Set<Path> initializing = ConcurrentHashMap.newKeySet();
         DirectoryWatcher watcher = new DirectoryWatcher(this.executor);
         pathCloseables.put(
                 this.root,
                 Functionals.get("Adding a recordings watcher for root: " + this.root,
                         () -> watcher.register(
-                                this.root,
+                                markInitializing(this.root, initializing),
                                 FileSnapshotReader::isYMDH,
-                                makeListener(this.root, monitoredPaths, expirationPaths, pathCloseables,
+                                makeListener(this.root, initializing, expirationPaths, pathCloseables,
                                         ymdh -> {
                                             expirationPaths.put(
                                                     -getExpiration(ymdh, YMDH, YMDH_EXPIRATION),
@@ -79,9 +79,9 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                     ymdh,
                                                     Functionals.get("Adding a recordings watcher for YMDH: " + ymdh,
                                                             () -> watcher.register(
-                                                                    ymdh,
+                                                                    markInitializing(ymdh, initializing),
                                                                     FileSnapshotReader::isYMDHM,
-                                                                    makeListener(ymdh, monitoredPaths, expirationPaths, pathCloseables,
+                                                                    makeListener(ymdh, initializing, expirationPaths, pathCloseables,
                                                                             ymdhm -> {
                                                                                 expirationPaths.put(
                                                                                         -getExpiration(ymdhm, YMDHM, YMDHM_EXPIRATION),
@@ -90,14 +90,19 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                                                                         ymdhm,
                                                                                         Functionals.get("Adding a recordings watcher for YMDHM: " + ymdhm,
                                                                                                 () -> watcher.register(
-                                                                                                        ymdhm,
+                                                                                                        markInitializing(ymdhm, initializing),
                                                                                                         FileSnapshotReader::isYMDHMSS,
-                                                                                                        makeListener(ymdhm, monitoredPaths, expirationPaths, pathCloseables, listener))));
+                                                                                                        makeListener(ymdhm, initializing, expirationPaths, pathCloseables, listener))));
                                                                             }))));
                                         }))));
         List<AutoCloseable> closeables = new ArrayList<>(pathCloseables.values());
         closeables.add(watcher);
         return makeCloseable(closeables);
+    }
+
+    private Path markInitializing(Path path, Set<Path> initializing) {
+        initializing.add(path);
+        return path;
     }
 
     private long getExpiration(Path path, DateTimeFormatter format, long expirationMillis) {
@@ -106,14 +111,14 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
 
     private Listener makeListener(
             Path path,
-            Set<Path> monitoredPaths,
+            Set<Path> initializing,
             SortedMap<Long, Path> expirationPaths,
             Map<Path, AutoCloseable> pathCloseables,
             FailableConsumer<Path, Exception> ifCreate
     ) {
         return makeListener(
                 path,
-                monitoredPaths,
+                initializing,
                 expirationPaths,
                 pathCloseables,
                 Listener.ifCreate(ifCreate));
@@ -121,34 +126,37 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
 
     private Listener makeListener(
             Path path,
-            Set<Path> monitoredPaths,
+            Set<Path> initializing,
             SortedMap<Long, Path> expirationPaths,
             Map<Path, AutoCloseable> pathCloseables,
             Listener listener
     ) {
         return Listener.before(
-                () -> purgeExpiredPaths(monitoredPaths, expirationPaths, pathCloseables),
+                () -> purgeExpiredPaths(initializing, expirationPaths, pathCloseables),
                 Listener.ifMonitoring(
-                        () -> monitoredPaths.add(path),
+                        () -> initializing.remove(path),
                         listener));
     }
 
     // Stop monitoring paths that will never get more events.
-    // TODO 1: This is invoked only when events are received. Tidy on a schedule.
-    // TODO 2: Flip `monitoredPaths` to be "not yet monitored" so doesn't grow indefinitely.
+    // TODO: This is invoked only when events are received. Tidy on a schedule.
     private void purgeExpiredPaths(
-            Set<Path> monitoredPaths,
+            Set<Path> initializing,
             SortedMap<Long, Path> expirationPaths,
-            Map<Path, AutoCloseable> pathCloseables) {
+            Map<Path, AutoCloseable> pathCloseables
+    ) {
         try {
             boolean done = false;
             while (!done) {
-                log.trace("Purging: {} monitored paths, {} expiration paths, {} path closeables", monitoredPaths.size(), expirationPaths.size(), pathCloseables.size());
+                log.trace("Purging: still initializing {} paths, {} expiration paths, {} path closeables", initializing.size(), expirationPaths.size(), pathCloseables.size());
                 long negativeOldestTimestamp = expirationPaths.firstKey();
                 if (-negativeOldestTimestamp < System.currentTimeMillis()) {
                     Path path = expirationPaths.get(negativeOldestTimestamp);
                     if (path != null) { // guard against weird race condition?
-                        if (monitoredPaths.contains(path)) {
+                        if (initializing.contains(path)) {
+                            log.trace("Not purging {} because it is not yet being monitored", path);
+                            done = true;
+                        } else {
                             expirationPaths.remove(negativeOldestTimestamp);
                             AutoCloseable closeable = pathCloseables.remove(path);
                             if (closeable != null) { // guard against weird race condition?
@@ -158,9 +166,6 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                                     log.warn("Failure while purging {}", path, failure);
                                 }
                             }
-                        } else {
-                            log.trace("Not purging {} because it is not yet being monitored", path);
-                            done = true;
                         }
                     }
                 } else {
