@@ -5,18 +5,24 @@ import io.eiaun.shared.organisms.mover.MoverState;
 import io.eiaun.shared.physics.Change;
 import io.eiaun.shared.physics.Location;
 import io.eiaun.shared.physics.Substance;
+import io.eiaun.shared.physics.SubstanceFactory;
+import io.eiaun.shared.util.TwoD;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import static io.eiaun.shared.organisms.State.KIND_STATES;
+import static io.eiaun.shared.snapshot.FileSnapshots.COMPRESSION;
 import static io.eiaun.shared.testresources.TestRecordings.RECORDING;
+import static io.eiaun.shared.util.Functionals.noop;
+import static io.eiaun.shared.util.Functionals.rnoop;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -28,10 +34,6 @@ class FileSnapshotsTest {
     @BeforeEach
     void setUp() {
         this.snapshots = FileSnapshots.of(RECORDING);
-    }
-
-    private <Thing> BiConsumer<Location,Thing> noop() {
-        return (_, _) -> {};
     }
 
     @SuppressWarnings("unchecked")
@@ -56,57 +58,65 @@ class FileSnapshotsTest {
 
     @Test
     void canGetId() {
-        this.snapshots.bump(1, noop(), noop(), noop(), noop());
+        this.snapshots.bump(1, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(0, this.snapshots.getId());
-        this.snapshots.bump(1, noop(), noop(), noop(), noop());
+        this.snapshots.bump(1, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(1, this.snapshots.getId());
     }
 
     @Test
     void canNext() {
-        this.snapshots.bump(1, noop(), noop(), noop(), noop());
+        this.snapshots.bump(1, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(0, this.snapshots.getId());
     }
 
     @Test
     void canBump() {
-        this.snapshots.bump(5, noop(), noop(), noop(), noop());
+        this.snapshots.bump(5, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(4, this.snapshots.getId());
     }
 
     @Test
     void canSnap() {
-        this.snapshots.snap(10, noop(), noop(), noop(), noop());
+        this.snapshots.snap(10, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(10, this.snapshots.getId());
     }
 
     @Test
     void canSnapSeveral() {
-        this.snapshots.snap(10, noop(), noop(), noop(), noop());
+        this.snapshots.snap(10, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(10, this.snapshots.getId());
-        this.snapshots.snap(99, noop(), noop(), noop(), noop());
+        this.snapshots.snap(99, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(99, this.snapshots.getId());
-        this.snapshots.snap(5, noop(), noop(), noop(), noop());
+        this.snapshots.snap(5, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(5, this.snapshots.getId());
-        this.snapshots.snap(105, noop(), noop(), noop(), noop());
+        this.snapshots.snap(105, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(105, this.snapshots.getId());
     }
 
-    @Disabled
     @Test
     public void snappingBefore1stDumpReloadsPreambleDump() {
-        FullDumpReader fullDumpReader = mock(FullDumpReader.class);
-        when(fullDumpReader.maybeGetOrganisms(any(Path.class))).thenCallRealMethod();
-        when(fullDumpReader.maybeGetSubstances(any(Path.class))).thenCallRealMethod();
+        SubstanceFactory substanceFactory = new SubstanceFactory(
+                FileSnapshots.of(RECORDING).getPhysics().getSubstanceSpecs().values());
+        List<Path> mgoPaths = new ArrayList<>();
+        List<Path> mgsPaths = new ArrayList<>();
+        FullDumpReader fullDumpReader = new FullDumpReader(COMPRESSION, substanceFactory) {
+            @Override public Optional<TwoD<Organism>> maybeGetOrganisms(Path path) {
+                mgoPaths.add(path);
+                return super.maybeGetOrganisms(path);
+            }
+            @Override public Optional<TwoD<Substance>> maybeGetSubstances(Path path) {
+                mgsPaths.add(path);
+                return super.maybeGetSubstances(path);
+            }
+        };
         Snapshots snapshots = new FileSnapshots(RECORDING, _ -> fullDumpReader);
-        snapshots.snap(1, noop(), noop(), noop(), noop());
-        snapshots.snap(0, noop(), noop(), noop(), noop());
-        ArgumentCaptor<Path> oPathCaptor = ArgumentCaptor.forClass(Path.class);
-        ArgumentCaptor<Path> sPathCaptor = ArgumentCaptor.forClass(Path.class);
-        verify(fullDumpReader, times(1)).maybeGetOrganisms(oPathCaptor.capture());
-        assertEquals(List.of(), oPathCaptor.getAllValues());
-        verify(fullDumpReader, times(1)).maybeGetSubstances(sPathCaptor.capture());
-        assertEquals(List.of(), sPathCaptor.getAllValues());
+        snapshots.snap(1, rnoop(), noop(), noop(), noop(), noop());
+        assertEquals(mgoPaths, List.of(RECORDING));
+        assertEquals(mgoPaths, mgsPaths);
+        snapshots.snap(0, rnoop(), noop(), noop(), noop(), noop());
+        assertEquals(mgoPaths, List.of(RECORDING, RECORDING));
+        assertEquals(mgoPaths, mgsPaths);
     }
 
 
@@ -125,7 +135,7 @@ class FileSnapshotsTest {
         // $ F=$(grep -L -F '[]' src/test/resources/test-recordings/*/*/*/snapshots/*/*/*/*/*/organism-changes.json | sort | head -1); echo "$F"; cat "$F"
         // src/test/resources/test-recordings/2026-11-02-20/2026-11-02-20-59/2026-11-02-20-59-19-329/snapshots/000/000000/000000000/000000000000/000000000000000/organism-changes.json
         // [{"verb":"MOVE","original":42777,"replacement":42777,"from":{"lat":270,"lon":396},"to":{"lat":269,"lon":395}},{"verb":"UPDATE","to":{"lat":269,"lon":395},"state":{"k":"M","j":"{\"e\":4.0}"}}]
-        this.snapshots.bump(1, noop(), noop(), noop(), noop());
+        this.snapshots.bump(1, rnoop(), noop(), noop(), noop(), noop());
         List<Change<Long, Organism>> changes = this.snapshots.getOrganismChanges();
         assertEquals(2, changes.size());
         assertEquals(
@@ -141,7 +151,7 @@ class FileSnapshotsTest {
         // $ F=$(grep -L -F '[]' src/test/resources/test-recordings/*/*/*/snapshots/*/*/*/*/*/substance-changes.json | sort | head -1); echo "$F"; cat "$F"
         // src/test/resources/test-recordings/2026-11-02-20/2026-11-02-20-59/2026-11-02-20-59-19-329/snapshots/000/000000/000000000/000000000000/000000000000004/substance-changes.json
         // [{"verb":"DESTROY","original":"Oxygen","from":{"lat":89,"lon":399}},{"verb":"CREATE","to":{"lat":89,"lon":399},"baby":"Potassium"}]
-        this.snapshots.bump(5, noop(), noop(), noop(), noop());
+        this.snapshots.bump(5, rnoop(), noop(), noop(), noop(), noop());
         List<Change<String, Substance>> changes = this.snapshots.getSubstanceChanges();
         assertEquals(
                 Change.<String, Substance>destroy("Oxygen", Location.of(89, 399)),
@@ -162,7 +172,7 @@ class FileSnapshotsTest {
         //  "b": 87668
         // }
         assertFalse(this.snapshots.getOrganisms().contains(15, 169));
-        this.snapshots.snap(99, noop(), noop(), noop(), noop());
+        this.snapshots.snap(99, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(87668, this.snapshots.getOrganisms().get(15, 169).getId());
     }
 
@@ -178,12 +188,13 @@ class FileSnapshotsTest {
         //  "b": null
         // }
         assertEquals("Titanium", this.snapshots.getSubstances().get(49, 310).getId());
-        this.snapshots.snap(99, noop(), noop(), noop(), noop());
+        this.snapshots.snap(99, rnoop(), noop(), noop(), noop(), noop());
         assertNull(this.snapshots.getSubstances().get(49, 310));
     }
 
     @Test
     void callbacksAreInvoked() {
+        Runnable wipe = mock(Runnable.class);
         BiConsumer<Location, Organism> oc = mockcb();
         BiConsumer<Location, Organism> od = mockcb();
         BiConsumer<Location, Substance> sc = mockcb();
@@ -192,7 +203,7 @@ class FileSnapshotsTest {
         // $ F=$(grep -L -F '[]' src/test/resources/test-recordings/*/*/*/snapshots/*/*/*/*/*/organism-changes.json | sort | head -1); echo "$F"; cat "$F"
         // src/test/resources/test-recordings/2026-11-02-20/2026-11-02-20-59/2026-11-02-20-59-19-329/snapshots/000/000000/000000000/000000000000/000000000000000/organism-changes.json
         // [{"verb":"MOVE","original":42777,"replacement":42777,"from":{"lat":270,"lon":396},"to":{"lat":269,"lon":395}},{"verb":"UPDATE","to":{"lat":269,"lon":395},"state":{"k":"M","j":"{\"e\":4.0}"}}]%
-        this.snapshots.bump(1, oc, od, sc, sd);
+        this.snapshots.bump(1, wipe, oc, od, sc, sd);
         ArgumentCaptor<Organism> organism = ArgumentCaptor.forClass(Organism.class);
         verify(oc).accept(eq(Location.of(269,395)), organism.capture());
         assertEquals(42777L, organism.getValue().getId());
@@ -202,16 +213,18 @@ class FileSnapshotsTest {
         // F=$(grep -L -F '[]' src/test/resources/test-recordings/*/*/*/snapshots/*/*/*/*/*/substance-changes.json | sort | head -1); echo "$F"; cat "$F"
         // src/test/resources/test-recordings/2026-11-02-20/2026-11-02-20-59/2026-11-02-20-59-19-329/snapshots/000/000000/000000000/000000000000/000000000000004/substance-changes.json
         // [{"verb":"DESTROY","original":"Oxygen","from":{"lat":89,"lon":399}},{"verb":"CREATE","to":{"lat":89,"lon":399},"baby":"Potassium"}]
-        this.snapshots.bump(1, oc, od, sc, sd);
-        this.snapshots.bump(1, oc, od, sc, sd);
-        this.snapshots.bump(1, oc, od, sc, sd);
+        this.snapshots.bump(1, wipe, oc, od, sc, sd);
+        this.snapshots.bump(1, wipe,  oc, od, sc, sd);
+        this.snapshots.bump(1, wipe, oc, od, sc, sd);
         verifyNoInteractions(sc, sd);
-        this.snapshots.bump(1, oc, od, sc, sd);
+        this.snapshots.bump(1, wipe, oc, od, sc, sd);
         ArgumentCaptor<Substance> substance = ArgumentCaptor.forClass(Substance.class);
         verify(sc).accept(eq(Location.of(89,399)), substance.capture());
         assertEquals("Potassium", substance.getValue().getId());
         verify(sd).accept(eq(Location.of(89,399)), substance.capture());
         assertEquals("Oxygen", substance.getValue().getId());
+        // TODO: More tests where we do expect "wipe" callbacks
+        verifyNoInteractions(wipe);
     }
 
 }

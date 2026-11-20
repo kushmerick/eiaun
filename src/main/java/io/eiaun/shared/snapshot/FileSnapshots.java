@@ -32,7 +32,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     // This is configurable from application.yaml, but we assume
     // it is never changed, since this default is so effective.
     // TODO: Add compression to representations.Config.
-    private static final String COMPRESSION = ZSTANDARD;
+    public static final String COMPRESSION = ZSTANDARD;
 
     private static final TypeRef<List<Change<Long, Generic>>> ORGANISM_CHANGES_TYPE = new TypeRef<>() {};
     private static final TypeRef<List<Change<String, String>>> SUBSTANCE_CHANGES_TYPE = new TypeRef<>() {};
@@ -167,6 +167,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
     @Override
     public Result snap(
             long id,
+            Runnable wipeCallback,
             BiConsumer<Location, Organism> organismCreatedCallback,
             BiConsumer<Location, Organism> organismDestroyedCallback,
             BiConsumer<Location, Substance> substanceCreatedCallback,
@@ -231,6 +232,11 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             this.organisms = this.fullDumpReader.maybeGetOrganisms(loadFullDump).get();
             this.organismIndex = makeIndex(this.organisms, Organism::getId);
             this.substances = this.fullDumpReader.maybeGetSubstances(loadFullDump).get();
+            wipeCallback.run();
+            this.organisms.forEach(
+                    (lat, lon, organism) -> organismCreatedCallback.accept(Location.of(lat, lon), organism));
+            this.substances.forEach(
+                    (lat, lon, substance) -> substanceCreatedCallback.accept(Location.of(lat, lon), substance));
         }
         // apply changes for J = K+1, K+2, ..., id
         List<String> dirt = new ArrayList<>();

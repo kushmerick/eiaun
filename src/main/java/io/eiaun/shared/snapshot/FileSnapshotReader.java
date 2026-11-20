@@ -16,6 +16,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 
+import static io.eiaun.shared.util.Functionals.noop;
+import static io.eiaun.shared.util.Functionals.rnoop;
+
 @Slf4j
 public class FileSnapshotReader extends FileSnapshotManipulator implements SnapshotReader {
 
@@ -240,7 +243,7 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                         log.info("Substances: {}", snapshots.getSubstances().size());
                         while (true) {
                             long delta = snapshots.boundBump(1);
-                            if (delta == 0 && !snapshots.bump(delta, noop(), noop(), noop(), noop()).found()) {
+                            if (delta == 0 && !snapshots.bump(delta, rnoop(), noop(), noop(), noop(), noop()).found()) {
                                 break;
                             }
                             log.info("Snapshot {} ({} organisms & {} changes, {} substances & {} changes)",
@@ -265,10 +268,6 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                 snapshotsWatcher.cancel(true);
             }
         }
-    }
-
-    private static <Thing> BiConsumer<Location,Thing> noop() {
-        return (_, __) -> {};
     }
 
 }

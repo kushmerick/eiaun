@@ -221,6 +221,7 @@ public class Viz extends VerticalLayout {
             this.snapshotDetails.setVisible(false);
             Snapshots.Result result = this.snapshots.bump(
                     this.snapshots.boundBump(delta),
+                    this.atlas::wipe,
                     this.atlas::addOrganism,
                     this.atlas::removeOrganism,
                     this.atlas::addSubstance,

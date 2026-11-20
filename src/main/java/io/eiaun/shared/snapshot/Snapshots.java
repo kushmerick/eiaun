@@ -96,6 +96,7 @@ public interface Snapshots {
 
     default Result bump(
             long delta,
+            Runnable wipeCallback,
             BiConsumer<Location, Organism> organismCreatedCallback,
             BiConsumer<Location, Organism> organismDestroyedCallback,
             BiConsumer<Location, Substance> substanceCreatedCallback,
@@ -110,6 +111,7 @@ public interface Snapshots {
         }
         return snap(
                 Math.max(0, id + delta),
+                wipeCallback,
                 organismCreatedCallback,
                 organismDestroyedCallback,
                 substanceCreatedCallback,
@@ -118,6 +120,7 @@ public interface Snapshots {
 
     Result snap(
             long id,
+            Runnable wipeCallbackCallback,
             BiConsumer<Location, Organism> organismCreatedCallback,
             BiConsumer<Location, Organism> organismDestroyedCallback,
             BiConsumer<Location, Substance> substanceCreatedCallback,

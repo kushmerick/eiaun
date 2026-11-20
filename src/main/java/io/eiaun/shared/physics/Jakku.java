@@ -2,7 +2,6 @@ package io.eiaun.shared.physics;
 
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.snapshot.SnapshotRecorder;
-import io.eiaun.shared.util.Functionals;
 import io.eiaun.shared.util.TwoD;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,6 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static io.eiaun.shared.util.Functionals.noop;
 
 @Slf4j
 public class Jakku {
@@ -171,15 +172,15 @@ public class Jakku {
                                         location,
                                         changes.substanceChanges(),
                                         this.substanceFactory::make,
-                                        Functionals.noop(),
-                                        Functionals.noop());
+                                        noop(),
+                                        noop());
                                 if (this.changeApplier.changeOrganisms(
                                         this.organisms,
                                         location,
                                         changes.organismChanges(),
                                         this.organismIndex::get,
-                                        Functionals.noop(),
-                                        Functionals.noop())
+                                        noop(),
+                                        noop())
                                 ) {
                                     updateOrganismLocationsIterator();
                                 }

@@ -46,8 +46,9 @@ public class Atlas implements Supplier<Svg> {
         return this.atlas;
     }
 
-    public boolean isEmpty() {
-        return this.atlas.getSvgElements().isEmpty();
+    public void wipe() {
+        this.icons.values().forEach(this.atlas::remove);
+        this.icons.clear();
     }
 
     public void addOrganism(Location location, Organism organism) {

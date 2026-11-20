@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static io.eiaun.shared.util.Functionals.noop;
+import static io.eiaun.shared.util.Functionals.rnoop;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SnapshotsTest {
@@ -51,7 +53,14 @@ class SnapshotsTest {
         @Override public Config getConfig() {
             throw new NotImplementedException();
         }
-        @Override public Result snap(long id, BiConsumer<Location, Organism> organismCreatedCallback, BiConsumer<Location, Organism> organismDestroyedCallback, BiConsumer<Location, Substance> substanceCreatedCallback, BiConsumer<Location, Substance> substanceDestroyedCallback) {
+        @Override public Result snap(
+                long id,
+                Runnable wipeCallback,
+                BiConsumer<Location, Organism> organismCreatedCallback,
+                BiConsumer<Location, Organism> organismDestroyedCallback,
+                BiConsumer<Location, Substance> substanceCreatedCallback,
+                BiConsumer<Location, Substance> substanceDestroyedCallback
+        ) {
             this.snapProbe.accept(id);
             return Result.SUCCESS; // TODO: Is this a bad smell? Opportunity for more testing?
         }
@@ -73,10 +82,6 @@ class SnapshotsTest {
         @Override public long getCount() {
             return this.count;
         }
-    }
-
-    private <Thing> BiConsumer<Location,Thing> noop() {
-        return (_, _) -> {};
     }
 
     @ParameterizedTest
@@ -111,7 +116,7 @@ class SnapshotsTest {
         Long[] captured = { null };
         Consumer<Long> snapProbe = id -> captured[0] = id;
         Snapshots snapshots = new TestSnapshots(-1, 10, snapProbe);
-        snapshots.bump(2, noop(), noop(), noop(), noop());
+        snapshots.bump(2, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(2 - 1, captured[0]);
     }
 
@@ -120,7 +125,7 @@ class SnapshotsTest {
         Long[] captured = { null };
         Consumer<Long> snapProbe = id -> captured[0] = id;
         Snapshots snapshots = new TestSnapshots(3, 10, snapProbe);
-        snapshots.bump(2, noop(), noop(), noop(), noop());
+        snapshots.bump(2, rnoop(), noop(), noop(), noop(), noop());
         assertEquals(3 - 1 + 2, captured[0]);
     }
 

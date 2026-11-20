@@ -1,6 +1,7 @@
 package io.eiaun.shared.util;
 
 import com.vaadin.copilot.shaded.commons.lang3.function.FailableSupplier;
+import io.eiaun.shared.physics.Location;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.function.FailableCallable;
@@ -47,6 +48,10 @@ public class Functionals {
             log.warn("Failure while {}", message, failure);
             return () -> {};
         }
+    }
+
+    public static Runnable rnoop() {
+        return () -> {};
     }
 
     public static <T,U> BiConsumer<T,U> noop() {
