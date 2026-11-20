@@ -48,7 +48,7 @@ public class SubstanceFactory {
                 return singletonMake(spec);
             }
         }
-        throw new RuntimeException("Invalid atom abundance");
+        throw new RuntimeException("Invalid abundance");
     }
 
     public Substance make(String id) {
@@ -59,31 +59,13 @@ public class SubstanceFactory {
         return this.singletons.computeIfAbsent(spec.getId(), _ -> spec.make());
     }
 
-    // generate random atom specifications.  types follow a zipfian distribution
-
-    private static class SkipNullRepresenter extends Representer {
-
-        public SkipNullRepresenter(DumperOptions options) {
-            super(options);
-        }
-
-        @Override
-        protected NodeTuple representJavaBeanProperty(
-                Object javaBean,
-                Property property,
-                Object propertyValue,
-                Tag customTag
-        ) {
-            if (propertyValue == null) {
-                // omit null properties
-                return null;
-            }
-            return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
-        }
-
-    }
-
-    public static void main(String[] args) {
+    /**
+     * A little utility to generate random substance specifications, with abundances
+     * following a Zipfian distribution, printed as YAML to stdout in YAML that can
+     * be readily cut/paste into application.yaml.
+     * @param ignored ignored command-line arguments
+     */
+    public static void main(String[] ignored) {
         int nTypes = 30;
         int nProperties = nTypes / 3; // lots more types than properties to encourage collisions
         int nValues = nTypes / 10;    // way more types than values to really encourage collisions
@@ -97,7 +79,7 @@ public class SubstanceFactory {
         Map<String, List<String>> propertyValues = new HashMap<>();
         for (int i = 0; i < nProperties; i++) {
             String property = Stream
-                    .generate(() -> ATOM_PROPERTIES[random.nextInt(ATOM_PROPERTIES.length)])
+                    .generate(() -> SUBSTANCE_PROPERTIES[random.nextInt(SUBSTANCE_PROPERTIES.length)])
                     .filter(Predicate.not(propertyValues::containsKey)) // prevent duplicates
                     .findFirst()
                     .orElseThrow();
@@ -110,12 +92,11 @@ public class SubstanceFactory {
         List<SubstanceSpec> specs = new ArrayList<>();
         Set<String> ids = new HashSet<>();
         for  (int i = 0; i < nTypes; i++) {
-            String id = Stream
-                    .generate(() -> ATOM_TYPE_IDS[random.nextInt(ATOM_TYPE_IDS.length)])
+            ids.add(Stream
+                    .generate(() -> SUBSTANCE_IDS[random.nextInt(SUBSTANCE_IDS.length)])
                     .filter(id2 -> !ids.contains(id2)) // prevent duplicates
                     .findFirst()
-                    .orElseThrow();
-            ids.add(id);
+                    .orElseThrow());
         }
         for (String id: ids) {
             Map<String,String> properties = new HashMap<>();
@@ -140,7 +121,29 @@ public class SubstanceFactory {
         System.out.println(yaml.dump(specs));
     }
 
-    private static final String[] ATOM_TYPE_IDS = {
+    private static class SkipNullRepresenter extends Representer {
+
+        public SkipNullRepresenter(DumperOptions options) {
+            super(options);
+        }
+
+        @Override
+        protected NodeTuple representJavaBeanProperty(
+                Object javaBean,
+                Property property,
+                Object propertyValue,
+                Tag customTag
+        ) {
+            if (propertyValue == null) {
+                // omit null properties
+                return null;
+            }
+            return super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
+        }
+
+    }
+
+    private static final String[] SUBSTANCE_IDS = {
             "Hydrogen",
             "Helium",
             "Lithium",
@@ -261,7 +264,7 @@ public class SubstanceFactory {
             "Oganesson",
     };
 
-    private static final String[] ATOM_PROPERTIES = {
+    private static final String[] SUBSTANCE_PROPERTIES = {
             "AbsoluteMolarMass",
             "AcidityFunction",
             "Adhesion",

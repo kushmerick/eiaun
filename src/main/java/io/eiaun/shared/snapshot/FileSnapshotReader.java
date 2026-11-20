@@ -238,7 +238,11 @@ public class FileSnapshotReader extends FileSnapshotManipulator implements Snaps
                         log.info("Physics - Substances {}", snapshots.getPhysics().getSubstanceSpecs().size());
                         log.info("Organisms: {}", snapshots.getOrganisms().size());
                         log.info("Substances: {}", snapshots.getSubstances().size());
-                        while (snapshots.next(noop(), noop(), noop(), noop()).found()) {
+                        while (true) {
+                            long delta = snapshots.boundBump(1);
+                            if (delta == 0 && !snapshots.bump(delta, noop(), noop(), noop(), noop()).found()) {
+                                break;
+                            }
                             log.info("Snapshot {} ({} organisms & {} changes, {} substances & {} changes)",
                                     snapshots.getId(),
                                     snapshots.getOrganisms().size(),

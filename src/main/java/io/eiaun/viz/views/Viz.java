@@ -51,6 +51,7 @@ public class Viz extends VerticalLayout {
     private static final double LN_MIN_PLAY_SLEEP = Math.log(Duration.ofMillis(200).toMillis());
     private static final double LN_MAX_PLAY_SLEEP = Math.log(Duration.ofSeconds(3).toMillis());
     private static final int PLAY_SPEED_STEPS = 20;
+    private static final long HUGE = 100_000_000_000_000L;
 
     private final ExecutorService executor;
     private final SnapshotReader snapshotReader;
@@ -157,7 +158,7 @@ public class Viz extends VerticalLayout {
         this.pauseButton.addClickListener(e -> pause(e.getUI(), true));
         this.forwardButton.addClickListener(e -> notifyOnFailure(bumpIfPaused(+1, e.getUI()), "Can't go forward"));
         this.forward10Button.addClickListener(e -> notifyOnFailure(bumpIfPaused(+10, e.getUI()),  "Can't go so far forward"));
-        this.toEndButton.addClickListener(_ -> notifyOnFailure(false, "Not yet implemented!"));
+        this.toEndButton.addClickListener(_ -> notifyOnFailure(bumpIfPaused(HUGE, event.getUI()), "Can't go to the end"));
     }
 
     private void notifyOnFailure(boolean success, String message) {
@@ -205,7 +206,7 @@ public class Viz extends VerticalLayout {
         });
     }
 
-    private boolean bumpIfPaused(int delta, UI ui) {
+    private boolean bumpIfPaused(long delta, UI ui) {
         if (this.playing != null && !this.playing.isDone()) {
             // Don't bump while playing. Probably hard to address all race conditions. And
             // anyway, what's the point of bumping while playing? Instead, the user must pause.
@@ -214,11 +215,12 @@ public class Viz extends VerticalLayout {
         return bump(delta, ui);
     }
 
-    private boolean bump(int delta, UI ui) {
+    private boolean bump(long delta, UI ui) {
         boolean[] success = { true };
         ui.access(() -> {
             this.snapshotDetails.setVisible(false);
-            Snapshots.Result result = this.snapshots.bump(delta,
+            Snapshots.Result result = this.snapshots.bump(
+                    this.snapshots.boundBump(delta),
                     this.atlas::addOrganism,
                     this.atlas::removeOrganism,
                     this.atlas::addSubstance,
