@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 

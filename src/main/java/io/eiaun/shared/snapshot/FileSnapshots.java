@@ -200,13 +200,13 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         while (true) {
             log.info("Checking K = {}", K);
             if (K == -1 || K == currentSnapshotId) {
-                log.info("Done scanning because hit {} snapshot", K == 0 ? "first" : "current");
+                // cases 2, 3
+                log.info("Done scanning because hit {} snapshot", K == -1 ? "first" : "current");
                 if (K == -1 && haveSnapshot()) {
                     // case 3
                     log.info("Scanned back to the first snapshot, so loading preamble's full dump");
                     loadFullDump = this.recording;
                 }
-                // cases 2, 3
                 break;
             }
             // TODO: It is wasteful to sequentially scan for a full dump. Is there an optimization (eg binary search)?
@@ -218,14 +218,13 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             }
             K--;
         }
-        // load full dump (case 1)
         if (loadFullDump != null) {
             log.info("Loading full dumps from {}", loadFullDump);
             // TODO: Loading the full dumps and then building this new index are very slow. To support snapping
             // TODO: to an arbitrary snapshot, specifically backwards in time, this is unavoidable (!?). But for
-            // TODO: the happy path where we snap from one snapshot to the following, it is very heavy.  If we
-            // TODO: ever get to the point of fully trusting ChangeApplier to perfectly track the organisms and
-            // TODO: substances then we could speed things up a lot by ignoring these full dumps!
+            // TODO: the happy path where we snap from one snapshot to one of the next ~dozen or so, it is very
+            // TODO: heavy.  If we ever get to the point of fully trusting ChangeApplier to perfectly track the
+            // TODO: organisms and substances then we could speed things up a lot by ignoring these full dumps!
             this.organisms = this.fullDumpReader.maybeGetOrganisms(loadFullDump).get();
             this.organismIndex = makeIndex(this.organisms, Organism::getId);
             this.substances = this.fullDumpReader.maybeGetSubstances(loadFullDump).get();
@@ -242,6 +241,9 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         for (long J = start; J <= id; J++) {
             this.nextSnapshotId = J + 1;
             this.snapshot = makeSnapshotPath(this.recording, J);
+            /*
+            // TODO: The above logic ensures we never encounter a snapshot with a fulll dump,
+            // TODO: so this code never actually runs.  Remove it when we're sure.
             if (hasFullDump(this.snapshot)) {
                 // sanity checks: ensure the current organisms & substances are correct
                 // note that we actually ignore these full dumps
@@ -253,6 +255,7 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                         .flatMap(substances -> this.substances.anyDiscrepancy(substances, Substance::getId))
                         .ifPresent(dirt::add);
             }
+            */
             log.info("Applying changes from {}", this.snapshot);
             this.changeApplier.changeOrganisms(
                     this.organisms,
@@ -275,14 +278,11 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
                     substanceCreatedCallback,
                     substanceDestroyedCallback);
         }
-        // TODO: It is a little strange that we need these next two lines, because
-        // TODO: we set these inside the above `for` loop. They are needed in case
-        // TODO: the loop iterates zero times. Could this be simplified?
-        if (this.nextSnapshotId - 1 != id || !Objects.equals(this.snapshot, makeSnapshotPath(this.recording, id))) {
-            log.warn("INEXPLICABLY need to update nextSnapshotId to {} and snapshot to {}", id + 1, makeSnapshotPath(this.recording, id));
-            this.nextSnapshotId = id + 1;
-            this.snapshot = makeSnapshotPath(this.recording, id);
-        }
+        // It is a little strange that we need these next two lines, because we do this inside the above `for` loop.
+        // They are needed if the `for` loop never iterates -- ie we're snapping to a snapshot with a full dump.
+        // Most of the time these two lines are redundant, but that's fine.
+        this.nextSnapshotId = id + 1;
+        this.snapshot = makeSnapshotPath(this.recording, id);
         return dirt.isEmpty() ? Result.SUCCESS : Result.dirty(dirt);
     }
 

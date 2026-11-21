@@ -68,6 +68,8 @@ public class TwoD<Thing> {
         }
     }
 
+    // TODO: Currently not used, because FileSnapshots.snap is guaranteed to never apply changes
+    // TODO: from a snapshot that also has a full dump. Restore or remove.
     @SafeVarargs
     public final Optional<String> anyDiscrepancy(TwoD<Thing> that, Function<Thing,?>... getters) {
         // TODO: make this 2-pass approach more efficient

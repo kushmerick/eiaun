@@ -94,6 +94,30 @@ public interface Snapshots {
         }
     }
 
+    /**
+     * Bump to a snapshot relative to the current snapshot.
+     * @param delta The number of snapshots to bump, either forward (positive) or negative (backwards).  Note that
+     *              this must be a valid offset!  For example, if the current snapshot is the last one, then delta = 1
+     *              is invalid. Use {@link #boundBump(long)} to ensure the provided delta is valid. The behavior for
+     *              an invalid delta is not defined -- probably you'll get {@link Result#NOT_FOUND}
+     *              but callers should not rely on that behavior.
+     * @param wipeCallback Bumping to the requested snapshot may require discarding the current organisms and snapshots
+     *                     and loading a full dump.  This callback is invoked to notify the caller that this is
+     *                     happening, so that subsequent invocations of the other callbacks are interpreted correctly.
+     * @param organismCreatedCallback A callback that is invoked when a new organism is created as a result of bumping
+     *                                to the requested snapshot.  If an organism is modified, then the
+     *                                organismDestroyedCallback is invoked first, then this callback.
+     * @param organismDestroyedCallback A callback that is invoked when an existing organism is deleted as a result of
+     *                                 bumping to the requested snapshot.  If an organism is modified, then this
+     *                                  callback is invoked first, then organismCreatedCallback is invoked.
+     * @param substanceCreatedCallback Similar to organismCreatedCallback, but for substances (though note that
+     *                                 substances are immutable).
+     * @param substanceDestroyedCallback Similar to organismDestroyedCallback, but for substances (though note that
+     *                                   substances are immutable).
+     * @return a {@link Result} with {@link Result#found} == true if successful, possibly with {@link Result#dirt}
+     * describing discrepancies between (a) the tracked organisms and substances, and (b) a full dump that was
+     * encountered while bumping.
+     */
     default Result bump(
             long delta,
             Runnable wipeCallback,
