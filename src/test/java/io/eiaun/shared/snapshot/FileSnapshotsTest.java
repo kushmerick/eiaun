@@ -223,8 +223,16 @@ class FileSnapshotsTest {
         assertEquals("Potassium", substance.getValue().getId());
         verify(sd).accept(eq(Location.of(89,399)), substance.capture());
         assertEquals("Oxygen", substance.getValue().getId());
-        // TODO: More tests where we do expect "wipe" callbacks
         verifyNoInteractions(wipe);
+    }
+
+    @Test
+    void wipeCallbackIsInvoked() {
+        Runnable wipe = mock(Runnable.class);
+        this.snapshots.snap(1, wipe, noop(), noop(), noop(), noop());
+        verifyNoInteractions(wipe);
+        this.snapshots.snap(0, wipe, noop(), noop(), noop(), noop());
+        verify(wipe).run();
     }
 
 }

@@ -161,9 +161,6 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
         return index;
     }
 
-    // TODO: There MIGHT BE  bugs below:
-    // Repro: open VIZ, click "+1".  should not need to load full dumps (they are already loaded)!
-    // Click "+1" again.  applies #0's changes again (and rejects them)
     @Override
     public Result snap(
             long id,
@@ -226,9 +223,9 @@ public class FileSnapshots extends FileSnapshotManipulator implements Snapshots 
             log.info("Loading full dumps from {}", loadFullDump);
             // TODO: Loading the full dumps and then building this new index are very slow. To support snapping
             // TODO: to an arbitrary snapshot, specifically backwards in time, this is unavoidable (!?). But for
-            // TODO: where we just snap from one snapshot to the following, it is very heavy.  If we ever get to
-            // TODO: the point of fully trusting ChangeApplier to perfectly track the organisms and substances,
-            // TODO: then we could speed things up a lot by ignoring these full dumps!
+            // TODO: the happy path where we snap from one snapshot to the following, it is very heavy.  If we
+            // TODO: ever get to the point of fully trusting ChangeApplier to perfectly track the organisms and
+            // TODO: substances then we could speed things up a lot by ignoring these full dumps!
             this.organisms = this.fullDumpReader.maybeGetOrganisms(loadFullDump).get();
             this.organismIndex = makeIndex(this.organisms, Organism::getId);
             this.substances = this.fullDumpReader.maybeGetSubstances(loadFullDump).get();
