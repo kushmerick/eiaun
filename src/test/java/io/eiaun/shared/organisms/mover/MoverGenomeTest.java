@@ -2,7 +2,6 @@ package io.eiaun.shared.organisms.mover;
 
 import io.eiaun.shared.fakes.FakeOrganism;
 import io.eiaun.shared.fakes.FakeSubstanceFactory;
-import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.organisms.Organism;
 import io.eiaun.shared.physics.*;
 import io.eiaun.shared.util.Generic;
@@ -57,7 +56,6 @@ class MoverGenomeTest {
         MoverState state = new MoverState(1234);
         Organism self = FakeOrganism.make(jakku);
         Changes changes = genome.respond(
-                jakku,
                 state,
                 Collections.emptySet(),
                 Map.of(Location.ORIGIN, DESIRABLE_SUBSTANCE),
@@ -79,7 +77,6 @@ class MoverGenomeTest {
         MoverState state = new MoverState(MOVE_ENERGY - 1);
         Organism organism = FakeOrganism.make(null);
         Changes changes = genome.respond(
-                null,
                 state,
                 Collections.emptySet(),
                 Collections.emptyMap(),
@@ -99,7 +96,6 @@ class MoverGenomeTest {
         Location oneOne = Location.of(1, 1);
         Location oneTwo = Location.of(1, 2);
         Changes changes = genome.respond(
-                null,
                 state,
                 Set.of(oneTwo),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -120,7 +116,6 @@ class MoverGenomeTest {
         Organism neighbor = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Changes changes = genome.respond(
-                null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -139,7 +134,6 @@ class MoverGenomeTest {
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Changes changes = genome.respond(
-                null,
                 state,
                 Collections.emptySet(),
                 Map.of(oneOne, DESIRABLE_SUBSTANCE),
@@ -159,7 +153,6 @@ class MoverGenomeTest {
         Organism self = FakeOrganism.make(null);
         Location oneOne = Location.of(1, 1);
         Changes changes = genome.respond(
-                null,
                 state,
                 Set.of(oneOne),
                 Collections.emptyMap(),

@@ -1,5 +1,6 @@
 package io.eiaun.shared.organisms;
 
+import io.eiaun.shared.organisms.krayt.Krayt;
 import io.eiaun.shared.organisms.mover.Mover;
 import io.eiaun.shared.organisms.simple.SimpleOrganism;
 import io.eiaun.shared.physics.Changes;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 abstract public class Organism {
 
     public static final Map<String, Class<?>> KIND_ORGANISMS = Map.of(
+            "K", Krayt.class,
             "M", Mover.class,
             "S", SimpleOrganism.class
     );
@@ -39,12 +41,11 @@ abstract public class Organism {
     abstract public Genome getGenome();
 
     public Changes respond(
-            Jakku jakku,
             Set<Location> empties,
             Map<Location, Substance> substances,
             Map<Location,Organism> neighbors
     ) {
-        return getGenome().respond(jakku, getState(), empties, substances, neighbors);
+        return getGenome().respond(getState(), empties, substances, neighbors);
     }
 
     // just for logging

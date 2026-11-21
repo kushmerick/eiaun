@@ -324,7 +324,6 @@ class JakkuTest {
                 Change.update(Location.ORIGIN, Generic.encode(newState, State.STATE_KINDS)));
         Changes changes = new Changes(substanceChanges, organismChanges);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, 0),
                         Location.of(+1, -1),
@@ -379,7 +378,6 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -431,7 +429,6 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -481,7 +478,6 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -530,7 +526,6 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),
@@ -578,7 +573,6 @@ class JakkuTest {
         organisms.set(lat + 1, lon + 1, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, 0),
                         Location.of(+1, -1),
@@ -627,7 +621,6 @@ class JakkuTest {
         organisms.set(lat, lon, organism);
         jakku.resetOrganisms(organisms);
         when(organism.respond(
-                eq(jakku),
                 eq(Set.of(
                         Location.of(+1, +1),
                         Location.of(+1, 0),

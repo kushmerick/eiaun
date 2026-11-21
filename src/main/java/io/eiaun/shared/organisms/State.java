@@ -1,5 +1,6 @@
 package io.eiaun.shared.organisms;
 
+import io.eiaun.shared.organisms.krayt.KraytState;
 import io.eiaun.shared.organisms.mover.MoverState;
 import io.eiaun.shared.organisms.simple.SimpleState;
 
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 public abstract class State {
 
     public static final Map<String, Class<?>> KIND_STATES = Map.of(
+            "K", KraytState.class,
             "M", MoverState.class,
             "S", SimpleState.class
     );

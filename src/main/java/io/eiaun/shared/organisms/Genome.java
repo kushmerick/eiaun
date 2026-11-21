@@ -15,7 +15,6 @@ public abstract class Genome {
     public abstract double getVisionRadius();
 
     public abstract Changes respond(
-            Jakku jakku,
             State state,
             Set<Location> empty,
             Map<Location, Substance> substances,

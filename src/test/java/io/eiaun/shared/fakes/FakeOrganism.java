@@ -1,9 +1,9 @@
 package io.eiaun.shared.fakes;
 
 import io.eiaun.shared.organisms.Organism;
-import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.organisms.simple.SimpleGenome;
 import io.eiaun.shared.organisms.simple.SimpleOrganism;
+import io.eiaun.shared.physics.Changes;
 import io.eiaun.shared.physics.Jakku;
 
 import java.util.Map;
@@ -23,7 +23,7 @@ public interface FakeOrganism {
     static Organism make(Jakku jakku, Changes changes) {
         SimpleOrganism organism = (SimpleOrganism) make(jakku);
         organism.setGenome(mock(SimpleGenome.class));
-        when(organism.getGenome().respond(any(), any(), any(), any(), any()))
+        when(organism.getGenome().respond(any(), any(), any(), any()))
                 .thenReturn(changes);
         return organism;
     }

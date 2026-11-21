@@ -42,7 +42,6 @@ public class MoverGenome extends Genome {
 
     @Override
     public Changes respond(
-            Jakku jakku,
             State state,
             Set<Location> empties,
             Map<Location, Substance> substances,
