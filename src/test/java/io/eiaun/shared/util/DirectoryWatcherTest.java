@@ -95,7 +95,7 @@ class DirectoryWatcherTest {
     void canRunMain() throws InterruptedException {
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<?> future = executor.submit(() -> Functionals.run(() -> DirectoryWatcher.main(null)));
-            Thread.sleep(Duration.ofSeconds(1)); // ugh, yuck
+            Thread.sleep(Duration.ofSeconds(1)); // TODO: ugh, yuck
             future.cancel(true);
         }
     }

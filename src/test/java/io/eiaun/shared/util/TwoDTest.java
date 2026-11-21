@@ -71,4 +71,16 @@ class TwoDTest {
         assertFalse(twod1.anyDiscrepancy(twod2, Functions.identity()).isPresent());
     }
 
+    @Test
+    void canCalculateSize() {
+        TwoD<Integer> twod = new TwoD<>();
+        assertEquals(0, twod.size());
+        twod.set(10, 20, 30);
+        assertEquals(1, twod.size());
+        twod.set(10, 20, 40); // overwrite
+        twod.set(11, 21, 50);
+        twod.set(12, 22, 60);
+        assertEquals(3, twod.size());
+    }
+
 }

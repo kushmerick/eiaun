@@ -22,6 +22,15 @@ class SubstanceFactoryTest {
     }
 
     @Test
+    void abundancesAreValidated() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new SubstanceFactory(List.of(
+                        new SubstanceSpec("id1", Collections.emptyMap(), null, -1),
+                        new SubstanceSpec("id2", Collections.emptyMap(), null, 0.5))));
+    }
+
+    @Test
     void canMakeById() {
         SubstanceFactory substanceFactory = new SubstanceFactory(
                 List.of(new SubstanceSpec("id", Map.of("P", "V"), null, 1234)));

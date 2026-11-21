@@ -137,7 +137,7 @@ public class Config {
             @Value("${eiaun.control.snapshots.compression:" + ZSTANDARD + "}") String snapshotCompression
     ) {
         if (!SNAPSHOT_COMPRESSION.contains(snapshotCompression)) {
-            throw new IllegalArgumentException(String.format("`snapshot_compression` %s must be in %s",
+            throw new IllegalArgumentException(String.format("`snapshots.compression` %s not in %s",
                     snapshotCompression, SNAPSHOT_COMPRESSION));
         }
         log.info("Snapshot compression {}", snapshotCompression);

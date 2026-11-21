@@ -36,6 +36,9 @@ public class SubstanceFactory {
         }
         for (SubstanceSpec spec: this.substanceSpecs.values()) {
             spec.abundance /= sum;
+            if (spec.abundance < 0 || spec.abundance > 1) {
+                throw new IllegalArgumentException("Invalid abundance " + spec.abundance * sum + " for " + spec.getId() + " with sum " + sum);
+            }
         }
     }
 
@@ -48,7 +51,8 @@ public class SubstanceFactory {
                 return singletonMake(spec);
             }
         }
-        throw new RuntimeException("Invalid abundance");
+        // this never happens because abundances are validated in the constructor
+        throw new IllegalStateException("Invalid abundances");
     }
 
     public Substance make(String id) {
